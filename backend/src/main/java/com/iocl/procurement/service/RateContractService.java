@@ -1,0 +1,14 @@
+package com.iocl.procurement.service;
+
+import com.iocl.procurement.dto.request.RateContractRequest;
+import com.iocl.procurement.dto.response.RateContractResponse;
+import java.util.List;
+
+public interface RateContractService {
+
+    RateContractResponse createRateContract(RateContractRequest request);
+
+    List<RateContractResponse> getAllRateContracts();
+
+    RateContractResponse getRateContractById(Long id);
+}
