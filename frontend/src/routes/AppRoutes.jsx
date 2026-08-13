@@ -5,6 +5,7 @@ import { AdminDashboard } from '../pages/AdminDashboard';
 import { ProcurementRegister } from '../pages/procurement/ProcurementRegister';
 import { NewRateContract } from '../pages/procurement/NewRateContract';
 import { CallUpPO } from '../pages/procurement/CallUpPO';
+import { FullViewRecords } from '../pages/procurement/FullViewRecords';
 import { DashboardLayout } from '../components/layout/DashboardLayout';
 import { ProtectedRoute } from './ProtectedRoute';
 import { useAuth } from '../context/AuthContext';
@@ -33,6 +34,7 @@ export const AppRoutes = () => {
       >
         <Route index element={<Navigate to="/admin/dashboard" replace />} />
         <Route path="dashboard" element={<AdminDashboard />} />
+        <Route path="full-view" element={<FullViewRecords />} />
 
         {/* Procurement Register Module Routes */}
         <Route path="procurement" element={<ProcurementRegister />}>

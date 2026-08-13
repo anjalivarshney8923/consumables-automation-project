@@ -1,6 +1,6 @@
 /**
  * IOCL Consumables & Procurement Management System
- * Procurement Register API Service (Rate Contracts & Call-Up POs)
+ * Procurement Register API Service (Rate Contracts, Call-Up POs & Full View)
  */
 
 const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:8080';
@@ -12,6 +12,117 @@ const getAuthHeaders = () => {
     'Accept': 'application/json',
     ...(token ? { 'Authorization': `Bearer ${token}` } : {})
   };
+};
+
+/**
+ * Fetch Full View procurement records from PostgreSQL database via Spring Boot REST API.
+ *
+ * @param {object} params
+ * {
+ *   search?: string,
+ *   supplier?: string,
+ *   cartridge?: string,
+ *   status?: string,
+ *   fromDate?: string,
+ *   toDate?: string,
+ *   page?: number,
+ *   size?: number,
+ *   sort?: string
+ * }
+ * @returns {Promise<{ success: boolean, data?: object, message?: string, status?: number }>}
+ */
+export const getProcurementRecords = async (params = {}) => {
+  try {
+    const queryParams = new URLSearchParams();
+    if (params.search && params.search.trim()) {
+      queryParams.append('search', params.search.trim());
+    }
+    if (params.supplier && params.supplier.trim()) {
+      queryParams.append('supplier', params.supplier.trim());
+    }
+    if (params.cartridge && params.cartridge.trim()) {
+      queryParams.append('cartridge', params.cartridge.trim());
+    }
+    if (params.status && params.status.trim()) {
+      queryParams.append('status', params.status.trim());
+    }
+    if (params.fromDate) {
+      queryParams.append('fromDate', params.fromDate);
+    }
+    if (params.toDate) {
+      queryParams.append('toDate', params.toDate);
+    }
+    queryParams.append('page', params.page !== undefined ? params.page : 0);
+    queryParams.append('size', params.size !== undefined ? params.size : 10);
+    queryParams.append('sort', params.sort || 'contractDate,desc');
+
+    const queryString = queryParams.toString();
+    const url = `${API_BASE_URL}/api/procurement/full-view${queryString ? `?${queryString}` : ''}`;
+
+    const response = await fetch(url, {
+      method: 'GET',
+      headers: getAuthHeaders()
+    });
+
+    let data = null;
+    try {
+      data = await response.json();
+    } catch {
+      data = null;
+    }
+
+    if (response.ok && data) {
+      return {
+        success: true,
+        data: {
+          content: Array.isArray(data.content) ? data.content : [],
+          page: data.page || 0,
+          size: data.size || 10,
+          totalElements: data.totalElements || 0,
+          totalPages: data.totalPages || 0
+        }
+      };
+    }
+
+    const errorMsg = data?.message || data?.error || `Failed to load records (${response.status})`;
+    return { success: false, message: errorMsg, status: response.status };
+  } catch (err) {
+    return {
+      success: false,
+      message: 'Unable to connect to backend server. Please check your network connection.'
+    };
+  }
+};
+
+/**
+ * Fetch a single Full View procurement record by ID from PostgreSQL.
+ */
+export const getFullViewRecordById = async (id) => {
+  try {
+    const response = await fetch(`${API_BASE_URL}/api/procurement/full-view/${id}`, {
+      method: 'GET',
+      headers: getAuthHeaders()
+    });
+
+    let data = null;
+    try {
+      data = await response.json();
+    } catch {
+      data = null;
+    }
+
+    if (response.ok && data) {
+      return { success: true, data };
+    }
+
+    const errorMsg = data?.message || data?.error || `Procurement record not found (${response.status})`;
+    return { success: false, message: errorMsg, status: response.status };
+  } catch (err) {
+    return {
+      success: false,
+      message: 'Unable to connect to backend server.'
+    };
+  }
 };
 
 /**
@@ -108,7 +219,6 @@ export const createRateContract = async (payload) => {
       return { success: true, data };
     }
 
-    // Format validation errors if returned from GlobalExceptionHandler
     let errorMessage = data?.message || data?.error;
     if (data?.validationErrors && typeof data.validationErrors === 'object') {
       const fieldErrors = Object.values(data.validationErrors).join(', ');

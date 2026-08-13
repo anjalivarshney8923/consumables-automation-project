@@ -23,8 +23,7 @@ export const Sidebar = ({ isOpen, onClose }) => {
     {
       label: 'Full View of Record',
       path: '/admin/full-view',
-      icon: FileSpreadsheet,
-      badge: 'Soon'
+      icon: FileSpreadsheet
     },
     {
       label: 'Procurement Register Entry',
@@ -88,7 +87,7 @@ export const Sidebar = ({ isOpen, onClose }) => {
 
           {navItems.map((item) => {
             const Icon = item.icon;
-            const isImplemented = item.path === '/admin/dashboard' || item.path === '/admin/procurement';
+            const isImplemented = item.path === '/admin/dashboard' || item.path === '/admin/procurement' || item.path === '/admin/full-view';
             const isActive = isImplemented && (
               location.pathname === item.path || 
               (item.path !== '/admin/dashboard' && location.pathname.startsWith(item.path))
