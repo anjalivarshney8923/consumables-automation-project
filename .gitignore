@@ -1,0 +1,97 @@
+# ===================================================================
+# IOCL Consumables & Procurement Management System - .gitignore
+# ===================================================================
+
+# -------------------------------------------------------------------
+# Environment Variables & Secrets (CRITICAL: Do NOT commit!)
+# -------------------------------------------------------------------
+.env
+.env.*
+*.env
+**/.env
+**/.env.*
+!**/.env.example
+!.env.example
+
+# -------------------------------------------------------------------
+# Java & Maven Build Output
+# -------------------------------------------------------------------
+target/
+**/target/
+*.class
+*.jar
+*.war
+*.nar
+*.ear
+*.zip
+*.tar.gz
+*.rar
+pom.xml.tag
+pom.xml.releaseBackup
+pom.xml.versionsBackup
+pom.xml.next
+release.properties
+dependency-reduced-pom.xml
+buildNumber.properties
+.mvn/timing.properties
+.mvn/wrapper/maven-wrapper.jar
+
+# -------------------------------------------------------------------
+# Logs & Temporary Files
+# -------------------------------------------------------------------
+*.log
+**/*.log
+*.tmp
+*.bak
+*.swp
+
+# -------------------------------------------------------------------
+# IDE & Editor Files
+# -------------------------------------------------------------------
+.idea/
+**/.idea/
+.vscode/
+**/.vscode/
+*.iml
+**/*.iml
+.classpath
+.project
+.settings/
+**/.settings/
+bin/
+**/bin/
+
+# -------------------------------------------------------------------
+# Node.js & React Frontend Build Artifacts
+# -------------------------------------------------------------------
+node_modules/
+**/node_modules/
+dist/
+**/dist/
+build/
+**/build/
+.next/
+**/.next/
+out/
+**/out/
+.cache/
+**/.cache/
+.eslintcache
+.parcel-cache
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+coverage/
+**/coverage/
+
+# -------------------------------------------------------------------
+# OS-Specific Files
+# -------------------------------------------------------------------
+.DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+ehthumbs.db
+Thumbs.db
