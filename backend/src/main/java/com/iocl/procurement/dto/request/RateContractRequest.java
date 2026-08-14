@@ -30,6 +30,15 @@ public class RateContractRequest {
     public RateContractRequest() {
     }
 
+    public RateContractRequest(LocalDate contractDate, String supplierName, Long cartridgeId, BigDecimal ratePerUnit, BigDecimal taxPercentage, Integer totalContractQuantity) {
+        this.contractDate = contractDate;
+        this.supplierName = supplierName;
+        this.cartridgeId = cartridgeId;
+        this.ratePerUnit = ratePerUnit;
+        this.taxPercentage = taxPercentage;
+        this.totalContractQuantity = totalContractQuantity;
+    }
+
     public LocalDate getContractDate() {
         return contractDate;
     }

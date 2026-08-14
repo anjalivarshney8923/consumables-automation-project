@@ -26,6 +26,15 @@ public class CallUpPORequest {
     public CallUpPORequest() {
     }
 
+    public CallUpPORequest(String poNumber, LocalDate poDate, String supplierName, Long rateContractId, Integer quantity, String remarks) {
+        this.poNumber = poNumber;
+        this.poDate = poDate;
+        this.supplierName = supplierName;
+        this.rateContractId = rateContractId;
+        this.quantity = quantity;
+        this.remarks = remarks;
+    }
+
     public String getPoNumber() {
         return poNumber;
     }

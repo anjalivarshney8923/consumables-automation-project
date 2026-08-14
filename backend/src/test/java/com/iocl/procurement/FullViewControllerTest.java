@@ -48,6 +48,15 @@ class FullViewControllerTest {
     private RateContractRepository rateContractRepository;
 
     @Autowired
+    private com.iocl.procurement.repository.CallUpPurchaseOrderRepository callUpPORepository;
+
+    @Autowired
+    private com.iocl.procurement.repository.CartridgeThresholdRepository thresholdRepository;
+
+    @Autowired
+    private com.iocl.procurement.repository.ProcurementAlertRepository alertRepository;
+
+    @Autowired
     private PasswordEncoder passwordEncoder;
 
     private static final String TEST_EMAIL = "admin@iocl.co.in";
@@ -57,7 +66,10 @@ class FullViewControllerTest {
 
     @BeforeEach
     void setUp() throws Exception {
+        alertRepository.deleteAll();
+        callUpPORepository.deleteAll();
         rateContractRepository.deleteAll();
+        thresholdRepository.deleteAll();
         cartridgeRepository.deleteAll();
         adminRepository.deleteAll();
 

@@ -33,8 +33,7 @@ export const Sidebar = ({ isOpen, onClose }) => {
     {
       label: 'Setting Threshold Limits',
       path: '/admin/thresholds',
-      icon: Sliders,
-      badge: 'Soon'
+      icon: Sliders
     },
     {
       label: 'New Asset Addition',
@@ -87,7 +86,11 @@ export const Sidebar = ({ isOpen, onClose }) => {
 
           {navItems.map((item) => {
             const Icon = item.icon;
-            const isImplemented = item.path === '/admin/dashboard' || item.path === '/admin/procurement' || item.path === '/admin/full-view';
+            const isImplemented =
+              item.path === '/admin/dashboard' ||
+              item.path === '/admin/procurement' ||
+              item.path === '/admin/full-view' ||
+              item.path === '/admin/thresholds';
             const isActive = isImplemented && (
               location.pathname === item.path || 
               (item.path !== '/admin/dashboard' && location.pathname.startsWith(item.path))

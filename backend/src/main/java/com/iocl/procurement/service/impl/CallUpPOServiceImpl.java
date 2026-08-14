@@ -8,6 +8,7 @@ import com.iocl.procurement.exception.AppException;
 import com.iocl.procurement.exception.ResourceNotFoundException;
 import com.iocl.procurement.repository.CallUpPurchaseOrderRepository;
 import com.iocl.procurement.repository.RateContractRepository;
+import com.iocl.procurement.service.AlertEvaluationService;
 import com.iocl.procurement.service.CallUpPOService;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
@@ -21,13 +22,16 @@ public class CallUpPOServiceImpl implements CallUpPOService {
 
     private final CallUpPurchaseOrderRepository callUpPORepository;
     private final RateContractRepository rateContractRepository;
+    private final AlertEvaluationService alertEvaluationService;
 
     public CallUpPOServiceImpl(
             CallUpPurchaseOrderRepository callUpPORepository,
-            RateContractRepository rateContractRepository
+            RateContractRepository rateContractRepository,
+            AlertEvaluationService alertEvaluationService
     ) {
         this.callUpPORepository = callUpPORepository;
         this.rateContractRepository = rateContractRepository;
+        this.alertEvaluationService = alertEvaluationService;
     }
 
     @Override
@@ -72,7 +76,10 @@ public class CallUpPOServiceImpl implements CallUpPOService {
         // 5. Update Rate Contract quantity taken through WO & recalculate available quantity
         rateContract.setQuantityTakenThroughWO(rateContract.getQuantityTakenThroughWO() + requestedQty);
         rateContract.recalculateNetAvailableQuantity();
-        rateContractRepository.save(rateContract);
+        RateContract updatedRC = rateContractRepository.save(rateContract);
+
+        // 6. Evaluate procurement threshold alert for the cartridge
+        alertEvaluationService.evaluateProcurementThreshold(updatedRC.getCartridge());
 
         return new CallUpPOResponse(savedPO);
     }

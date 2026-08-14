@@ -15,4 +15,6 @@ public interface CartridgeRepository extends JpaRepository<Cartridge, Long> {
     boolean existsByPartNumberIgnoreCase(String partNumber);
 
     List<Cartridge> findByActiveTrueOrderByCartridgeNameAsc();
+
+    List<Cartridge> findAllByActiveTrueOrderByPrinterNameAsc();
 }

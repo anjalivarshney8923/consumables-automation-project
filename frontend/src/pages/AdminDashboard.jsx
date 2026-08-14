@@ -1,4 +1,5 @@
-import React from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
+import { Link } from 'react-router-dom';
 import {
   ShoppingBag,
   Boxes,
@@ -10,13 +11,39 @@ import {
   FileSpreadsheet,
   ArrowUpRight,
   ShieldCheck,
-  Calendar
+  Calendar,
+  RefreshCw,
+  CheckCircle2
 } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
+import { getUnreadAlerts, markAlertAsRead } from '../services/alertService';
 
 export const AdminDashboard = () => {
   const { adminUser } = useAuth();
   const adminName = adminUser?.name || 'IOCL Administrator';
+
+  const [activeAlerts, setActiveAlerts] = useState([]);
+  const [alertsLoading, setAlertsLoading] = useState(true);
+
+  const loadDashboardAlerts = useCallback(async () => {
+    setAlertsLoading(true);
+    const res = await getUnreadAlerts();
+    if (res.success && res.data) {
+      setActiveAlerts(res.data);
+    }
+    setAlertsLoading(false);
+  }, []);
+
+  useEffect(() => {
+    loadDashboardAlerts();
+  }, [loadDashboardAlerts]);
+
+  const handleDismissAlert = async (alertId) => {
+    const res = await markAlertAsRead(alertId);
+    if (res.success) {
+      setActiveAlerts((prev) => prev.filter((a) => a.id !== alertId));
+    }
+  };
 
   const todayDate = new Date().toLocaleDateString('en-IN', {
     weekday: 'long',
@@ -127,20 +154,129 @@ export const AdminDashboard = () => {
           <div className="section-header">
             <div className="section-title">
               <AlertTriangle size={18} color="var(--iocl-saffron)" />
-              <span>Threshold Alerts</span>
+              <span>Threshold Alerts (Alert 1)</span>
             </div>
-            <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>Real-time Monitoring</span>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+              <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>Real-time Monitoring</span>
+              <button
+                type="button"
+                onClick={loadDashboardAlerts}
+                style={{
+                  background: 'none',
+                  border: 'none',
+                  color: 'var(--iocl-navy)',
+                  cursor: 'pointer',
+                  padding: '2px',
+                  display: 'inline-flex'
+                }}
+                title="Refresh alerts"
+              >
+                <RefreshCw size={13} className={alertsLoading ? 'spin-icon' : ''} />
+              </button>
+            </div>
           </div>
           <div className="section-body">
-            <div className="empty-state-box">
-              <div className="empty-state-icon">
-                <AlertTriangle size={22} />
+            {alertsLoading ? (
+              <div style={{ padding: '2rem', textAlign: 'center', color: 'var(--text-muted)', fontSize: '0.8125rem' }}>
+                Checking threshold alerts from database...
               </div>
-              <h2 className="empty-state-title">No alerts</h2>
-              <p className="empty-state-desc">
-                No active threshold violations. Stock levels and procurement quotas are within standard operating parameters.
-              </p>
-            </div>
+            ) : activeAlerts.length === 0 ? (
+              <div className="empty-state-box">
+                <div className="empty-state-icon">
+                  <CheckCircle2 size={22} color="#16A34A" />
+                </div>
+                <h2 className="empty-state-title">No alerts</h2>
+                <p className="empty-state-desc">
+                  No active threshold violations. Rate contract availability and stock quotas are within configured operating parameters.
+                </p>
+              </div>
+            ) : (
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
+                {activeAlerts.map((alert) => (
+                  <div
+                    key={alert.id}
+                    style={{
+                      padding: '0.875rem 1rem',
+                      borderRadius: '8px',
+                      backgroundColor: '#FFFBF6',
+                      border: '1px solid #FED7AA',
+                      display: 'flex',
+                      flexDirection: 'column',
+                      gap: '0.5rem'
+                    }}
+                  >
+                    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                        <span
+                          style={{
+                            backgroundColor: '#FEE2E2',
+                            color: '#DC2626',
+                            fontSize: '0.6875rem',
+                            fontWeight: '700',
+                            padding: '0.125rem 0.5rem',
+                            borderRadius: '4px',
+                            textTransform: 'uppercase'
+                          }}
+                        >
+                          Low Availability
+                        </span>
+                        <strong style={{ fontSize: '0.875rem', color: '#1E293B' }}>
+                          {alert.cartridgeName}
+                        </strong>
+                        <span style={{ fontFamily: 'monospace', fontSize: '0.75rem', color: '#64748B' }}>
+                          ({alert.partNumber})
+                        </span>
+                      </div>
+
+                      <button
+                        type="button"
+                        onClick={() => handleDismissAlert(alert.id)}
+                        style={{
+                          fontSize: '0.6875rem',
+                          fontWeight: '600',
+                          color: '#475569',
+                          background: '#FFFFFF',
+                          border: '1px solid #CBD5E1',
+                          padding: '0.25rem 0.5rem',
+                          borderRadius: '4px',
+                          cursor: 'pointer'
+                        }}
+                      >
+                        Mark Read
+                      </button>
+                    </div>
+
+                    <p style={{ fontSize: '0.8125rem', color: '#334155', margin: 0 }}>
+                      {alert.message}
+                    </p>
+
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', fontSize: '0.75rem' }}>
+                      <div style={{ display: 'flex', gap: '0.75rem' }}>
+                        <span style={{ color: '#DC2626', fontWeight: '700' }}>
+                          Net Available in RC: {alert.netAvailableQuantity}
+                        </span>
+                        <span style={{ color: '#475569', fontWeight: '600' }}>
+                          PO Threshold: {alert.threshold}
+                        </span>
+                      </div>
+                      <Link
+                        to="/admin/thresholds"
+                        style={{
+                          color: 'var(--iocl-navy)',
+                          textDecoration: 'none',
+                          fontWeight: '600',
+                          display: 'inline-flex',
+                          alignItems: 'center',
+                          gap: '0.25rem'
+                        }}
+                      >
+                        Adjust Threshold &rarr;
+                      </Link>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
           </div>
         </div>
 

@@ -7,6 +7,7 @@ import com.iocl.procurement.entity.RateContract;
 import com.iocl.procurement.exception.ResourceNotFoundException;
 import com.iocl.procurement.repository.CartridgeRepository;
 import com.iocl.procurement.repository.RateContractRepository;
+import com.iocl.procurement.service.AlertEvaluationService;
 import com.iocl.procurement.service.RateContractService;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -19,13 +20,16 @@ public class RateContractServiceImpl implements RateContractService {
 
     private final RateContractRepository rateContractRepository;
     private final CartridgeRepository cartridgeRepository;
+    private final AlertEvaluationService alertEvaluationService;
 
     public RateContractServiceImpl(
             RateContractRepository rateContractRepository,
-            CartridgeRepository cartridgeRepository
+            CartridgeRepository cartridgeRepository,
+            AlertEvaluationService alertEvaluationService
     ) {
         this.rateContractRepository = rateContractRepository;
         this.cartridgeRepository = cartridgeRepository;
+        this.alertEvaluationService = alertEvaluationService;
     }
 
     @Override
@@ -48,6 +52,10 @@ public class RateContractServiceImpl implements RateContractService {
         rateContract.recalculateNetAvailableQuantity();
 
         RateContract saved = rateContractRepository.save(rateContract);
+
+        // Evaluate procurement threshold alert
+        alertEvaluationService.evaluateProcurementThreshold(cartridge);
+
         return new RateContractResponse(saved);
     }
 
