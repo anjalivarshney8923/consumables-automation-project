@@ -6,6 +6,7 @@ import com.iocl.procurement.repository.CartridgeThresholdRepository;
 import com.iocl.procurement.repository.ProcurementAlertRepository;
 import com.iocl.procurement.repository.RateContractRepository;
 import com.iocl.procurement.service.AlertEvaluationService;
+import com.iocl.procurement.service.EmailNotificationService;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
@@ -24,17 +25,20 @@ public class AlertEvaluationServiceImpl implements AlertEvaluationService {
     private final ProcurementAlertRepository alertRepository;
     private final RateContractRepository rateContractRepository;
     private final CartridgeRepository cartridgeRepository;
+    private final EmailNotificationService emailNotificationService;
 
     public AlertEvaluationServiceImpl(
             CartridgeThresholdRepository thresholdRepository,
             ProcurementAlertRepository alertRepository,
             RateContractRepository rateContractRepository,
-            CartridgeRepository cartridgeRepository
+            CartridgeRepository cartridgeRepository,
+            EmailNotificationService emailNotificationService
     ) {
         this.thresholdRepository = thresholdRepository;
         this.alertRepository = alertRepository;
         this.rateContractRepository = rateContractRepository;
         this.cartridgeRepository = cartridgeRepository;
+        this.emailNotificationService = emailNotificationService;
     }
 
     @Override
@@ -93,9 +97,12 @@ public class AlertEvaluationServiceImpl implements AlertEvaluationService {
                         totalNetAvailable,
                         poThreshold
                 );
-                alertRepository.save(newAlert);
+                ProcurementAlert savedAlert = alertRepository.save(newAlert);
                 logger.warn("Created new procurement alert for cartridge [{}]: netAvailable={}, threshold={}",
                         cartridge.getPartNumber(), totalNetAvailable, poThreshold);
+
+                // Trigger Alert 1 Email Notification to Administrator
+                emailNotificationService.sendProcurementAlertEmail(savedAlert, cartridge, totalNetAvailable, poThreshold);
             }
         } else {
             // Adequate quantity: if there was an active unread alert, resolve it

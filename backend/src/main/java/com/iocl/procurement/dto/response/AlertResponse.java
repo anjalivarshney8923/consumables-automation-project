@@ -20,6 +20,9 @@ public class AlertResponse {
     private AlertStatus status;
     private LocalDateTime createdAt;
     private LocalDateTime resolvedAt;
+    private Boolean emailSent;
+    private LocalDateTime emailSentAt;
+    private String emailFailureReason;
 
     public AlertResponse() {
     }
@@ -39,6 +42,9 @@ public class AlertResponse {
         this.status = alert.getStatus();
         this.createdAt = alert.getCreatedAt();
         this.resolvedAt = alert.getResolvedAt();
+        this.emailSent = alert.getEmailSent();
+        this.emailSentAt = alert.getEmailSentAt();
+        this.emailFailureReason = alert.getEmailFailureReason();
     }
 
     public Long getId() {
@@ -135,5 +141,29 @@ public class AlertResponse {
 
     public void setResolvedAt(LocalDateTime resolvedAt) {
         this.resolvedAt = resolvedAt;
+    }
+
+    public Boolean getEmailSent() {
+        return emailSent;
+    }
+
+    public void setEmailSent(Boolean emailSent) {
+        this.emailSent = emailSent;
+    }
+
+    public LocalDateTime getEmailSentAt() {
+        return emailSentAt;
+    }
+
+    public void setEmailSentAt(LocalDateTime emailSentAt) {
+        this.emailSentAt = emailSentAt;
+    }
+
+    public String getEmailFailureReason() {
+        return emailFailureReason;
+    }
+
+    public void setEmailFailureReason(String emailFailureReason) {
+        this.emailFailureReason = emailFailureReason;
     }
 }

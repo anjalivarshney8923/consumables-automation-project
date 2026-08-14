@@ -38,6 +38,15 @@ public class ProcurementAlert {
     @Column(name = "resolved_at")
     private LocalDateTime resolvedAt;
 
+    @Column(name = "email_sent", nullable = false)
+    private Boolean emailSent = false;
+
+    @Column(name = "email_sent_at")
+    private LocalDateTime emailSentAt;
+
+    @Column(name = "email_failure_reason", length = 500)
+    private String emailFailureReason;
+
     public ProcurementAlert() {
     }
 
@@ -125,5 +134,29 @@ public class ProcurementAlert {
 
     public void setResolvedAt(LocalDateTime resolvedAt) {
         this.resolvedAt = resolvedAt;
+    }
+
+    public Boolean getEmailSent() {
+        return emailSent;
+    }
+
+    public void setEmailSent(Boolean emailSent) {
+        this.emailSent = emailSent;
+    }
+
+    public LocalDateTime getEmailSentAt() {
+        return emailSentAt;
+    }
+
+    public void setEmailSentAt(LocalDateTime emailSentAt) {
+        this.emailSentAt = emailSentAt;
+    }
+
+    public String getEmailFailureReason() {
+        return emailFailureReason;
+    }
+
+    public void setEmailFailureReason(String emailFailureReason) {
+        this.emailFailureReason = emailFailureReason;
     }
 }
