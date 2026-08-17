@@ -50,8 +50,7 @@ export const Sidebar = ({ isOpen, onClose }) => {
     {
       label: 'Update / Change in Asset',
       path: '/admin/assets/update',
-      icon: Boxes,
-      badge: 'Soon'
+      icon: Boxes
     }
   ];
 
@@ -98,7 +97,8 @@ export const Sidebar = ({ isOpen, onClose }) => {
               item.path === '/admin/procurement' ||
               item.path === '/admin/full-view' ||
               item.path === '/admin/thresholds' ||
-              item.path === '/admin/assets/new';
+              item.path === '/admin/assets/new' ||
+              item.path === '/admin/assets/update';
             const isActive = isImplemented && (
               location.pathname === item.path || 
               (item.path !== '/admin/dashboard' && location.pathname.startsWith(item.path))

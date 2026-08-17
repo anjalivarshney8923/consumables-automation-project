@@ -9,6 +9,7 @@ import { FullViewRecords } from '../pages/procurement/FullViewRecords';
 import { ThresholdSettings } from '../pages/thresholds/ThresholdSettings';
 import { TenderingAlerts } from '../pages/alerts/TenderingAlerts';
 import { NewAssetAddition } from '../pages/assets/NewAssetAddition';
+import { UpdateAsset } from '../pages/assets/UpdateAsset';
 import { DashboardLayout } from '../components/layout/DashboardLayout';
 import { ProtectedRoute } from './ProtectedRoute';
 import { useAuth } from '../context/AuthContext';
@@ -41,6 +42,7 @@ export const AppRoutes = () => {
         <Route path="thresholds" element={<ThresholdSettings />} />
         <Route path="tendering-alerts" element={<TenderingAlerts />} />
         <Route path="assets/new" element={<NewAssetAddition />} />
+        <Route path="assets/update" element={<UpdateAsset />} />
 
         {/* Procurement Register Module Routes */}
         <Route path="procurement" element={<ProcurementRegister />}>

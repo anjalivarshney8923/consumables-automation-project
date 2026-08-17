@@ -108,6 +108,82 @@ public class AssetServiceImpl implements AssetService {
     }
 
     @Override
+    @Transactional
+    public AssetResponse updateAsset(Long id, AssetRequest request) {
+        if (id == null) {
+            throw new AppException("Asset ID cannot be null.", HttpStatus.BAD_REQUEST);
+        }
+        if (request == null) {
+            throw new AppException("Asset update request cannot be null.", HttpStatus.BAD_REQUEST);
+        }
+
+        Asset asset = assetRepository.findById(id)
+                .orElseThrow(() -> new ResourceNotFoundException("Asset not found with ID: " + id));
+
+        String modelName = request.getModelName() != null ? request.getModelName().trim() : "";
+        if (modelName.isEmpty()) {
+            throw new AppException("Model name is required.", HttpStatus.BAD_REQUEST);
+        }
+
+        String serialNumber = request.getSerialNumber() != null ? request.getSerialNumber().trim().toUpperCase() : "";
+        if (serialNumber.isEmpty()) {
+            throw new AppException("Serial number is required.", HttpStatus.BAD_REQUEST);
+        }
+
+        // Duplicate serial number check (excluding current asset ID)
+        if (assetRepository.existsBySerialNumberIgnoreCaseAndIdNot(serialNumber, id)) {
+            logger.warn("Duplicate serial number conflict on update: [{}] for asset ID: [{}]", serialNumber, id);
+            throw new AppException(
+                    "An asset with serial number " + serialNumber + " already exists.",
+                    HttpStatus.CONFLICT
+            );
+        }
+
+        String department = request.getDepartment() != null ? request.getDepartment().trim() : "";
+        if (department.isEmpty()) {
+            throw new AppException("Department / location is required.", HttpStatus.BAD_REQUEST);
+        }
+
+        String cartridgeInput = request.getCompatibleCartridge() != null ? request.getCompatibleCartridge().trim() : "";
+        if (cartridgeInput.isEmpty()) {
+            throw new AppException("Compatible cartridge is required.", HttpStatus.BAD_REQUEST);
+        }
+
+        Cartridge cartridge = resolveCartridge(cartridgeInput);
+
+        PrinterType printerType = PrinterType.fromString(request.getPrinterType());
+        if (printerType == null) {
+            throw new AppException(
+                    "Invalid printer type: '" + request.getPrinterType() + "'. Allowed values: BLACK_AND_WHITE, COLOR.",
+                    HttpStatus.BAD_REQUEST
+            );
+        }
+
+        AssetStatus status = AssetStatus.fromString(request.getStatus());
+        if (status == null) {
+            throw new AppException(
+                    "Invalid asset status: '" + request.getStatus() + "'. Allowed values: ACTIVE, INACTIVE, UNDER_MAINTENANCE.",
+                    HttpStatus.BAD_REQUEST
+            );
+        }
+
+        // Apply modifications (preserve ID and createdAt)
+        asset.setModelName(modelName);
+        asset.setSerialNumber(serialNumber);
+        asset.setDepartment(department);
+        asset.setCartridge(cartridge);
+        asset.setPrinterType(printerType);
+        asset.setStatus(status);
+        asset.setUpdatedAt(java.time.LocalDateTime.now());
+
+        Asset updatedAsset = assetRepository.save(asset);
+        logger.info("Successfully updated asset ID: [{}] with serial: [{}], department: [{}], status: [{}]",
+                updatedAsset.getId(), updatedAsset.getSerialNumber(), updatedAsset.getDepartment(), updatedAsset.getStatus());
+
+        return new AssetResponse(updatedAsset);
+    }
+
+    @Override
     public List<AssetResponse> getAllAssets(String search, String status) {
         AssetStatus statusEnum = null;
         if (status != null && !status.trim().isEmpty() && !status.equalsIgnoreCase("ALL")) {

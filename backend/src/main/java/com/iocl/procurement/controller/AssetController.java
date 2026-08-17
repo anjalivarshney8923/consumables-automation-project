@@ -40,4 +40,13 @@ public class AssetController {
         AssetResponse response = assetService.getAssetById(id);
         return ResponseEntity.ok(response);
     }
+
+    @PutMapping("/{id}")
+    public ResponseEntity<AssetResponse> updateAsset(
+            @PathVariable Long id,
+            @Valid @RequestBody AssetRequest request
+    ) {
+        AssetResponse response = assetService.updateAsset(id, request);
+        return ResponseEntity.ok(response);
+    }
 }

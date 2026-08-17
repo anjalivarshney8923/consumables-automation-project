@@ -17,6 +17,8 @@ public interface AssetRepository extends JpaRepository<Asset, Long> {
 
     boolean existsBySerialNumberIgnoreCase(String serialNumber);
 
+    boolean existsBySerialNumberIgnoreCaseAndIdNot(String serialNumber, Long id);
+
     List<Asset> findAllByOrderByCreatedAtDesc();
 
     List<Asset> findByDepartmentIgnoreCaseOrderByCreatedAtDesc(String department);

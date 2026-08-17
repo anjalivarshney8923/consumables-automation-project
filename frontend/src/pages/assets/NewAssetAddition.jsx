@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import {
   Printer,
   Hash,
@@ -14,9 +14,13 @@ import {
   Info,
   ShieldCheck,
   Palette,
-  FileCheck
+  FileCheck,
+  RefreshCw,
+  Loader2,
+  Database
 } from 'lucide-react';
-import { CARTRIDGE_OPTIONS } from '../../constants/cartridgeOptions';
+import { getActiveCartridges } from '../../services/cartridgeService';
+import { registerAsset } from '../../services/assetService';
 
 const DEPARTMENT_OPTIONS = [
   'IT Department',
@@ -45,6 +49,30 @@ export const NewAssetAddition = () => {
   const [errors, setErrors] = useState({});
   const [validatedAsset, setValidatedAsset] = useState(null);
   const [successMessage, setSuccessMessage] = useState(null);
+  const [apiError, setApiError] = useState(null);
+  const [isSubmitting, setIsSubmitting] = useState(false);
+
+  // Dynamic Cartridge Master Data State from PostgreSQL
+  const [cartridges, setCartridges] = useState([]);
+  const [cartridgesLoading, setCartridgesLoading] = useState(true);
+  const [cartridgesError, setCartridgesError] = useState(null);
+
+  // Load real cartridges from backend
+  const loadCartridgeMaster = useCallback(async () => {
+    setCartridgesLoading(true);
+    setCartridgesError(null);
+    const res = await getActiveCartridges();
+    if (res.success && res.data) {
+      setCartridges(res.data);
+    } else {
+      setCartridgesError(res.message || 'Failed to load cartridge master data.');
+    }
+    setCartridgesLoading(false);
+  }, []);
+
+  useEffect(() => {
+    loadCartridgeMaster();
+  }, [loadCartridgeMaster]);
 
   // Field change handler
   const handleInputChange = (field, value) => {
@@ -61,9 +89,12 @@ export const NewAssetAddition = () => {
       }));
     }
 
-    // Dismiss existing success banner if user edits
+    // Dismiss banners if user modifies form
     if (successMessage) {
       setSuccessMessage(null);
+    }
+    if (apiError) {
+      setApiError(null);
     }
   };
 
@@ -109,25 +140,45 @@ export const NewAssetAddition = () => {
     return Object.keys(newErrors).length === 0;
   };
 
-  // Submit Handler (Frontend Validation only)
-  const handleSubmit = (e) => {
+  // Submit Handler: Real HTTP POST to Spring Boot Backend
+  const handleSubmit = async (e) => {
     e.preventDefault();
+    setApiError(null);
 
-    if (validateForm()) {
-      const cleanData = {
-        modelName: formData.modelName.trim(),
-        serialNumber: formData.serialNumber.trim().toUpperCase(),
-        department: formData.department.trim(),
-        cartridgePartNumber: formData.cartridgePartNumber.trim(),
-        printerType: formData.printerType.trim(),
-        status: formData.status.trim(),
-        registeredAt: new Date().toISOString()
-      };
+    if (!validateForm()) {
+      return;
+    }
 
-      setValidatedAsset(cleanData);
-      setSuccessMessage('Asset details validated successfully.');
+    setIsSubmitting(true);
 
-      // Scroll top smoothly to reveal notification
+    const payload = {
+      modelName: formData.modelName.trim(),
+      serialNumber: formData.serialNumber.trim().toUpperCase(),
+      department: formData.department.trim(),
+      compatibleCartridge: formData.cartridgePartNumber.trim(),
+      printerType: formData.printerType === 'Color' ? 'COLOR' : 'BLACK_AND_WHITE',
+      status: formData.status.toUpperCase().replace(/ /g, '_')
+    };
+
+    const res = await registerAsset(payload);
+    setIsSubmitting(false);
+
+    if (res.success && res.data) {
+      setValidatedAsset(res.data);
+      setSuccessMessage('Asset registered successfully.');
+      setFormData(INITIAL_FORM_STATE);
+      setErrors({});
+      window.scrollTo({ top: 0, behavior: 'smooth' });
+    } else {
+      setApiError(res.message || 'Failed to register asset. Please try again.');
+      if (res.status === 409) {
+        setErrors((prev) => ({
+          ...prev,
+          serialNumber: `An asset with serial number "${payload.serialNumber}" already exists.`
+        }));
+      } else if (res.errors) {
+        setErrors(res.errors);
+      }
       window.scrollTo({ top: 0, behavior: 'smooth' });
     }
   };
@@ -138,6 +189,7 @@ export const NewAssetAddition = () => {
     setErrors({});
     setValidatedAsset(null);
     setSuccessMessage(null);
+    setApiError(null);
   };
 
   return (
@@ -181,7 +233,7 @@ export const NewAssetAddition = () => {
                 </span>
               </div>
               <p className="page-subtitle-text" style={{ marginTop: '0.25rem' }}>
-                Onboard a new printer asset into the fleet registry
+                Onboard a new printer asset into the central PostgreSQL fleet registry
               </p>
             </div>
           </div>
@@ -209,7 +261,7 @@ export const NewAssetAddition = () => {
         </div>
       </header>
 
-      {/* 2. Success Validation Notification Banner */}
+      {/* 2. Success Persistence Notification Banner */}
       {successMessage && validatedAsset && (
         <div
           className="mb-6"
@@ -240,11 +292,28 @@ export const NewAssetAddition = () => {
                 <CheckCircle2 size={22} />
               </div>
               <div>
-                <h3 style={{ fontSize: '1rem', fontWeight: '700', color: '#166534', margin: 0 }}>
-                  {successMessage}
-                </h3>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                  <h3 style={{ fontSize: '1rem', fontWeight: '700', color: '#166534', margin: 0 }}>
+                    {successMessage}
+                  </h3>
+                  {validatedAsset.id && (
+                    <span
+                      style={{
+                        fontSize: '0.75rem',
+                        backgroundColor: '#DCFCE7',
+                        color: '#15803D',
+                        fontWeight: '700',
+                        padding: '0.125rem 0.5rem',
+                        borderRadius: '4px',
+                        border: '1px solid #86EFAC'
+                      }}
+                    >
+                      Database ID #{validatedAsset.id}
+                    </span>
+                  )}
+                </div>
                 <p style={{ fontSize: '0.8125rem', color: '#15803D', marginTop: '0.25rem', marginBottom: '0.75rem' }}>
-                  All required printer asset specifications have been verified against frontend rules and are ready for fleet registry integration.
+                  The printer asset has been validated and permanently persisted in the PostgreSQL database.
                 </p>
 
                 {/* Validated Asset Summary Chips */}
@@ -259,10 +328,10 @@ export const NewAssetAddition = () => {
                     <strong>Dept:</strong> {validatedAsset.department}
                   </span>
                   <span style={{ fontSize: '0.75rem', fontWeight: '600', backgroundColor: '#FFFFFF', color: '#1E293B', padding: '0.25rem 0.625rem', borderRadius: '6px', border: '1px solid #DCFCE7' }}>
-                    <strong>Cartridge:</strong> {validatedAsset.cartridgePartNumber}
+                    <strong>Cartridge:</strong> {validatedAsset.cartridgeName || validatedAsset.cartridgePartNumber || validatedAsset.compatibleCartridge}
                   </span>
                   <span style={{ fontSize: '0.75rem', fontWeight: '600', backgroundColor: '#FFFFFF', color: '#1E293B', padding: '0.25rem 0.625rem', borderRadius: '6px', border: '1px solid #DCFCE7' }}>
-                    <strong>Type:</strong> {validatedAsset.printerType}
+                    <strong>Type:</strong> {validatedAsset.printerType === 'COLOR' ? 'Color' : 'Black & White'}
                   </span>
                   <span style={{ fontSize: '0.75rem', fontWeight: '700', backgroundColor: '#DCFCE7', color: '#166534', padding: '0.25rem 0.625rem', borderRadius: '6px', border: '1px solid #86EFAC' }}>
                     <strong>Status:</strong> {validatedAsset.status}
@@ -295,7 +364,32 @@ export const NewAssetAddition = () => {
         </div>
       )}
 
-      {/* 3. Main Form Card */}
+      {/* 3. Error Banner */}
+      {apiError && (
+        <div
+          className="mb-6"
+          style={{
+            backgroundColor: '#FEF2F2',
+            border: '1px solid #FCA5A5',
+            borderRadius: '12px',
+            padding: '1rem 1.25rem',
+            display: 'flex',
+            alignItems: 'center',
+            gap: '0.75rem',
+            boxShadow: '0 2px 4px rgba(220, 38, 38, 0.05)',
+            animation: 'fadeIn 0.2s ease-out'
+          }}
+        >
+          <AlertCircle size={20} color="#DC2626" style={{ flexShrink: 0 }} />
+          <div style={{ flex: 1 }}>
+            <span style={{ fontSize: '0.875rem', fontWeight: '600', color: '#991B1B' }}>
+              {apiError}
+            </span>
+          </div>
+        </div>
+      )}
+
+      {/* 4. Main Form Card */}
       <div
         className="form-card mb-6"
         style={{
@@ -375,6 +469,7 @@ export const NewAssetAddition = () => {
                   placeholder="e.g. HP LaserJet Pro M404n"
                   value={formData.modelName}
                   onChange={(e) => handleInputChange('modelName', e.target.value)}
+                  disabled={isSubmitting}
                   style={{
                     width: '100%',
                     height: '42px',
@@ -426,6 +521,7 @@ export const NewAssetAddition = () => {
                   placeholder="e.g. VNB3K12345"
                   value={formData.serialNumber}
                   onChange={(e) => handleInputChange('serialNumber', e.target.value)}
+                  disabled={isSubmitting}
                   style={{
                     width: '100%',
                     height: '42px',
@@ -476,6 +572,7 @@ export const NewAssetAddition = () => {
                   name="department"
                   value={formData.department}
                   onChange={(e) => handleInputChange('department', e.target.value)}
+                  disabled={isSubmitting}
                   style={{
                     width: '100%',
                     height: '42px',
@@ -506,32 +603,42 @@ export const NewAssetAddition = () => {
               )}
             </div>
 
-            {/* Field D: COMPATIBLE CARTRIDGE */}
+            {/* Field D: COMPATIBLE CARTRIDGE (Loaded dynamically from PostgreSQL) */}
             <div className="form-group">
-              <label
-                htmlFor="cartridgePartNumber"
-                style={{
-                  display: 'flex',
-                  alignItems: 'center',
-                  gap: '0.375rem',
-                  fontSize: '0.8125rem',
-                  fontWeight: '700',
-                  color: 'var(--iocl-navy)',
-                  marginBottom: '0.375rem',
-                  letterSpacing: '0.02em',
-                  textTransform: 'uppercase'
-                }}
-              >
-                <Layers size={15} color="#64748B" />
-                <span>COMPATIBLE CARTRIDGE</span>
-                <span style={{ color: '#DC2626' }}>*</span>
-              </label>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.375rem' }}>
+                <label
+                  htmlFor="cartridgePartNumber"
+                  style={{
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: '0.375rem',
+                    fontSize: '0.8125rem',
+                    fontWeight: '700',
+                    color: 'var(--iocl-navy)',
+                    letterSpacing: '0.02em',
+                    textTransform: 'uppercase',
+                    margin: 0
+                  }}
+                >
+                  <Layers size={15} color="#64748B" />
+                  <span>COMPATIBLE CARTRIDGE</span>
+                  <span style={{ color: '#DC2626' }}>*</span>
+                </label>
+
+                {cartridgesLoading && (
+                  <span style={{ fontSize: '0.6875rem', color: '#64748B', display: 'flex', alignItems: 'center', gap: '0.25rem' }}>
+                    <Loader2 size={11} className="animate-spin" /> Loading master...
+                  </span>
+                )}
+              </div>
+
               <div style={{ position: 'relative' }}>
                 <select
                   id="cartridgePartNumber"
                   name="cartridgePartNumber"
                   value={formData.cartridgePartNumber}
                   onChange={(e) => handleInputChange('cartridgePartNumber', e.target.value)}
+                  disabled={isSubmitting || cartridgesLoading}
                   style={{
                     width: '100%',
                     height: '42px',
@@ -543,17 +650,33 @@ export const NewAssetAddition = () => {
                     fontSize: '0.875rem',
                     color: formData.cartridgePartNumber ? '#0F172A' : '#64748B',
                     outline: 'none',
-                    cursor: 'pointer'
+                    cursor: cartridgesLoading ? 'not-allowed' : 'pointer'
                   }}
                 >
-                  <option value="">— Select Cartridge —</option>
-                  {CARTRIDGE_OPTIONS.map((cartridge) => (
-                    <option key={cartridge} value={cartridge}>
-                      {cartridge}
+                  <option value="">
+                    {cartridgesLoading ? 'Loading master records...' : '— Select Cartridge Master —'}
+                  </option>
+                  {cartridges.map((c) => (
+                    <option key={c.id || c.partNumber} value={c.partNumber}>
+                      {c.cartridgeName} ({c.partNumber})
                     </option>
                   ))}
                 </select>
               </div>
+
+              {cartridgesError && (
+                <div style={{ display: 'flex', alignItems: 'center', gap: '0.375rem', marginTop: '0.375rem', color: '#DC2626', fontSize: '0.75rem' }}>
+                  <span>{cartridgesError}</span>
+                  <button
+                    type="button"
+                    onClick={loadCartridgeMaster}
+                    style={{ background: 'none', border: 'none', color: '#1E40AF', textDecoration: 'underline', cursor: 'pointer', fontSize: '0.75rem', padding: 0 }}
+                  >
+                    Retry
+                  </button>
+                </div>
+              )}
+
               {errors.cartridgePartNumber && (
                 <div style={{ display: 'flex', alignItems: 'center', gap: '0.25rem', marginTop: '0.375rem', color: '#DC2626', fontSize: '0.75rem', fontWeight: '600' }}>
                   <AlertCircle size={13} />
@@ -594,6 +717,7 @@ export const NewAssetAddition = () => {
                 <button
                   type="button"
                   onClick={() => handleInputChange('printerType', 'Black & White')}
+                  disabled={isSubmitting}
                   style={{
                     display: 'flex',
                     alignItems: 'center',
@@ -606,7 +730,7 @@ export const NewAssetAddition = () => {
                     color: formData.printerType === 'Black & White' ? 'var(--iocl-navy)' : '#64748B',
                     fontSize: '0.8125rem',
                     fontWeight: formData.printerType === 'Black & White' ? '700' : '500',
-                    cursor: 'pointer',
+                    cursor: isSubmitting ? 'not-allowed' : 'pointer',
                     transition: 'all 0.15s ease'
                   }}
                 >
@@ -626,6 +750,7 @@ export const NewAssetAddition = () => {
                 <button
                   type="button"
                   onClick={() => handleInputChange('printerType', 'Color')}
+                  disabled={isSubmitting}
                   style={{
                     display: 'flex',
                     alignItems: 'center',
@@ -638,7 +763,7 @@ export const NewAssetAddition = () => {
                     color: formData.printerType === 'Color' ? '#C2410C' : '#64748B',
                     fontSize: '0.8125rem',
                     fontWeight: formData.printerType === 'Color' ? '700' : '500',
-                    cursor: 'pointer',
+                    cursor: isSubmitting ? 'not-allowed' : 'pointer',
                     transition: 'all 0.15s ease'
                   }}
                 >
@@ -689,6 +814,7 @@ export const NewAssetAddition = () => {
                   name="status"
                   value={formData.status}
                   onChange={(e) => handleInputChange('status', e.target.value)}
+                  disabled={isSubmitting}
                   style={{
                     width: '100%',
                     height: '42px',
@@ -734,6 +860,7 @@ export const NewAssetAddition = () => {
             <button
               type="button"
               onClick={handleReset}
+              disabled={isSubmitting}
               style={{
                 padding: '0.625rem 1.25rem',
                 borderRadius: '8px',
@@ -742,7 +869,7 @@ export const NewAssetAddition = () => {
                 color: '#475569',
                 fontSize: '0.875rem',
                 fontWeight: '600',
-                cursor: 'pointer',
+                cursor: isSubmitting ? 'not-allowed' : 'pointer',
                 display: 'inline-flex',
                 alignItems: 'center',
                 gap: '0.5rem',
@@ -756,30 +883,40 @@ export const NewAssetAddition = () => {
             {/* Primary Action: Register Asset */}
             <button
               type="submit"
+              disabled={isSubmitting}
               style={{
                 padding: '0.625rem 1.75rem',
                 borderRadius: '8px',
                 border: 'none',
-                backgroundColor: '#C53030', // IndianOil Red primary action
+                backgroundColor: isSubmitting ? '#94A3B8' : '#C53030', // IndianOil Red
                 color: '#FFFFFF',
                 fontSize: '0.875rem',
                 fontWeight: '700',
-                cursor: 'pointer',
+                cursor: isSubmitting ? 'not-allowed' : 'pointer',
                 display: 'inline-flex',
                 alignItems: 'center',
                 gap: '0.5rem',
-                boxShadow: '0 4px 6px -1px rgba(197, 48, 48, 0.25)',
+                boxShadow: isSubmitting ? 'none' : '0 4px 6px -1px rgba(197, 48, 48, 0.25)',
                 transition: 'all 0.15s ease'
               }}
             >
-              <PlusCircle size={18} />
-              <span>Register Asset</span>
+              {isSubmitting ? (
+                <>
+                  <Loader2 size={18} className="animate-spin" />
+                  <span>Registering...</span>
+                </>
+              ) : (
+                <>
+                  <PlusCircle size={18} />
+                  <span>Register Asset</span>
+                </>
+              )}
             </button>
           </div>
         </form>
       </div>
 
-      {/* 4. Information Callout: Architecture & Lifecycle */}
+      {/* 5. Information Callout: Fleet Lifecycle Notice */}
       <div
         style={{
           padding: '1.25rem 1.5rem',
@@ -811,7 +948,7 @@ export const NewAssetAddition = () => {
             Asset Onboarding & Fleet Lifecycle Notice
           </h4>
           <p style={{ fontSize: '0.8125rem', color: '#64748B', marginTop: '0.25rem', marginBottom: 0, lineHeight: '1.4' }}>
-            Registering a printer asset onboards its unique serial number into the central IOCL fleet. Consumable replenishment and rate contracts remain independently tracked under the Procurement Register and Threshold modules.
+            Registering a printer asset onboards its unique serial number into the central IOCL PostgreSQL registry. Consumable replenishment and rate contracts remain independently tracked under the Procurement Register and Threshold modules.
           </p>
         </div>
       </div>
