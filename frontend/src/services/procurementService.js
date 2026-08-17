@@ -157,7 +157,7 @@ export const getRateContracts = async () => {
 };
 
 /**
- * Fetch a single Rate Contract by ID.
+ * Fetch a single Rate Contract with full details and Call-Up PO history by ID.
  */
 export const getRateContractById = async (id) => {
   try {
@@ -178,6 +178,37 @@ export const getRateContractById = async (id) => {
     }
 
     const errorMsg = data?.message || data?.error || `Rate contract not found (${response.status})`;
+    return { success: false, message: errorMsg, status: response.status };
+  } catch (err) {
+    return {
+      success: false,
+      message: 'Unable to connect to backend server.'
+    };
+  }
+};
+
+/**
+ * Fetch all Call-Up POs specifically linked to a Rate Contract.
+ */
+export const getRateContractCallUpPOs = async (rateContractId) => {
+  try {
+    const response = await fetch(`${API_BASE_URL}/api/procurement/rate-contracts/${rateContractId}/call-up-pos`, {
+      method: 'GET',
+      headers: getAuthHeaders()
+    });
+
+    let data = null;
+    try {
+      data = await response.json();
+    } catch {
+      data = null;
+    }
+
+    if (response.ok) {
+      return { success: true, data: Array.isArray(data) ? data : [] };
+    }
+
+    const errorMsg = data?.message || data?.error || `Failed to fetch Call-Up POs (${response.status})`;
     return { success: false, message: errorMsg, status: response.status };
   } catch (err) {
     return {

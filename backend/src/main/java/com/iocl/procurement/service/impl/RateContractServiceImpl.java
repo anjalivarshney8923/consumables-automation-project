@@ -1,10 +1,14 @@
 package com.iocl.procurement.service.impl;
 
 import com.iocl.procurement.dto.request.RateContractRequest;
+import com.iocl.procurement.dto.response.CallUpPOResponse;
+import com.iocl.procurement.dto.response.RateContractDetailsResponse;
 import com.iocl.procurement.dto.response.RateContractResponse;
+import com.iocl.procurement.entity.CallUpPurchaseOrder;
 import com.iocl.procurement.entity.Cartridge;
 import com.iocl.procurement.entity.RateContract;
 import com.iocl.procurement.exception.ResourceNotFoundException;
+import com.iocl.procurement.repository.CallUpPurchaseOrderRepository;
 import com.iocl.procurement.repository.CartridgeRepository;
 import com.iocl.procurement.repository.RateContractRepository;
 import com.iocl.procurement.service.AlertEvaluationService;
@@ -20,15 +24,18 @@ public class RateContractServiceImpl implements RateContractService {
 
     private final RateContractRepository rateContractRepository;
     private final CartridgeRepository cartridgeRepository;
+    private final CallUpPurchaseOrderRepository callUpPORepository;
     private final AlertEvaluationService alertEvaluationService;
 
     public RateContractServiceImpl(
             RateContractRepository rateContractRepository,
             CartridgeRepository cartridgeRepository,
+            CallUpPurchaseOrderRepository callUpPORepository,
             AlertEvaluationService alertEvaluationService
     ) {
         this.rateContractRepository = rateContractRepository;
         this.cartridgeRepository = cartridgeRepository;
+        this.callUpPORepository = callUpPORepository;
         this.alertEvaluationService = alertEvaluationService;
     }
 
@@ -72,5 +79,25 @@ public class RateContractServiceImpl implements RateContractService {
         RateContract rateContract = rateContractRepository.findById(id)
                 .orElseThrow(() -> new ResourceNotFoundException("Rate Contract not found with id: " + id));
         return new RateContractResponse(rateContract);
+    }
+
+    @Override
+    public RateContractDetailsResponse getRateContractDetails(Long id) {
+        RateContract rateContract = rateContractRepository.findById(id)
+                .orElseThrow(() -> new ResourceNotFoundException("Rate Contract not found with id: " + id));
+
+        List<CallUpPurchaseOrder> poList = callUpPORepository.findByRateContractIdOrderByCreatedAtDesc(id);
+        return new RateContractDetailsResponse(rateContract, poList);
+    }
+
+    @Override
+    public List<CallUpPOResponse> getCallUpPOsByRateContractId(Long rateContractId) {
+        if (!rateContractRepository.existsById(rateContractId)) {
+            throw new ResourceNotFoundException("Rate Contract not found with id: " + rateContractId);
+        }
+        return callUpPORepository.findByRateContractIdOrderByCreatedAtDesc(rateContractId)
+                .stream()
+                .map(CallUpPOResponse::new)
+                .toList();
     }
 }

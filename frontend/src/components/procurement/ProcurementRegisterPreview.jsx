@@ -1,5 +1,6 @@
 import React from 'react';
-import { Table, Database, Loader2, Inbox } from 'lucide-react';
+import { useNavigate } from 'react-router-dom';
+import { Table, Database, Loader2, Inbox, Eye } from 'lucide-react';
 
 /**
  * Real Procurement Register Table View
@@ -11,8 +12,11 @@ import { Table, Database, Loader2, Inbox } from 'lucide-react';
  * - Qty Already Executed
  * - Qty Taken Through WO
  * - Net Available Quantity
+ * - Action (View Details)
  */
 export const ProcurementRegisterPreview = ({ rateContracts = [], loading = false, error = null }) => {
+  const navigate = useNavigate();
+
   return (
     <div className="procurement-table-card mt-6">
       <div className="table-card-header">
@@ -66,6 +70,7 @@ export const ProcurementRegisterPreview = ({ rateContracts = [], loading = false
                 <th className="text-right">Qty Already Executed</th>
                 <th className="text-right">Qty Taken vide WO</th>
                 <th className="text-right">Net Available</th>
+                <th className="text-right">Action</th>
               </tr>
             </thead>
             <tbody>
@@ -96,6 +101,30 @@ export const ProcurementRegisterPreview = ({ rateContracts = [], loading = false
                   </td>
                   <td className="text-right font-bold text-success">
                     {row.netAvailableQuantity}
+                  </td>
+                  <td className="text-right">
+                    <button
+                      type="button"
+                      onClick={() => navigate(`/admin/procurement/rate-contracts/${row.id}`)}
+                      style={{
+                        padding: '0.3125rem 0.625rem',
+                        backgroundColor: '#EFF6FF',
+                        border: '1px solid #BFDBFE',
+                        borderRadius: '6px',
+                        fontSize: '0.75rem',
+                        fontWeight: '700',
+                        color: '#1E40AF',
+                        cursor: 'pointer',
+                        display: 'inline-flex',
+                        alignItems: 'center',
+                        gap: '0.375rem',
+                        transition: 'all 0.15s ease'
+                      }}
+                      title="View Rate Contract & Call-Up PO History"
+                    >
+                      <Eye size={13} />
+                      <span>View Details</span>
+                    </button>
                   </td>
                 </tr>
               ))}

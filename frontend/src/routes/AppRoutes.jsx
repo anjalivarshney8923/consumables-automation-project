@@ -5,6 +5,7 @@ import { AdminDashboard } from '../pages/AdminDashboard';
 import { ProcurementRegister } from '../pages/procurement/ProcurementRegister';
 import { NewRateContract } from '../pages/procurement/NewRateContract';
 import { CallUpPO } from '../pages/procurement/CallUpPO';
+import { RateContractDetails } from '../pages/procurement/RateContractDetails';
 import { FullViewRecords } from '../pages/procurement/FullViewRecords';
 import { ThresholdSettings } from '../pages/thresholds/ThresholdSettings';
 import { TenderingAlerts } from '../pages/alerts/TenderingAlerts';
@@ -43,6 +44,9 @@ export const AppRoutes = () => {
         <Route path="tendering-alerts" element={<TenderingAlerts />} />
         <Route path="assets/new" element={<NewAssetAddition />} />
         <Route path="assets/update" element={<UpdateAsset />} />
+
+        {/* Rate Contract Details & Call-Up PO History */}
+        <Route path="procurement/rate-contracts/:id" element={<RateContractDetails />} />
 
         {/* Procurement Register Module Routes */}
         <Route path="procurement" element={<ProcurementRegister />}>

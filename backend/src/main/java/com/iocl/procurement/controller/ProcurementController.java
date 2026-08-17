@@ -68,9 +68,15 @@ public class ProcurementController {
     }
 
     @GetMapping("/rate-contracts/{id}")
-    public ResponseEntity<RateContractResponse> getRateContractById(@PathVariable Long id) {
-        RateContractResponse rateContract = rateContractService.getRateContractById(id);
+    public ResponseEntity<com.iocl.procurement.dto.response.RateContractDetailsResponse> getRateContractById(@PathVariable Long id) {
+        com.iocl.procurement.dto.response.RateContractDetailsResponse rateContract = rateContractService.getRateContractDetails(id);
         return ResponseEntity.ok(rateContract);
+    }
+
+    @GetMapping("/rate-contracts/{id}/call-up-pos")
+    public ResponseEntity<List<CallUpPOResponse>> getCallUpPOsByRateContractId(@PathVariable Long id) {
+        List<CallUpPOResponse> callUpPOs = rateContractService.getCallUpPOsByRateContractId(id);
+        return ResponseEntity.ok(callUpPOs);
     }
 
     // ===================================================================
