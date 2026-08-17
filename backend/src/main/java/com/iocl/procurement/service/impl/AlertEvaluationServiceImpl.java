@@ -125,4 +125,134 @@ public class AlertEvaluationServiceImpl implements AlertEvaluationService {
             evaluateProcurementThreshold(cartridge);
         }
     }
+
+    @Override
+    @Transactional
+    public void evaluateTenderingThreshold(Cartridge cartridge) {
+        if (cartridge == null || cartridge.getId() == null) {
+            return;
+        }
+
+        CartridgeThreshold threshold = thresholdRepository.findByCartridgeId(cartridge.getId())
+                .orElse(null);
+
+        if (threshold == null || threshold.getTenderingThreshold() == null) {
+            logger.debug("No tendering threshold configured for cartridge: {}", cartridge.getPartNumber());
+            return;
+        }
+
+        int tenderingThreshold = threshold.getTenderingThreshold();
+
+        // 1. Calculate Store Net Available
+        int storeNetAvailable = cartridge.getStoreQuantity() != null ? cartridge.getStoreQuantity() : 0;
+
+        // 2. Calculate Rate Contract Net Available
+        List<RateContract> rateContracts = rateContractRepository.findByCartridgeId(cartridge.getId());
+        int rcNetAvailable = rateContracts.stream()
+                .mapToInt(rc -> rc.getNetAvailableQuantity() != null ? rc.getNetAvailableQuantity() : 0)
+                .sum();
+
+        // 3. Calculate Combined Net Available
+        int combinedNetAvailable = storeNetAvailable + rcNetAvailable;
+
+        Optional<ProcurementAlert> activeAlertOpt = alertRepository
+                .findFirstByCartridgeIdAndAlertTypeAndStatusOrderByCreatedAtDesc(
+                        cartridge.getId(),
+                        AlertType.TENDERING_REQUIRED,
+                        AlertStatus.UNREAD
+                );
+
+        String alertMessage = String.format(
+                "URGENT: Tendering required for cartridge %s (%s). Store availability: %d, Rate contract availability: %d, Combined availability: %d. Tendering threshold: %d. Combined availability is below the tendering threshold.",
+                cartridge.getCartridgeName(),
+                cartridge.getPartNumber(),
+                storeNetAvailable,
+                rcNetAvailable,
+                combinedNetAvailable,
+                tenderingThreshold
+        );
+
+        // Alert 2 condition: STRICTLY LESS THAN (<)
+        if (combinedNetAvailable < tenderingThreshold) {
+            if (activeAlertOpt.isPresent()) {
+                // Idempotent update: update existing unread Alert 2
+                ProcurementAlert existing = activeAlertOpt.get();
+                existing.setSeverity(AlertSeverity.URGENT);
+                existing.setStoreNetAvailableQuantity(storeNetAvailable);
+                existing.setRateContractNetAvailableQuantity(rcNetAvailable);
+                existing.setCombinedNetAvailableQuantity(combinedNetAvailable);
+                existing.setTenderingThreshold(tenderingThreshold);
+                existing.setNetAvailableQuantity(combinedNetAvailable);
+                existing.setThreshold(tenderingThreshold);
+                existing.setMessage(alertMessage);
+                alertRepository.save(existing);
+                logger.info("Updated existing unread URGENT tendering alert for cartridge [{}]: combined={}, threshold={}",
+                        cartridge.getPartNumber(), combinedNetAvailable, tenderingThreshold);
+            } else {
+                // Create new unread Alert 2
+                ProcurementAlert newAlert = new ProcurementAlert(
+                        cartridge,
+                        AlertType.TENDERING_REQUIRED,
+                        AlertSeverity.URGENT,
+                        alertMessage,
+                        combinedNetAvailable,
+                        tenderingThreshold
+                );
+                newAlert.setStoreNetAvailableQuantity(storeNetAvailable);
+                newAlert.setRateContractNetAvailableQuantity(rcNetAvailable);
+                newAlert.setCombinedNetAvailableQuantity(combinedNetAvailable);
+                newAlert.setTenderingThreshold(tenderingThreshold);
+
+                ProcurementAlert savedAlert = alertRepository.save(newAlert);
+                logger.warn("Created new URGENT tendering alert for cartridge [{}]: combined={}, threshold={}",
+                        cartridge.getPartNumber(), combinedNetAvailable, tenderingThreshold);
+
+                // Trigger Alert 2 URGENT Email Notification to Administrator
+                emailNotificationService.sendTenderingAlertEmail(
+                        savedAlert,
+                        cartridge,
+                        storeNetAvailable,
+                        rcNetAvailable,
+                        combinedNetAvailable,
+                        tenderingThreshold
+                );
+            }
+        } else {
+            // Combined Net Available >= Tendering Threshold: Resolve active Alert 2 if any
+            if (activeAlertOpt.isPresent()) {
+                ProcurementAlert existing = activeAlertOpt.get();
+                existing.setStatus(AlertStatus.READ);
+                existing.setResolvedAt(LocalDateTime.now());
+                alertRepository.save(existing);
+                logger.info("Resolved active tendering alert for cartridge [{}] as combinedNetAvailable ({}) >= threshold ({})",
+                        cartridge.getPartNumber(), combinedNetAvailable, tenderingThreshold);
+            }
+        }
+    }
+
+    @Override
+    @Transactional
+    public void evaluateAllTenderingThresholds() {
+        List<Cartridge> activeCartridges = cartridgeRepository.findAllByActiveTrueOrderByPrinterNameAsc();
+        for (Cartridge cartridge : activeCartridges) {
+            evaluateTenderingThreshold(cartridge);
+        }
+    }
+
+    @Override
+    @Transactional
+    public void evaluateAllAlerts(Cartridge cartridge) {
+        if (cartridge == null) return;
+        evaluateProcurementThreshold(cartridge);
+        evaluateTenderingThreshold(cartridge);
+    }
+
+    @Override
+    @Transactional
+    public void evaluateAllAlerts() {
+        List<Cartridge> activeCartridges = cartridgeRepository.findAllByActiveTrueOrderByPrinterNameAsc();
+        for (Cartridge cartridge : activeCartridges) {
+            evaluateAllAlerts(cartridge);
+        }
+    }
 }

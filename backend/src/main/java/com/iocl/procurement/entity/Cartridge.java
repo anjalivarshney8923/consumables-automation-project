@@ -23,6 +23,9 @@ public class Cartridge {
     @Column(name = "part_number", nullable = false, unique = true)
     private String partNumber;
 
+    @Column(name = "store_quantity", nullable = false, columnDefinition = "integer default 0")
+    private Integer storeQuantity = 0;
+
     @Column(nullable = false)
     private Boolean active = true;
 
@@ -40,6 +43,16 @@ public class Cartridge {
         this.numberOfPrinters = numberOfPrinters;
         this.cartridgeName = cartridgeName;
         this.partNumber = partNumber;
+        this.storeQuantity = 0;
+        this.active = true;
+    }
+
+    public Cartridge(String printerName, Integer numberOfPrinters, String cartridgeName, String partNumber, Integer storeQuantity) {
+        this.printerName = printerName;
+        this.numberOfPrinters = numberOfPrinters;
+        this.cartridgeName = cartridgeName;
+        this.partNumber = partNumber;
+        this.storeQuantity = storeQuantity != null ? storeQuantity : 0;
         this.active = true;
     }
 
@@ -94,6 +107,14 @@ public class Cartridge {
 
     public void setPartNumber(String partNumber) {
         this.partNumber = partNumber;
+    }
+
+    public Integer getStoreQuantity() {
+        return storeQuantity != null ? storeQuantity : 0;
+    }
+
+    public void setStoreQuantity(Integer storeQuantity) {
+        this.storeQuantity = storeQuantity != null ? storeQuantity : 0;
     }
 
     public Boolean getActive() {

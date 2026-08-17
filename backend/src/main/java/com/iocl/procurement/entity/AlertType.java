@@ -1,5 +1,6 @@
 package com.iocl.procurement.entity;
 
 public enum AlertType {
-    PROCUREMENT_THRESHOLD
+    PROCUREMENT_THRESHOLD,
+    TENDERING_REQUIRED
 }

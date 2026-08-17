@@ -264,13 +264,17 @@ export const Header = ({ onToggleSidebar }) => {
                     </p>
                   </div>
                 ) : (
-                  alerts.map((alert) => (
+                  alerts.map((alert) => {
+                    const isUrgent = alert.severity === 'URGENT' || alert.alertType === 'TENDERING_REQUIRED';
+
+                    return (
                     <div
                       key={alert.id}
                       style={{
                         padding: '0.875rem 1rem',
                         borderBottom: '1px solid #F1F5F9',
-                        backgroundColor: '#FFFBF6',
+                        backgroundColor: isUrgent ? '#FEF2F2' : '#FFFBF6',
+                        borderLeft: isUrgent ? '4px solid #DC2626' : '4px solid var(--iocl-saffron)',
                         display: 'flex',
                         flexDirection: 'column',
                         gap: '0.5rem',
@@ -278,8 +282,24 @@ export const Header = ({ onToggleSidebar }) => {
                       }}
                     >
                       <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: '0.5rem' }}>
-                        <div style={{ display: 'flex', alignItems: 'center', gap: '0.375rem' }}>
-                          <AlertTriangle size={15} color="#DC2626" style={{ flexShrink: 0 }} />
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '0.375rem', flexWrap: 'wrap' }}>
+                          <AlertTriangle size={15} color={isUrgent ? '#DC2626' : '#EA580C'} style={{ flexShrink: 0 }} />
+                          {isUrgent && (
+                            <span
+                              style={{
+                                fontSize: '0.625rem',
+                                fontWeight: '800',
+                                backgroundColor: '#DC2626',
+                                color: '#FFFFFF',
+                                padding: '0.125rem 0.375rem',
+                                borderRadius: '4px',
+                                textTransform: 'uppercase',
+                                letterSpacing: '0.5px'
+                              }}
+                            >
+                              URGENT
+                            </span>
+                          )}
                           <span style={{ fontWeight: '700', fontSize: '0.8125rem', color: '#1E293B' }}>
                             {alert.cartridgeName}
                           </span>
@@ -324,7 +344,7 @@ export const Header = ({ onToggleSidebar }) => {
 
                       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', fontSize: '0.6875rem' }}>
                         <div style={{ display: 'flex', gap: '0.5rem' }}>
-                          <span style={{ color: '#DC2626', fontWeight: '600' }}>
+                          <span style={{ color: isUrgent ? '#DC2626' : '#EA580C', fontWeight: '600' }}>
                             Available: {alert.netAvailableQuantity}
                           </span>
                           <span style={{ color: '#64748B' }}>
@@ -336,7 +356,8 @@ export const Header = ({ onToggleSidebar }) => {
                         </span>
                       </div>
                     </div>
-                  ))
+                  );
+                  })
                 )}
               </div>
 

@@ -82,18 +82,22 @@ export const getThresholdByCartridgeId = async (cartridgeId) => {
 };
 
 /**
- * Update PO Threshold for a specific cartridge in PostgreSQL.
+ * Update PO or Tendering Threshold for a specific cartridge in PostgreSQL.
  * 
  * @param {number} cartridgeId 
- * @param {number} poThreshold 
+ * @param {number|object} payload 
  * @returns {Promise<{ success: boolean, data?: object, message?: string, status?: number }>}
  */
-export const updateThreshold = async (cartridgeId, poThreshold) => {
+export const updateThreshold = async (cartridgeId, payload) => {
   try {
+    const body = typeof payload === 'object' && payload !== null
+      ? payload
+      : { poThreshold: parseInt(payload, 10) };
+
     const response = await fetch(`${API_BASE_URL}/api/thresholds/${cartridgeId}`, {
       method: 'PUT',
       headers: getAuthHeaders(),
-      body: JSON.stringify({ poThreshold: parseInt(poThreshold, 10) })
+      body: JSON.stringify(body)
     });
 
     let data = null;
@@ -115,4 +119,22 @@ export const updateThreshold = async (cartridgeId, poThreshold) => {
       message: 'Unable to connect to backend server. Threshold update failed.'
     };
   }
+};
+
+/**
+ * Update Tendering Threshold (Alert 2) for a specific cartridge in PostgreSQL.
+ * 
+ * @param {number} cartridgeId 
+ * @param {number} tenderingThreshold 
+ * @param {number} [storeQuantity]
+ * @returns {Promise<{ success: boolean, data?: object, message?: string, status?: number }>}
+ */
+export const updateTenderingThreshold = async (cartridgeId, tenderingThreshold, storeQuantity) => {
+  const payload = {
+    tenderingThreshold: parseInt(tenderingThreshold, 10)
+  };
+  if (storeQuantity !== undefined && storeQuantity !== null) {
+    payload.storeQuantity = parseInt(storeQuantity, 10);
+  }
+  return updateThreshold(cartridgeId, payload);
 };

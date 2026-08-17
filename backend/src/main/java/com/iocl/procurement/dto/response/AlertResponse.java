@@ -1,5 +1,6 @@
 package com.iocl.procurement.dto.response;
 
+import com.iocl.procurement.entity.AlertSeverity;
 import com.iocl.procurement.entity.AlertStatus;
 import com.iocl.procurement.entity.AlertType;
 import com.iocl.procurement.entity.ProcurementAlert;
@@ -14,9 +15,14 @@ public class AlertResponse {
     private String partNumber;
     private String printerName;
     private AlertType alertType;
+    private AlertSeverity severity;
     private String message;
     private Integer netAvailableQuantity;
     private Integer threshold;
+    private Integer storeNetAvailableQuantity;
+    private Integer rateContractNetAvailableQuantity;
+    private Integer combinedNetAvailableQuantity;
+    private Integer tenderingThreshold;
     private AlertStatus status;
     private LocalDateTime createdAt;
     private LocalDateTime resolvedAt;
@@ -36,9 +42,14 @@ public class AlertResponse {
             this.printerName = alert.getCartridge().getPrinterName();
         }
         this.alertType = alert.getAlertType();
+        this.severity = alert.getSeverity() != null ? alert.getSeverity() : (alert.getAlertType() == AlertType.TENDERING_REQUIRED ? AlertSeverity.URGENT : AlertSeverity.NORMAL);
         this.message = alert.getMessage();
         this.netAvailableQuantity = alert.getNetAvailableQuantity();
         this.threshold = alert.getThreshold();
+        this.storeNetAvailableQuantity = alert.getStoreNetAvailableQuantity();
+        this.rateContractNetAvailableQuantity = alert.getRateContractNetAvailableQuantity();
+        this.combinedNetAvailableQuantity = alert.getCombinedNetAvailableQuantity();
+        this.tenderingThreshold = alert.getTenderingThreshold();
         this.status = alert.getStatus();
         this.createdAt = alert.getCreatedAt();
         this.resolvedAt = alert.getResolvedAt();
@@ -165,5 +176,45 @@ public class AlertResponse {
 
     public void setEmailFailureReason(String emailFailureReason) {
         this.emailFailureReason = emailFailureReason;
+    }
+
+    public AlertSeverity getSeverity() {
+        return severity;
+    }
+
+    public void setSeverity(AlertSeverity severity) {
+        this.severity = severity;
+    }
+
+    public Integer getStoreNetAvailableQuantity() {
+        return storeNetAvailableQuantity;
+    }
+
+    public void setStoreNetAvailableQuantity(Integer storeNetAvailableQuantity) {
+        this.storeNetAvailableQuantity = storeNetAvailableQuantity;
+    }
+
+    public Integer getRateContractNetAvailableQuantity() {
+        return rateContractNetAvailableQuantity;
+    }
+
+    public void setRateContractNetAvailableQuantity(Integer rateContractNetAvailableQuantity) {
+        this.rateContractNetAvailableQuantity = rateContractNetAvailableQuantity;
+    }
+
+    public Integer getCombinedNetAvailableQuantity() {
+        return combinedNetAvailableQuantity;
+    }
+
+    public void setCombinedNetAvailableQuantity(Integer combinedNetAvailableQuantity) {
+        this.combinedNetAvailableQuantity = combinedNetAvailableQuantity;
+    }
+
+    public Integer getTenderingThreshold() {
+        return tenderingThreshold;
+    }
+
+    public void setTenderingThreshold(Integer tenderingThreshold) {
+        this.tenderingThreshold = tenderingThreshold;
     }
 }

@@ -74,13 +74,23 @@ public class ThresholdServiceImpl implements ThresholdService {
                 .orElseThrow(() -> new ResourceNotFoundException("Cartridge not found with id: " + cartridgeId));
 
         CartridgeThreshold threshold = thresholdRepository.findByCartridgeId(cartridgeId)
-                .orElseGet(() -> new CartridgeThreshold(cartridge, request.getPoThreshold()));
+                .orElseGet(() -> new CartridgeThreshold(cartridge, request.getPoThreshold() != null ? request.getPoThreshold() : 5));
 
-        threshold.setPoThreshold(request.getPoThreshold());
+        if (request.getPoThreshold() != null) {
+            threshold.setPoThreshold(request.getPoThreshold());
+        }
+        if (request.getTenderingThreshold() != null) {
+            threshold.setTenderingThreshold(request.getTenderingThreshold());
+        }
         CartridgeThreshold saved = thresholdRepository.save(threshold);
 
-        // Immediately evaluate alert condition for this cartridge with the updated threshold
-        alertEvaluationService.evaluateProcurementThreshold(cartridge);
+        if (request.getStoreQuantity() != null) {
+            cartridge.setStoreQuantity(request.getStoreQuantity());
+            cartridgeRepository.save(cartridge);
+        }
+
+        // Immediately evaluate both alert conditions (Alert 1 & Alert 2) for this cartridge
+        alertEvaluationService.evaluateAllAlerts(cartridge);
 
         return buildResponse(cartridge, saved);
     }
@@ -92,12 +102,17 @@ public class ThresholdServiceImpl implements ThresholdService {
                 .mapToInt(rc -> rc.getTotalContractQuantity() != null ? rc.getTotalContractQuantity() : 0)
                 .sum();
 
-        int netAvailable = rateContracts.stream()
+        int rcNetAvailable = rateContracts.stream()
                 .mapToInt(rc -> rc.getNetAvailableQuantity() != null ? rc.getNetAvailableQuantity() : 0)
                 .sum();
 
+        int storeQty = cartridge.getStoreQuantity() != null ? cartridge.getStoreQuantity() : 0;
+        int combinedNetAvailable = storeQty + rcNetAvailable;
+
         int poThreshold = threshold.getPoThreshold() != null ? threshold.getPoThreshold() : 0;
-        String status = (netAvailable <= poThreshold) ? "Low Availability" : "Adequate";
+        int tenderingThreshold = threshold.getTenderingThreshold() != null ? threshold.getTenderingThreshold() : Math.max(5, poThreshold * 2);
+
+        String status = (rcNetAvailable <= poThreshold || combinedNetAvailable < tenderingThreshold) ? "Low Availability" : "Adequate";
 
         return new CartridgeThresholdResponse(
                 threshold.getId(),
@@ -107,8 +122,11 @@ public class ThresholdServiceImpl implements ThresholdService {
                 cartridge.getPartNumber(),
                 cartridge.getNumberOfPrinters(),
                 poThreshold,
+                tenderingThreshold,
                 totalRCQty,
-                netAvailable,
+                rcNetAvailable,
+                storeQty,
+                combinedNetAvailable,
                 status,
                 threshold.getUpdatedAt() != null ? threshold.getUpdatedAt() : threshold.getCreatedAt()
         );

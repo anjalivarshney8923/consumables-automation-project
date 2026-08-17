@@ -109,7 +109,7 @@ public class EmailNotificationServiceTest {
         testCartridge = new Cartridge("Canon LBP246dw", 45, "Canon 070 Black", "070-BLK");
         testCartridge = cartridgeRepository.save(testCartridge);
 
-        CartridgeThreshold threshold = new CartridgeThreshold(testCartridge, 15);
+        CartridgeThreshold threshold = new CartridgeThreshold(testCartridge, 15, 5);
         thresholdRepository.save(threshold);
     }
 

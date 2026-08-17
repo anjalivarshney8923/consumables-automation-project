@@ -48,6 +48,39 @@ export const getAllAlerts = async () => {
 };
 
 /**
+ * Fetch Alert 2 Tendering evaluations from PostgreSQL.
+ * 
+ * @returns {Promise<{ success: boolean, data?: Array, message?: string, status?: number }>}
+ */
+export const getTenderingAlerts = async () => {
+  try {
+    const response = await fetch(`${API_BASE_URL}/api/alerts/tendering`, {
+      method: 'GET',
+      headers: getAuthHeaders()
+    });
+
+    let data = null;
+    try {
+      data = await response.json();
+    } catch {
+      data = null;
+    }
+
+    if (response.ok) {
+      return { success: true, data: Array.isArray(data) ? data : [] };
+    }
+
+    const errorMsg = data?.message || data?.error || `Failed to fetch tendering alerts (${response.status})`;
+    return { success: false, message: errorMsg, status: response.status };
+  } catch (err) {
+    return {
+      success: false,
+      message: 'Unable to connect to backend server. Please verify Spring Boot is running.'
+    };
+  }
+};
+
+/**
  * Fetch only UNREAD procurement alerts from PostgreSQL.
  * 
  * @returns {Promise<{ success: boolean, data?: Array, message?: string, status?: number }>}
@@ -165,5 +198,49 @@ export const markAllAlertsAsRead = async () => {
     return { success: false, message: 'Failed to mark all alerts as read' };
   } catch (err) {
     return { success: false, message: 'Unable to connect to backend server.' };
+  }
+};
+
+/**
+ * Update Tendering Threshold (Alert 2) for a specific cartridge in PostgreSQL.
+ * 
+ * @param {number} cartridgeId 
+ * @param {number} tenderingThreshold 
+ * @param {number} [storeQuantity]
+ * @returns {Promise<{ success: boolean, data?: object, message?: string, status?: number }>}
+ */
+export const updateTenderingThreshold = async (cartridgeId, tenderingThreshold, storeQuantity) => {
+  try {
+    const payload = {
+      tenderingThreshold: parseInt(tenderingThreshold, 10)
+    };
+    if (storeQuantity !== undefined && storeQuantity !== null) {
+      payload.storeQuantity = parseInt(storeQuantity, 10);
+    }
+
+    const response = await fetch(`${API_BASE_URL}/api/thresholds/${cartridgeId}`, {
+      method: 'PUT',
+      headers: getAuthHeaders(),
+      body: JSON.stringify(payload)
+    });
+
+    let data = null;
+    try {
+      data = await response.json();
+    } catch {
+      data = null;
+    }
+
+    if (response.ok) {
+      return { success: true, data };
+    }
+
+    const errorMsg = data?.message || data?.error || `Failed to update threshold (${response.status})`;
+    return { success: false, message: errorMsg, status: response.status };
+  } catch (err) {
+    return {
+      success: false,
+      message: 'Unable to connect to backend server. Threshold update failed.'
+    };
   }
 };

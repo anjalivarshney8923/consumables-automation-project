@@ -18,6 +18,9 @@ public class CartridgeThreshold {
     @Column(name = "po_threshold", nullable = false)
     private Integer poThreshold;
 
+    @Column(name = "tendering_threshold", nullable = false, columnDefinition = "integer default 10")
+    private Integer tenderingThreshold;
+
     @Column(name = "created_at", nullable = false, updatable = false)
     private LocalDateTime createdAt;
 
@@ -30,17 +33,30 @@ public class CartridgeThreshold {
     public CartridgeThreshold(Cartridge cartridge, Integer poThreshold) {
         this.cartridge = cartridge;
         this.poThreshold = poThreshold;
+        this.tenderingThreshold = (poThreshold != null) ? Math.max(5, poThreshold * 2) : 10;
+    }
+
+    public CartridgeThreshold(Cartridge cartridge, Integer poThreshold, Integer tenderingThreshold) {
+        this.cartridge = cartridge;
+        this.poThreshold = poThreshold;
+        this.tenderingThreshold = (tenderingThreshold != null) ? tenderingThreshold : (poThreshold != null ? Math.max(5, poThreshold * 2) : 10);
     }
 
     @PrePersist
     protected void onCreate() {
         this.createdAt = LocalDateTime.now();
         this.updatedAt = LocalDateTime.now();
+        if (this.tenderingThreshold == null) {
+            this.tenderingThreshold = (this.poThreshold != null) ? Math.max(5, this.poThreshold * 2) : 10;
+        }
     }
 
     @PreUpdate
     protected void onUpdate() {
         this.updatedAt = LocalDateTime.now();
+        if (this.tenderingThreshold == null) {
+            this.tenderingThreshold = (this.poThreshold != null) ? Math.max(5, this.poThreshold * 2) : 10;
+        }
     }
 
     public Long getId() {
@@ -65,6 +81,14 @@ public class CartridgeThreshold {
 
     public void setPoThreshold(Integer poThreshold) {
         this.poThreshold = poThreshold;
+    }
+
+    public Integer getTenderingThreshold() {
+        return tenderingThreshold;
+    }
+
+    public void setTenderingThreshold(Integer tenderingThreshold) {
+        this.tenderingThreshold = tenderingThreshold;
     }
 
     public LocalDateTime getCreatedAt() {

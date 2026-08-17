@@ -2,6 +2,7 @@ package com.iocl.procurement.controller;
 
 import com.iocl.procurement.dto.response.AlertCountResponse;
 import com.iocl.procurement.dto.response.AlertResponse;
+import com.iocl.procurement.dto.response.TenderingAlertResponse;
 import com.iocl.procurement.service.AlertService;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
@@ -27,6 +28,12 @@ public class AlertController {
     @GetMapping("/unread")
     public ResponseEntity<List<AlertResponse>> getUnreadAlerts() {
         List<AlertResponse> alerts = alertService.getUnreadAlerts();
+        return ResponseEntity.ok(alerts);
+    }
+
+    @GetMapping("/tendering")
+    public ResponseEntity<List<TenderingAlertResponse>> getTenderingAlerts() {
+        List<TenderingAlertResponse> alerts = alertService.getTenderingAlerts();
         return ResponseEntity.ok(alerts);
     }
 

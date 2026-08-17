@@ -53,8 +53,8 @@ public class RateContractServiceImpl implements RateContractService {
 
         RateContract saved = rateContractRepository.save(rateContract);
 
-        // Evaluate procurement threshold alert
-        alertEvaluationService.evaluateProcurementThreshold(cartridge);
+        // Evaluate procurement and tendering threshold alerts
+        alertEvaluationService.evaluateAllAlerts(cartridge);
 
         return new RateContractResponse(saved);
     }

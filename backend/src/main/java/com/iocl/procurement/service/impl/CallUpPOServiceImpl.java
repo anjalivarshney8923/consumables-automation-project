@@ -78,8 +78,8 @@ public class CallUpPOServiceImpl implements CallUpPOService {
         rateContract.recalculateNetAvailableQuantity();
         RateContract updatedRC = rateContractRepository.save(rateContract);
 
-        // 6. Evaluate procurement threshold alert for the cartridge
-        alertEvaluationService.evaluateProcurementThreshold(updatedRC.getCartridge());
+        // 6. Evaluate procurement & tendering threshold alerts for the cartridge
+        alertEvaluationService.evaluateAllAlerts(updatedRC.getCartridge());
 
         return new CallUpPOResponse(savedPO);
     }

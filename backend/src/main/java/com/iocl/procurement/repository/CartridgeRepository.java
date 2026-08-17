@@ -12,6 +12,10 @@ public interface CartridgeRepository extends JpaRepository<Cartridge, Long> {
 
     Optional<Cartridge> findByPartNumberIgnoreCase(String partNumber);
 
+    Optional<Cartridge> findByCartridgeNameIgnoreCase(String cartridgeName);
+
+    Optional<Cartridge> findByPartNumberIgnoreCaseOrCartridgeNameIgnoreCase(String partNumber, String cartridgeName);
+
     boolean existsByPartNumberIgnoreCase(String partNumber);
 
     List<Cartridge> findByActiveTrueOrderByCartridgeNameAsc();

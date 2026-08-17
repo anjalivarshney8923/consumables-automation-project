@@ -131,6 +131,68 @@ public class EmailNotificationServiceImpl implements EmailNotificationService {
         }
     }
 
+    @Override
+    public void sendTenderingAlertEmail(
+            ProcurementAlert alert,
+            Cartridge cartridge,
+            Integer storeAvailable,
+            Integer rcAvailable,
+            Integer combinedAvailable,
+            Integer tenderingThreshold
+    ) {
+        if (alert == null || cartridge == null) {
+            logger.warn("Cannot send tendering alert email: Alert or Cartridge is null");
+            return;
+        }
+
+        // Check if email sending is disabled via configuration
+        if (!mailEnabled) {
+            logger.info("Email notification is disabled via app.mail.enabled=false. Skipping tendering email for alert ID: {}", alert.getId());
+            return;
+        }
+
+        // Determine destination recipient
+        String recipientEmail = resolveAdminEmail();
+        if (recipientEmail == null || recipientEmail.isBlank()) {
+            logger.warn("No administrator email configured. Skipping tendering alert email for alert ID: {}", alert.getId());
+            recordEmailStatus(alert, false, "No valid recipient email address found", null);
+            return;
+        }
+
+        int finalStore = (storeAvailable != null) ? storeAvailable : (cartridge.getStoreQuantity() != null ? cartridge.getStoreQuantity() : 0);
+        int finalRC = (rcAvailable != null) ? rcAvailable : 0;
+        int finalCombined = (combinedAvailable != null) ? combinedAvailable : (finalStore + finalRC);
+        int finalThreshold = (tenderingThreshold != null) ? tenderingThreshold : (alert.getTenderingThreshold() != null ? alert.getTenderingThreshold() : alert.getThreshold());
+
+        String subject = String.format("URGENT: Tendering Required – [%s]", cartridge.getPartNumber());
+        String htmlContent = buildTenderingHtmlEmail(cartridge, finalStore, finalRC, finalCombined, finalThreshold);
+        String plainTextContent = buildTenderingPlainTextEmail(cartridge, finalStore, finalRC, finalCombined, finalThreshold);
+
+        try {
+            MimeMessage mimeMessage = mailSender.createMimeMessage();
+            MimeMessageHelper helper = new MimeMessageHelper(mimeMessage, true, "UTF-8");
+
+            helper.setFrom(mailFrom.isBlank() ? "no-reply@iocl.in" : mailFrom);
+            helper.setTo(recipientEmail);
+            helper.setSubject(subject);
+            helper.setText(plainTextContent, htmlContent);
+
+            mailSender.send(mimeMessage);
+
+            logger.info("URGENT tendering alert email sent successfully for alert ID: {} to recipient: {}", alert.getId(), recipientEmail);
+            recordEmailStatus(alert, true, null, LocalDateTime.now());
+
+        } catch (MailException | MessagingException ex) {
+            String errorMsg = "Tendering mail delivery failed: " + ex.getMessage();
+            logger.error("Failed to send tendering alert email for alert ID: {}. Error: {}", alert.getId(), ex.getMessage());
+            recordEmailStatus(alert, false, errorMsg, null);
+        } catch (Exception ex) {
+            String errorMsg = "Unexpected error sending tendering alert email: " + ex.getMessage();
+            logger.error("Failed to send tendering alert email for alert ID: {}. Error: {}", alert.getId(), ex.getMessage());
+            recordEmailStatus(alert, false, errorMsg, null);
+        }
+    }
+
     private void recordEmailStatus(ProcurementAlert alert, boolean success, String failureReason, LocalDateTime sentAt) {
         try {
             alert.setEmailSent(success);
@@ -252,6 +314,100 @@ public class EmailNotificationServiceImpl implements EmailNotificationService {
                 "Reason:\n" +
                 "The Net Available Rate Contract Quantity has reached or fallen below the configured PO threshold.\n\n" +
                 "Please review the procurement requirement.\n\n" +
+                "This is an automated notification from the IOCL Consumables / Procurement Management System.\n";
+    }
+
+    private String buildTenderingHtmlEmail(Cartridge cartridge, int storeAvailable, int rcAvailable, int combinedAvailable, int tenderingThreshold) {
+        String timestamp = LocalDateTime.now().format(DateTimeFormatter.ofPattern("dd-MMM-yyyy HH:mm:ss"));
+
+        return "<!DOCTYPE html>" +
+                "<html>" +
+                "<head>" +
+                "<meta charset='UTF-8'>" +
+                "<meta name='viewport' content='width=device-width, initial-scale=1.0'>" +
+                "<style>" +
+                "  body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; margin: 0; padding: 0; background-color: #F8FAFC; color: #1E293B; }" +
+                "  .container { max-width: 600px; margin: 20px auto; background-color: #FFFFFF; border-radius: 10px; overflow: hidden; border: 1px solid #E2E8F0; box-shadow: 0 4px 6px -1px rgba(0,0,0,0.05); }" +
+                "  .header { background: linear-gradient(135deg, #7F1D1D 0%, #991B1B 100%); padding: 24px 30px; text-align: left; color: #FFFFFF; }" +
+                "  .header h1 { margin: 0 0 6px 0; font-size: 20px; font-weight: 700; letter-spacing: 0.5px; }" +
+                "  .header p { margin: 0; font-size: 12px; color: #FECACA; text-transform: uppercase; letter-spacing: 1px; }" +
+                "  .urgent-banner { background-color: #FEF2F2; border-left: 6px solid #DC2626; padding: 14px 20px; margin: 20px 30px; border-radius: 4px; }" +
+                "  .urgent-banner strong { color: #991B1B; font-size: 15px; text-transform: uppercase; display: block; margin-bottom: 3px; letter-spacing: 0.5px; }" +
+                "  .urgent-banner p { margin: 0; color: #B91C1C; font-size: 13px; font-weight: 500; }" +
+                "  .content { padding: 0 30px 24px 30px; }" +
+                "  .content p { font-size: 14px; line-height: 1.6; color: #334155; margin-bottom: 16px; }" +
+                "  table { width: 100%; border-collapse: collapse; margin: 16px 0 24px 0; background-color: #FFFFFF; border-radius: 6px; overflow: hidden; border: 1px solid #E2E8F0; }" +
+                "  th { background-color: #991B1B; color: #FFFFFF; font-weight: 600; text-align: left; padding: 10px 14px; font-size: 12px; text-transform: uppercase; letter-spacing: 0.5px; }" +
+                "  td { padding: 10px 14px; font-size: 13px; border-bottom: 1px solid #F1F5F9; color: #1E293B; }" +
+                "  tr:last-child td { border-bottom: none; }" +
+                "  tr:nth-child(even) { background-color: #F8FAFC; }" +
+                "  .field-name { font-weight: 600; color: #475569; width: 48%; }" +
+                "  .badge-urgent { background-color: #FEE2E2; color: #DC2626; font-weight: 700; padding: 3px 8px; border-radius: 4px; display: inline-block; }" +
+                "  .badge-part { font-family: monospace; font-weight: 700; background-color: #E2E8F0; padding: 2px 6px; border-radius: 4px; }" +
+                "  .footer { background-color: #F1F5F9; padding: 18px 30px; text-align: center; font-size: 11px; color: #64748B; border-top: 1px solid #E2E8F0; }" +
+                "  .footer p { margin: 4px 0; }" +
+                "</style>" +
+                "</head>" +
+                "<body>" +
+                "<div class='container'>" +
+                "  <div class='header'>" +
+                "    <h1>Indian Oil Corporation Limited</h1>" +
+                "    <p>Consumables & Procurement Management System</p>" +
+                "  </div>" +
+                "  <div class='urgent-banner'>" +
+                "    <strong>URGENT: Tendering Required Alert</strong>" +
+                "    <p>Combined Net Available (Stores + Rate Contract) has fallen below the Tendering Threshold.</p>" +
+                "  </div>" +
+                "  <div class='content'>" +
+                "    <p>Dear Administrator,</p>" +
+                "    <p>An <strong>URGENT</strong> tendering requirement alert has been triggered for the following consumable:</p>" +
+                "    <table>" +
+                "      <thead>" +
+                "        <tr>" +
+                "          <th>Field</th>" +
+                "          <th>Value</th>" +
+                "        </tr>" +
+                "      </thead>" +
+                "      <tbody>" +
+                "        <tr><td class='field-name'>Part Number</td><td><span class='badge-part'>" + escapeHtml(cartridge.getPartNumber()) + "</span></td></tr>" +
+                "        <tr><td class='field-name'>Cartridge Name</td><td><strong>" + escapeHtml(cartridge.getCartridgeName()) + "</strong></td></tr>" +
+                "        <tr><td class='field-name'>Printer Model</td><td>" + escapeHtml(cartridge.getPrinterName()) + "</td></tr>" +
+                "        <tr><td class='field-name'>Net Qty Available in Stores</td><td>" + storeAvailable + " units</td></tr>" +
+                "        <tr><td class='field-name'>Net Qty Available in Rate Contract</td><td>" + rcAvailable + " units</td></tr>" +
+                "        <tr><td class='field-name'>Combined Net Available</td><td><span class='badge-urgent'>" + combinedAvailable + " units</span></td></tr>" +
+                "        <tr><td class='field-name'>Tendering Threshold</td><td><strong>" + tenderingThreshold + " units</strong></td></tr>" +
+                "        <tr><td class='field-name'>Severity</td><td><span class='badge-urgent'>URGENT</span></td></tr>" +
+                "      </tbody>" +
+                "    </table>" +
+                "    <p><strong>Reason:</strong> Combined Net Available Quantity (" + combinedAvailable + ") is strictly below the configured Tendering Threshold (" + tenderingThreshold + ").</p>" +
+                "    <p style='color: #991B1B; font-weight: 600;'>Please initiate the tendering / procurement process immediately to ensure stock replenishment.</p>" +
+                "  </div>" +
+                "  <div class='footer'>" +
+                "    <p><strong>IOCL Consumables / Procurement Management System</strong></p>" +
+                "    <p>Triggered on: " + timestamp + " | Automated Urgent System Notification</p>" +
+                "    <p style='color:#94A3B8;'>Please do not reply directly to this automated email.</p>" +
+                "  </div>" +
+                "</div>" +
+                "</body>" +
+                "</html>";
+    }
+
+    private String buildTenderingPlainTextEmail(Cartridge cartridge, int storeAvailable, int rcAvailable, int combinedAvailable, int tenderingThreshold) {
+        return "Dear Administrator,\n\n" +
+                "============================================================\n" +
+                "URGENT TENDERING ALERT\n" +
+                "============================================================\n\n" +
+                "Cartridge: " + cartridge.getPartNumber() + "\n" +
+                "Description: " + cartridge.getCartridgeName() + " (" + cartridge.getPrinterName() + ")\n\n" +
+                "Net Qty Available in Stores: " + storeAvailable + "\n" +
+                "Net Qty Available in Rate Contract: " + rcAvailable + "\n" +
+                "Combined Net Available: " + combinedAvailable + "\n\n" +
+                "Tendering Threshold: " + tenderingThreshold + "\n\n" +
+                "Status:\n" +
+                "URGENT – TENDERING REQUIRED\n\n" +
+                "Reason:\n" +
+                "Combined net available quantity is below the tendering threshold.\n\n" +
+                "Please initiate the tendering/procurement process.\n\n" +
                 "This is an automated notification from the IOCL Consumables / Procurement Management System.\n";
     }
 

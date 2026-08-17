@@ -5,6 +5,7 @@ import {
   ShoppingBag,
   FileSpreadsheet,
   Sliders,
+  AlertOctagon,
   Package,
   Boxes,
   X
@@ -21,6 +22,17 @@ export const Sidebar = ({ isOpen, onClose }) => {
       icon: LayoutDashboard
     },
     {
+      label: 'Tendering Alerts (Alert 2)',
+      path: '/admin/tendering-alerts',
+      icon: AlertOctagon,
+      alertBadge: 'Alert 2'
+    },
+    {
+      label: 'Setting Threshold Limits',
+      path: '/admin/thresholds',
+      icon: Sliders
+    },
+    {
       label: 'Full View of Record',
       path: '/admin/full-view',
       icon: FileSpreadsheet
@@ -31,15 +43,9 @@ export const Sidebar = ({ isOpen, onClose }) => {
       icon: ShoppingBag
     },
     {
-      label: 'Setting Threshold Limits',
-      path: '/admin/thresholds',
-      icon: Sliders
-    },
-    {
       label: 'New Asset Addition',
       path: '/admin/assets/new',
-      icon: Package,
-      badge: 'Soon'
+      icon: Package
     },
     {
       label: 'Update / Change in Asset',
@@ -88,9 +94,11 @@ export const Sidebar = ({ isOpen, onClose }) => {
             const Icon = item.icon;
             const isImplemented =
               item.path === '/admin/dashboard' ||
+              item.path === '/admin/tendering-alerts' ||
               item.path === '/admin/procurement' ||
               item.path === '/admin/full-view' ||
-              item.path === '/admin/thresholds';
+              item.path === '/admin/thresholds' ||
+              item.path === '/admin/assets/new';
             const isActive = isImplemented && (
               location.pathname === item.path || 
               (item.path !== '/admin/dashboard' && location.pathname.startsWith(item.path))
@@ -108,6 +116,22 @@ export const Sidebar = ({ isOpen, onClose }) => {
                     <Icon size={18} />
                   </span>
                   <span className="nav-item-text">{item.label}</span>
+                  {item.alertBadge && (
+                    <span
+                      style={{
+                        marginLeft: 'auto',
+                        fontSize: '0.625rem',
+                        fontWeight: '800',
+                        backgroundColor: '#DC2626',
+                        color: '#FFFFFF',
+                        padding: '0.125rem 0.375rem',
+                        borderRadius: '4px',
+                        letterSpacing: '0.5px'
+                      }}
+                    >
+                      {item.alertBadge}
+                    </span>
+                  )}
                 </NavLink>
               );
             }

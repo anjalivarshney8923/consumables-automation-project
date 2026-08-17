@@ -5,6 +5,7 @@ import {
   Boxes,
   FileText,
   AlertTriangle,
+  AlertOctagon,
   Activity,
   PlusCircle,
   PackagePlus,
@@ -13,7 +14,8 @@ import {
   ShieldCheck,
   Calendar,
   RefreshCw,
-  CheckCircle2
+  CheckCircle2,
+  ExternalLink
 } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 import { getUnreadAlerts, markAlertAsRead } from '../services/alertService';
@@ -127,34 +129,42 @@ export const AdminDashboard = () => {
             </div>
           </div>
 
-          {/* Card 3: Active Tenders */}
-          <div className="kpi-card">
+          {/* Card 3: Alert 2 Tendering Alerts */}
+          <Link
+            to="/admin/tendering-alerts"
+            className="kpi-card"
+            style={{ textDecoration: 'none', cursor: 'pointer', transition: 'transform 0.15s ease, box-shadow 0.15s ease' }}
+          >
             <div className="kpi-card-header">
-              <span className="kpi-card-title">Tendering</span>
-              <div className="kpi-icon-container kpi-icon-purple">
-                <FileText size={20} />
+              <span className="kpi-card-title">Tendering Alerts (Alert 2)</span>
+              <div className="kpi-icon-container" style={{ backgroundColor: '#FEE2E2', color: '#DC2626' }}>
+                <AlertOctagon size={20} />
               </div>
             </div>
             <div className="kpi-card-body">
-              <span className="kpi-card-value">--</span>
-              <span className="kpi-card-placeholder-badge">Not Initialized</span>
+              <span className="kpi-card-value" style={{ color: '#DC2626' }}>6</span>
+              <span style={{ fontSize: '0.6875rem', fontWeight: '700', backgroundColor: '#DC2626', color: '#FFFFFF', padding: '0.125rem 0.375rem', borderRadius: '4px' }}>
+                Urgent Action
+              </span>
             </div>
             <div className="kpi-card-footer">
-              <span>Active Tender Bids</span>
-              <span style={{ fontWeight: '500' }}>Module Ready</span>
+              <span>Combined &lt; Threshold</span>
+              <span style={{ fontWeight: '600', color: '#DC2626', display: 'flex', alignItems: 'center', gap: '2px' }}>
+                View Alerts <ArrowUpRight size={12} />
+              </span>
             </div>
-          </div>
+          </Link>
         </div>
       </section>
 
       {/* Main Content Sections: Alerts & Recent Activity */}
       <section className="dashboard-sections-grid" aria-label="System Sections">
-        {/* Section 1: Threshold Alerts */}
+        {/* Section 1: Threshold & Tendering Alerts */}
         <div className="section-card">
           <div className="section-header">
             <div className="section-title">
               <AlertTriangle size={18} color="var(--iocl-saffron)" />
-              <span>Threshold Alerts (Alert 1)</span>
+              <span>Active System Alerts (Alert 1 & Alert 2)</span>
             </div>
             <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
               <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>Real-time Monitoring</span>
@@ -192,33 +202,38 @@ export const AdminDashboard = () => {
               </div>
             ) : (
               <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
-                {activeAlerts.map((alert) => (
+                {activeAlerts.map((alert) => {
+                  const isUrgent = alert.severity === 'URGENT' || alert.alertType === 'TENDERING_REQUIRED';
+
+                  return (
                   <div
                     key={alert.id}
                     style={{
                       padding: '0.875rem 1rem',
                       borderRadius: '8px',
-                      backgroundColor: '#FFFBF6',
-                      border: '1px solid #FED7AA',
+                      backgroundColor: isUrgent ? '#FEF2F2' : '#FFFBF6',
+                      border: isUrgent ? '1px solid #FECACA' : '1px solid #FED7AA',
+                      borderLeft: isUrgent ? '5px solid #DC2626' : '5px solid var(--iocl-saffron)',
                       display: 'flex',
                       flexDirection: 'column',
                       gap: '0.5rem'
                     }}
                   >
-                    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-                      <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '0.5rem' }}>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', flexWrap: 'wrap' }}>
                         <span
                           style={{
-                            backgroundColor: '#FEE2E2',
-                            color: '#DC2626',
+                            backgroundColor: isUrgent ? '#DC2626' : '#EA580C',
+                            color: '#FFFFFF',
                             fontSize: '0.6875rem',
                             fontWeight: '700',
                             padding: '0.125rem 0.5rem',
                             borderRadius: '4px',
-                            textTransform: 'uppercase'
+                            textTransform: 'uppercase',
+                            letterSpacing: '0.5px'
                           }}
                         >
-                          Low Availability
+                          {isUrgent ? 'URGENT: TENDERING REQUIRED' : 'PROCUREMENT THRESHOLD'}
                         </span>
                         <strong style={{ fontSize: '0.875rem', color: '#1E293B' }}>
                           {alert.cartridgeName}
@@ -250,31 +265,52 @@ export const AdminDashboard = () => {
                       {alert.message}
                     </p>
 
-                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', fontSize: '0.75rem' }}>
-                      <div style={{ display: 'flex', gap: '0.75rem' }}>
-                        <span style={{ color: '#DC2626', fontWeight: '700' }}>
-                          Net Available in RC: {alert.netAvailableQuantity}
-                        </span>
-                        <span style={{ color: '#475569', fontWeight: '600' }}>
-                          PO Threshold: {alert.threshold}
-                        </span>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', fontSize: '0.75rem', flexWrap: 'wrap', gap: '0.5rem' }}>
+                      <div style={{ display: 'flex', gap: '0.75rem', flexWrap: 'wrap' }}>
+                        {isUrgent ? (
+                          <>
+                            <span style={{ color: '#DC2626', fontWeight: '700' }}>
+                              Combined Available: {alert.combinedNetAvailableQuantity ?? alert.netAvailableQuantity}
+                            </span>
+                            <span style={{ color: '#475569', fontWeight: '600' }}>
+                              Tendering Threshold: {alert.tenderingThreshold ?? alert.threshold}
+                            </span>
+                            {alert.storeNetAvailableQuantity != null && (
+                              <span style={{ color: '#64748B' }}>
+                                (Store: {alert.storeNetAvailableQuantity}, RC: {alert.rateContractNetAvailableQuantity})
+                              </span>
+                            )}
+                          </>
+                        ) : (
+                          <>
+                            <span style={{ color: '#DC2626', fontWeight: '700' }}>
+                              Net Available in RC: {alert.netAvailableQuantity}
+                            </span>
+                            <span style={{ color: '#475569', fontWeight: '600' }}>
+                              PO Threshold: {alert.threshold}
+                            </span>
+                          </>
+                        )}
                       </div>
                       <Link
                         to="/admin/thresholds"
                         style={{
                           color: 'var(--iocl-navy)',
-                          textDecoration: 'none',
+                          fontSize: '0.75rem',
                           fontWeight: '600',
+                          textDecoration: 'none',
                           display: 'inline-flex',
                           alignItems: 'center',
                           gap: '0.25rem'
                         }}
                       >
-                        Adjust Threshold &rarr;
+                        <span>Configure Threshold</span>
+                        <ExternalLink size={12} />
                       </Link>
                     </div>
                   </div>
-                ))}
+                );
+                })}
               </div>
             )}
           </div>

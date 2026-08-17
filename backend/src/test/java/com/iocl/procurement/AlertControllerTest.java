@@ -86,11 +86,10 @@ public class AlertControllerTest {
         String responseBody = loginResult.getResponse().getContentAsString();
         jwtToken = objectMapper.readTree(responseBody).get("token").asText();
 
-        // 3. Create test cartridge & threshold (PO Threshold = 15)
         testCartridge = new Cartridge("Canon LBP246dw", 45, "Canon 070 Black", "070-BLK");
         testCartridge = cartridgeRepository.save(testCartridge);
 
-        CartridgeThreshold threshold = new CartridgeThreshold(testCartridge, 15);
+        CartridgeThreshold threshold = new CartridgeThreshold(testCartridge, 15, 5);
         thresholdRepository.save(threshold);
     }
 
@@ -220,5 +219,43 @@ public class AlertControllerTest {
         List<ProcurementAlert> unreadAlerts = alertRepository.findByStatusWithCartridgeOrderByCreatedAtDesc(AlertStatus.UNREAD);
         assertEquals(1, unreadAlerts.size());
         assertEquals(8, unreadAlerts.get(0).getNetAvailableQuantity());
+    }
+
+    @Test
+    @DisplayName("ALERT 2 Endpoint: GET /api/alerts/tendering returns calculated Alert 2 fields from PostgreSQL")
+    void testGetTenderingAlertsEndpoint() throws Exception {
+        // Store = 20, RC = 10, Threshold = 50 -> Combined = 30 < 50 -> URGENT
+        testCartridge.setStoreQuantity(20);
+        cartridgeRepository.save(testCartridge);
+
+        CartridgeThreshold threshold = thresholdRepository.findByCartridgeId(testCartridge.getId()).get();
+        threshold.setTenderingThreshold(50);
+        thresholdRepository.save(threshold);
+
+        RateContract rc = new RateContract();
+        rc.setCartridge(testCartridge);
+        rc.setContractDate(LocalDate.now());
+        rc.setSupplierName("M/s Canon India Pvt Ltd");
+        rc.setRatePerUnit(new BigDecimal("3500.00"));
+        rc.setTaxPercentage(new BigDecimal("18.00"));
+        rc.setTotalContractQuantity(10);
+        rc.setQuantityAlreadyExecuted(0);
+        rc.setQuantityTakenThroughWO(0);
+        rc.recalculateNetAvailableQuantity();
+        rateContractRepository.save(rc);
+
+        mockMvc.perform(get("/api/alerts/tendering")
+                        .header("Authorization", "Bearer " + jwtToken))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$", hasSize(1)))
+                .andExpect(jsonPath("$[0].partNumber", is("070-BLK")))
+                .andExpect(jsonPath("$[0].storeNetAvailableQuantity", is(20)))
+                .andExpect(jsonPath("$[0].rateContractNetAvailableQuantity", is(10)))
+                .andExpect(jsonPath("$[0].combinedNetAvailableQuantity", is(30)))
+                .andExpect(jsonPath("$[0].tenderingThreshold", is(50)))
+                .andExpect(jsonPath("$[0].difference", is(-20)))
+                .andExpect(jsonPath("$[0].status", is("TENDERING_REQUIRED")))
+                .andExpect(jsonPath("$[0].priority", is("URGENT")))
+                .andExpect(jsonPath("$[0].isUrgent", is(true)));
     }
 }

@@ -19,6 +19,10 @@ public class ProcurementAlert {
     @Column(name = "alert_type", nullable = false, length = 50)
     private AlertType alertType;
 
+    @Enumerated(EnumType.STRING)
+    @Column(nullable = false, length = 20, columnDefinition = "varchar(20) default 'NORMAL'")
+    private AlertSeverity severity = AlertSeverity.NORMAL;
+
     @Column(nullable = false, length = 1000)
     private String message;
 
@@ -27,6 +31,18 @@ public class ProcurementAlert {
 
     @Column(nullable = false)
     private Integer threshold;
+
+    @Column(name = "store_net_available_quantity")
+    private Integer storeNetAvailableQuantity;
+
+    @Column(name = "rate_contract_net_available_quantity")
+    private Integer rateContractNetAvailableQuantity;
+
+    @Column(name = "combined_net_available_quantity")
+    private Integer combinedNetAvailableQuantity;
+
+    @Column(name = "tendering_threshold")
+    private Integer tenderingThreshold;
 
     @Enumerated(EnumType.STRING)
     @Column(nullable = false, length = 20)
@@ -53,6 +69,17 @@ public class ProcurementAlert {
     public ProcurementAlert(Cartridge cartridge, AlertType alertType, String message, Integer netAvailableQuantity, Integer threshold) {
         this.cartridge = cartridge;
         this.alertType = alertType;
+        this.message = message;
+        this.netAvailableQuantity = netAvailableQuantity;
+        this.threshold = threshold;
+        this.status = AlertStatus.UNREAD;
+        this.severity = (alertType == AlertType.TENDERING_REQUIRED) ? AlertSeverity.URGENT : AlertSeverity.NORMAL;
+    }
+
+    public ProcurementAlert(Cartridge cartridge, AlertType alertType, AlertSeverity severity, String message, Integer netAvailableQuantity, Integer threshold) {
+        this.cartridge = cartridge;
+        this.alertType = alertType;
+        this.severity = (severity != null) ? severity : AlertSeverity.NORMAL;
         this.message = message;
         this.netAvailableQuantity = netAvailableQuantity;
         this.threshold = threshold;
@@ -158,5 +185,45 @@ public class ProcurementAlert {
 
     public void setEmailFailureReason(String emailFailureReason) {
         this.emailFailureReason = emailFailureReason;
+    }
+
+    public AlertSeverity getSeverity() {
+        return severity;
+    }
+
+    public void setSeverity(AlertSeverity severity) {
+        this.severity = severity;
+    }
+
+    public Integer getStoreNetAvailableQuantity() {
+        return storeNetAvailableQuantity;
+    }
+
+    public void setStoreNetAvailableQuantity(Integer storeNetAvailableQuantity) {
+        this.storeNetAvailableQuantity = storeNetAvailableQuantity;
+    }
+
+    public Integer getRateContractNetAvailableQuantity() {
+        return rateContractNetAvailableQuantity;
+    }
+
+    public void setRateContractNetAvailableQuantity(Integer rateContractNetAvailableQuantity) {
+        this.rateContractNetAvailableQuantity = rateContractNetAvailableQuantity;
+    }
+
+    public Integer getCombinedNetAvailableQuantity() {
+        return combinedNetAvailableQuantity;
+    }
+
+    public void setCombinedNetAvailableQuantity(Integer combinedNetAvailableQuantity) {
+        this.combinedNetAvailableQuantity = combinedNetAvailableQuantity;
+    }
+
+    public Integer getTenderingThreshold() {
+        return tenderingThreshold;
+    }
+
+    public void setTenderingThreshold(Integer tenderingThreshold) {
+        this.tenderingThreshold = tenderingThreshold;
     }
 }
