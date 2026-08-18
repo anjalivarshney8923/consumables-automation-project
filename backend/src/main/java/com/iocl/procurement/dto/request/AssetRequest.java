@@ -23,6 +23,10 @@ public class AssetRequest {
     @NotBlank(message = "Printer type is required")
     private String printerType; // e.g. "BLACK_AND_WHITE" or "Black & White" or "COLOR" or "Color"
 
+    private String colour; // e.g. "BLACK", "CYAN", "MAGENTA", "YELLOW" for COLOR printers, null for BLACK_AND_WHITE
+
+    private String color; // Alias for colour
+
     private String status; // Optional, default "ACTIVE" if omitted
 
     public AssetRequest() {
@@ -36,11 +40,25 @@ public class AssetRequest {
             String printerType,
             String status
     ) {
+        this(modelName, serialNumber, department, compatibleCartridge, printerType, null, status);
+    }
+
+    public AssetRequest(
+            String modelName,
+            String serialNumber,
+            String department,
+            String compatibleCartridge,
+            String printerType,
+            String colour,
+            String status
+    ) {
         this.modelName = modelName;
         this.serialNumber = serialNumber;
         this.department = department;
         this.compatibleCartridge = compatibleCartridge;
         this.printerType = printerType;
+        this.colour = colour;
+        this.color = colour;
         this.status = status;
     }
 
@@ -84,6 +102,28 @@ public class AssetRequest {
 
     public void setPrinterType(String printerType) {
         this.printerType = printerType;
+    }
+
+    public String getColour() {
+        return colour != null ? colour : color;
+    }
+
+    public void setColour(String colour) {
+        this.colour = colour;
+        if (this.color == null) {
+            this.color = colour;
+        }
+    }
+
+    public String getColor() {
+        return color != null ? color : colour;
+    }
+
+    public void setColor(String color) {
+        this.color = color;
+        if (this.colour == null) {
+            this.colour = color;
+        }
     }
 
     public String getStatus() {

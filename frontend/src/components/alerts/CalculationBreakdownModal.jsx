@@ -85,7 +85,7 @@ export const CalculationBreakdownModal = ({ item, onClose }) => {
             <div>
               <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
                 <h2 style={{ fontSize: '1.125rem', fontWeight: '800', color: 'var(--iocl-navy)', margin: 0 }}>
-                  Alert 2 Calculation Breakdown
+                  Alert Calculation Breakdown
                 </h2>
                 <span
                   style={{
@@ -317,26 +317,6 @@ export const CalculationBreakdownModal = ({ item, onClose }) => {
               <div style={{ fontSize: '0.875rem', fontWeight: '700', color: isUrgent ? '#FCA5A5' : '#86EFAC' }}>
                 {isUrgent ? 'Initiate New Tender' : 'Normal Operation'}
               </div>
-            </div>
-          </div>
-
-          {/* Logic Note / Explainer Box */}
-          <div
-            style={{
-              padding: '0.75rem 1rem',
-              backgroundColor: '#F8FAFC',
-              borderRadius: '8px',
-              border: '1px solid #E2E8F0',
-              display: 'flex',
-              alignItems: 'flex-start',
-              gap: '0.5rem',
-              fontSize: '0.75rem',
-              color: '#64748B'
-            }}
-          >
-            <HelpCircle size={15} style={{ flexShrink: 0, marginTop: '2px', color: 'var(--iocl-navy)' }} />
-            <div>
-              <strong>Alert 2 Business Rule:</strong> Alert 2 aggregates physical inventory from the Central Store ({storeQty}) and unexecuted quota in valid Rate Contracts ({rcQty}). When the combined sum ({combinedQty}) drops below the Tendering Threshold ({threshold}), a new public tender process must be initiated.
             </div>
           </div>
         </div>

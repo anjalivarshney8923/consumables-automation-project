@@ -85,10 +85,10 @@ export const FullViewRecords = () => {
         setTotalElements(res.data.totalElements || 0);
         setTotalPages(res.data.totalPages || 1);
       } else {
-        setError(res.message || 'Unable to load procurement records from PostgreSQL.');
+        setError(res.message || 'Unable to load procurement records.');
       }
     } catch (err) {
-      setError('An unexpected error occurred while connecting to the backend server.');
+      setError('An unexpected error occurred while connecting.');
     } finally {
       setLoading(false);
       setIsRefreshing(false);
@@ -155,7 +155,7 @@ export const FullViewRecords = () => {
         <div className="page-title-group">
           <h1 className="page-title-text">FULL VIEW OF RECORDS</h1>
           <p className="page-subtitle-text">
-            View and monitor complete procurement, rate contract, and call-up PO records from PostgreSQL
+            View and monitor complete procurement, rate contract, and call-up PO records
           </p>
         </div>
       </header>

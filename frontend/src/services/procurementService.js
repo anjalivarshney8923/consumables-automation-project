@@ -356,3 +356,105 @@ export const createCallUpPO = async (payload) => {
     };
   }
 };
+
+/**
+ * Fetch complete real PO transaction history for a specific cartridge by ID from PostgreSQL.
+ *
+ * @param {number} cartridgeId
+ * @returns {Promise<{ success: boolean, data?: object, message?: string, status?: number }>}
+ */
+export const getCartridgeProcurementHistory = async (cartridgeId) => {
+  try {
+    const response = await fetch(`${API_BASE_URL}/api/procurement/history/cartridge/${cartridgeId}`, {
+      method: 'GET',
+      headers: getAuthHeaders()
+    });
+
+    let data = null;
+    try {
+      data = await response.json();
+    } catch {
+      data = null;
+    }
+
+    if (response.ok && data) {
+      return { success: true, data };
+    }
+
+    const errorMsg = data?.message || data?.error || `Failed to fetch PO history (${response.status})`;
+    return { success: false, message: errorMsg, status: response.status };
+  } catch (err) {
+    return {
+      success: false,
+      message: 'Unable to connect to backend server.'
+    };
+  }
+};
+
+/**
+ * Fetch complete real PO transaction history for a specific cartridge part number from PostgreSQL.
+ *
+ * @param {string} partNumber
+ * @returns {Promise<{ success: boolean, data?: object, message?: string, status?: number }>}
+ */
+export const getPartNumberProcurementHistory = async (partNumber) => {
+  try {
+    const response = await fetch(`${API_BASE_URL}/api/procurement/history/part-number/${encodeURIComponent(partNumber)}`, {
+      method: 'GET',
+      headers: getAuthHeaders()
+    });
+
+    let data = null;
+    try {
+      data = await response.json();
+    } catch {
+      data = null;
+    }
+
+    if (response.ok && data) {
+      return { success: true, data };
+    }
+
+    const errorMsg = data?.message || data?.error || `Failed to fetch PO history (${response.status})`;
+    return { success: false, message: errorMsg, status: response.status };
+  } catch (err) {
+    return {
+      success: false,
+      message: 'Unable to connect to backend server.'
+    };
+  }
+};
+
+/**
+ * Fetch real PO history for a specific Rate Contract and its Call-Up POs from PostgreSQL.
+ *
+ * @param {number} rateContractId
+ * @returns {Promise<{ success: boolean, data?: object, message?: string, status?: number }>}
+ */
+export const getRateContractProcurementHistory = async (rateContractId) => {
+  try {
+    const response = await fetch(`${API_BASE_URL}/api/procurement/history/rate-contract/${rateContractId}`, {
+      method: 'GET',
+      headers: getAuthHeaders()
+    });
+
+    let data = null;
+    try {
+      data = await response.json();
+    } catch {
+      data = null;
+    }
+
+    if (response.ok && data) {
+      return { success: true, data };
+    }
+
+    const errorMsg = data?.message || data?.error || `Failed to fetch PO history (${response.status})`;
+    return { success: false, message: errorMsg, status: response.status };
+  } catch (err) {
+    return {
+      success: false,
+      message: 'Unable to connect to backend server.'
+    };
+  }
+};

@@ -44,6 +44,13 @@ const DEPARTMENT_OPTIONS = [
   'CAD Section'
 ];
 
+const COLOUR_OPTIONS = [
+  { label: 'Black', value: 'Black', hex: '#0F172A' },
+  { label: 'Cyan', value: 'Cyan', hex: '#06B6D4' },
+  { label: 'Magenta', value: 'Magenta', hex: '#D946EF' },
+  { label: 'Yellow', value: 'Yellow', hex: '#EAB308' }
+];
+
 export const UpdateAsset = () => {
   // Search and list state from PostgreSQL
   const [searchQuery, setSearchQuery] = useState('');
@@ -67,6 +74,7 @@ export const UpdateAsset = () => {
     department: '',
     cartridgePartNumber: '',
     printerType: 'Black & White',
+    colour: '',
     status: 'Active'
   });
   const [errors, setErrors] = useState({});
@@ -133,6 +141,19 @@ export const UpdateAsset = () => {
       formattedStatus = 'Inactive';
     }
 
+    let formattedColour = '';
+    if (formattedPrinterType === 'Color') {
+      const rawColour = asset.colour || asset.color;
+      if (rawColour) {
+        const upper = rawColour.toUpperCase();
+        if (upper === 'BLACK') formattedColour = 'Black';
+        else if (upper === 'CYAN') formattedColour = 'Cyan';
+        else if (upper === 'MAGENTA') formattedColour = 'Magenta';
+        else if (upper === 'YELLOW') formattedColour = 'Yellow';
+        else formattedColour = rawColour;
+      }
+    }
+
     const cartridgeRef =
       asset.cartridgePartNumber || asset.compatibleCartridge || '';
 
@@ -144,6 +165,7 @@ export const UpdateAsset = () => {
       cartridgePartNumber: cartridgeRef,
       cartridgeName: asset.cartridgeName || '',
       printerType: formattedPrinterType,
+      colour: formattedColour,
       status: formattedStatus,
       createdAt: asset.createdAt,
       updatedAt: asset.updatedAt
@@ -157,6 +179,7 @@ export const UpdateAsset = () => {
       department: baselineData.department,
       cartridgePartNumber: baselineData.cartridgePartNumber,
       printerType: baselineData.printerType,
+      colour: baselineData.colour,
       status: baselineData.status
     });
     setErrors({});
@@ -175,6 +198,7 @@ export const UpdateAsset = () => {
       department: '',
       cartridgePartNumber: '',
       printerType: 'Black & White',
+      colour: '',
       status: 'Active'
     });
     setErrors({});
@@ -186,15 +210,38 @@ export const UpdateAsset = () => {
 
   // Field change handler
   const handleInputChange = (field, value) => {
-    setFormData((prev) => ({
-      ...prev,
-      [field]: value
-    }));
+    setFormData((prev) => {
+      const updated = {
+        ...prev,
+        [field]: value
+      };
+
+      // 1. If switching to Black & White: automatically clear colour completely
+      if (field === 'printerType' && value === 'Black & White') {
+        updated.colour = '';
+      }
+
+      // 2. If switching to Color: restore original colour or default/suggest
+      if (field === 'printerType' && value === 'Color' && !updated.colour) {
+        if (originalAsset && originalAsset.printerType === 'Color' && originalAsset.colour) {
+          updated.colour = originalAsset.colour;
+        }
+      }
+
+      return updated;
+    });
 
     if (errors[field]) {
       setErrors((prev) => ({
         ...prev,
         [field]: null
+      }));
+    }
+
+    if (field === 'printerType' && value === 'Black & White' && errors.colour) {
+      setErrors((prev) => ({
+        ...prev,
+        colour: null
       }));
     }
 
@@ -251,6 +298,37 @@ export const UpdateAsset = () => {
       });
     }
 
+    // Colour change detection
+    if (formData.printerType === 'Color') {
+      if (originalAsset.printerType === 'Color') {
+        if (formData.colour !== originalAsset.colour) {
+          changes.push({
+            field: 'Colour',
+            oldVal: originalAsset.colour || 'Not Set',
+            newVal: formData.colour || 'Not Set'
+          });
+        }
+      } else {
+        // Was Black & White, now Color
+        if (formData.colour) {
+          changes.push({
+            field: 'Colour',
+            oldVal: 'N/A (B&W)',
+            newVal: formData.colour
+          });
+        }
+      }
+    } else {
+      // Current is Black & White
+      if (originalAsset.printerType === 'Color' && originalAsset.colour) {
+        changes.push({
+          field: 'Colour',
+          oldVal: originalAsset.colour,
+          newVal: 'Cleared (B&W)'
+        });
+      }
+    }
+
     if (formData.status !== originalAsset.status) {
       changes.push({
         field: 'Asset Status',
@@ -292,6 +370,13 @@ export const UpdateAsset = () => {
       newErrors.printerType = 'Please select printer type.';
     }
 
+    // Colour (Required ONLY for Color printers)
+    if (formData.printerType === 'Color') {
+      if (!formData.colour || !formData.colour.trim()) {
+        newErrors.colour = 'Colour is required for Color printers.';
+      }
+    }
+
     if (!formData.status || !formData.status.trim()) {
       newErrors.status = 'Please select asset status.';
     }
@@ -316,12 +401,15 @@ export const UpdateAsset = () => {
     setIsSaving(true);
     setApiError(null);
 
+    const isColor = formData.printerType === 'Color';
+
     const payload = {
       modelName: formData.modelName.trim(),
       serialNumber: formData.serialNumber.trim().toUpperCase(),
       department: formData.department.trim(),
       compatibleCartridge: formData.cartridgePartNumber.trim(),
-      printerType: formData.printerType === 'Color' ? 'COLOR' : 'BLACK_AND_WHITE',
+      printerType: isColor ? 'COLOR' : 'BLACK_AND_WHITE',
+      colour: isColor ? formData.colour.toUpperCase() : null,
       status: formData.status.toUpperCase().replace(/ /g, '_')
     };
 
@@ -340,6 +428,19 @@ export const UpdateAsset = () => {
         formattedStatus = 'Inactive';
       }
 
+      let formattedColour = '';
+      if (formattedPrinterType === 'Color') {
+        const rawColour = updated.colour || updated.color;
+        if (rawColour) {
+          const upper = rawColour.toUpperCase();
+          if (upper === 'BLACK') formattedColour = 'Black';
+          else if (upper === 'CYAN') formattedColour = 'Cyan';
+          else if (upper === 'MAGENTA') formattedColour = 'Magenta';
+          else if (upper === 'YELLOW') formattedColour = 'Yellow';
+          else formattedColour = rawColour;
+        }
+      }
+
       const updatedBaseline = {
         id: updated.id,
         modelName: updated.modelName,
@@ -348,6 +449,7 @@ export const UpdateAsset = () => {
         cartridgePartNumber: updated.cartridgePartNumber || updated.compatibleCartridge,
         cartridgeName: updated.cartridgeName || '',
         printerType: formattedPrinterType,
+        colour: formattedColour,
         status: formattedStatus,
         createdAt: updated.createdAt,
         updatedAt: updated.updatedAt
@@ -361,6 +463,7 @@ export const UpdateAsset = () => {
         department: updatedBaseline.department,
         cartridgePartNumber: updatedBaseline.cartridgePartNumber,
         printerType: updatedBaseline.printerType,
+        colour: updatedBaseline.colour,
         status: updatedBaseline.status
       });
 
@@ -390,6 +493,7 @@ export const UpdateAsset = () => {
         department: originalAsset.department,
         cartridgePartNumber: originalAsset.cartridgePartNumber,
         printerType: originalAsset.printerType,
+        colour: originalAsset.colour,
         status: originalAsset.status
       });
       setErrors({});
@@ -507,7 +611,7 @@ export const UpdateAsset = () => {
                 </span>
               </div>
               <p className="page-subtitle-text" style={{ marginTop: '0.25rem' }}>
-                Search and update registered printer asset specifications in PostgreSQL
+                Search and update registered printer asset specifications
               </p>
             </div>
           </div>
@@ -594,24 +698,9 @@ export const UpdateAsset = () => {
                   <h3 style={{ fontSize: '1rem', fontWeight: '700', color: '#166534', margin: 0 }}>
                     {successMessage}
                   </h3>
-                  {selectedAsset?.id && (
-                    <span
-                      style={{
-                        fontSize: '0.75rem',
-                        backgroundColor: '#DCFCE7',
-                        color: '#15803D',
-                        fontWeight: '700',
-                        padding: '0.125rem 0.5rem',
-                        borderRadius: '4px',
-                        border: '1px solid #86EFAC'
-                      }}
-                    >
-                      Database ID #{selectedAsset.id}
-                    </span>
-                  )}
                 </div>
                 <p style={{ fontSize: '0.8125rem', color: '#15803D', marginTop: '0.25rem', marginBottom: '0.5rem' }}>
-                  The printer asset specifications have been successfully modified and permanently persisted in PostgreSQL.
+                  The printer asset specifications have been successfully modified.
                 </p>
                 {selectedAsset?.updatedAt && (
                   <span style={{ fontSize: '0.75rem', color: '#166534', fontWeight: '600' }}>
@@ -704,7 +793,7 @@ export const UpdateAsset = () => {
                     Find Asset
                   </h2>
                   <span style={{ fontSize: '0.75rem', color: '#64748B' }}>
-                    Search registered printer assets in PostgreSQL by Serial Number, Model Name or Department
+                    Search registered printer assets by Serial Number, Model Name or Department
                   </span>
                 </div>
               </div>
@@ -887,12 +976,12 @@ export const UpdateAsset = () => {
                 <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left', fontSize: '0.8125rem' }}>
                   <thead>
                     <tr style={{ backgroundColor: '#F1F5F9', borderBottom: '1px solid #CBD5E1' }}>
-                      <th style={{ padding: '0.75rem 1rem', fontWeight: '700', color: 'var(--iocl-navy)' }}>ASSET ID</th>
                       <th style={{ padding: '0.75rem 1rem', fontWeight: '700', color: 'var(--iocl-navy)' }}>SERIAL NUMBER</th>
                       <th style={{ padding: '0.75rem 1rem', fontWeight: '700', color: 'var(--iocl-navy)' }}>MODEL NAME</th>
                       <th style={{ padding: '0.75rem 1rem', fontWeight: '700', color: 'var(--iocl-navy)' }}>DEPARTMENT / LOCATION</th>
                       <th style={{ padding: '0.75rem 1rem', fontWeight: '700', color: 'var(--iocl-navy)' }}>CARTRIDGE</th>
                       <th style={{ padding: '0.75rem 1rem', fontWeight: '700', color: 'var(--iocl-navy)' }}>TYPE</th>
+                      <th style={{ padding: '0.75rem 1rem', fontWeight: '700', color: 'var(--iocl-navy)' }}>COLOUR</th>
                       <th style={{ padding: '0.75rem 1rem', fontWeight: '700', color: 'var(--iocl-navy)' }}>STATUS</th>
                       <th style={{ padding: '0.75rem 1rem', fontWeight: '700', color: 'var(--iocl-navy)', textAlign: 'right' }}>ACTION</th>
                     </tr>
@@ -907,9 +996,6 @@ export const UpdateAsset = () => {
                           transition: 'background-color 0.15s ease'
                         }}
                       >
-                        <td style={{ padding: '0.875rem 1rem', fontWeight: '700', color: '#1E40AF' }}>
-                          #{asset.id}
-                        </td>
                         <td style={{ padding: '0.875rem 1rem', fontFamily: 'monospace', fontWeight: '600', color: '#0F172A' }}>
                           {asset.serialNumber}
                         </td>
@@ -938,6 +1024,39 @@ export const UpdateAsset = () => {
                           >
                             {asset.printerType === 'COLOR' ? 'Color' : 'Black & White'}
                           </span>
+                        </td>
+                        <td style={{ padding: '0.875rem 1rem' }}>
+                          {asset.printerType === 'COLOR' && (asset.colour || asset.color) ? (
+                            <span
+                              style={{
+                                fontSize: '0.75rem',
+                                fontWeight: '700',
+                                display: 'inline-flex',
+                                alignItems: 'center',
+                                gap: '0.375rem',
+                                padding: '0.2rem 0.5rem',
+                                borderRadius: '4px',
+                                border: '1px solid #E2E8F0',
+                                backgroundColor: '#F8FAFC',
+                                color: '#334155'
+                              }}
+                            >
+                              <span
+                                style={{
+                                  width: '8px',
+                                  height: '8px',
+                                  borderRadius: '50%',
+                                  backgroundColor:
+                                    (asset.colour || asset.color) === 'CYAN' ? '#06B6D4' :
+                                    (asset.colour || asset.color) === 'MAGENTA' ? '#D946EF' :
+                                    (asset.colour || asset.color) === 'YELLOW' ? '#EAB308' : '#0F172A'
+                                }}
+                              />
+                              <span>{asset.colour || asset.color}</span>
+                            </span>
+                          ) : (
+                            <span style={{ color: '#94A3B8', fontSize: '0.8125rem' }}>—</span>
+                          )}
                         </td>
                         <td style={{ padding: '0.875rem 1rem' }}>
                           {renderStatusBadge(asset.status)}
@@ -994,7 +1113,7 @@ export const UpdateAsset = () => {
                 <p style={{ fontSize: '0.8125rem', color: '#64748B', maxWidth: '420px', margin: '0 auto 1.25rem' }}>
                   {searchQuery
                     ? `No registered assets matched your query "${searchQuery}". Please check the serial number or model name.`
-                    : 'No printer assets have been registered yet in PostgreSQL. Register assets using the New Asset Addition module.'}
+                    : 'No printer assets have been registered yet. Register assets using the New Asset Addition module.'}
                 </p>
                 {searchQuery && (
                   <button
@@ -1051,7 +1170,7 @@ export const UpdateAsset = () => {
                 <FileText size={20} color="var(--iocl-navy)" />
                 <div>
                   <h2 style={{ fontSize: '1rem', fontWeight: '700', color: 'var(--iocl-navy)', margin: 0 }}>
-                    Current Asset Details (Database Record)
+                    Current Asset Details
                   </h2>
                   <span style={{ fontSize: '0.75rem', color: '#64748B' }}>
                     Reference specifications before applying modifications
@@ -1060,19 +1179,6 @@ export const UpdateAsset = () => {
               </div>
 
               <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-                <span
-                  style={{
-                    fontSize: '0.75rem',
-                    backgroundColor: '#EFF6FF',
-                    color: '#1E40AF',
-                    fontWeight: '700',
-                    padding: '0.25rem 0.625rem',
-                    borderRadius: '6px',
-                    border: '1px solid #BFDBFE'
-                  }}
-                >
-                  Database ID #{selectedAsset.id}
-                </span>
                 {renderStatusBadge(selectedAsset.status)}
               </div>
             </div>
@@ -1132,6 +1238,28 @@ export const UpdateAsset = () => {
                 </p>
               </div>
 
+              {selectedAsset.printerType === 'Color' && selectedAsset.colour && (
+                <div style={{ backgroundColor: '#FFFFFF', padding: '0.875rem 1rem', borderRadius: '8px', border: '1px solid #E2E8F0' }}>
+                  <span style={{ fontSize: '0.6875rem', color: '#64748B', fontWeight: '700', textTransform: 'uppercase' }}>
+                    Cartridge Colour
+                  </span>
+                  <p style={{ fontSize: '0.875rem', fontWeight: '700', color: '#0F172A', margin: '0.25rem 0 0', display: 'flex', alignItems: 'center', gap: '0.375rem' }}>
+                    <span
+                      style={{
+                        width: '9px',
+                        height: '9px',
+                        borderRadius: '50%',
+                        backgroundColor:
+                          selectedAsset.colour === 'Cyan' ? '#06B6D4' :
+                          selectedAsset.colour === 'Magenta' ? '#D946EF' :
+                          selectedAsset.colour === 'Yellow' ? '#EAB308' : '#0F172A'
+                      }}
+                    />
+                    <span>{selectedAsset.colour}</span>
+                  </p>
+                </div>
+              )}
+
               <div style={{ backgroundColor: '#FFFFFF', padding: '0.875rem 1rem', borderRadius: '8px', border: '1px solid #E2E8F0' }}>
                 <span style={{ fontSize: '0.6875rem', color: '#64748B', fontWeight: '700', textTransform: 'uppercase' }}>
                   Registered On
@@ -1174,7 +1302,7 @@ export const UpdateAsset = () => {
                     Update Asset Information
                   </h2>
                   <span style={{ fontSize: '0.75rem', color: '#64748B' }}>
-                    Edit the fields below to update specifications for asset #{selectedAsset.id}
+                    Edit the fields below to update specifications for Serial Number {selectedAsset.serialNumber}
                   </span>
                 </div>
               </div>
@@ -1523,7 +1651,64 @@ export const UpdateAsset = () => {
                   )}
                 </div>
 
-                {/* Field F: ASSET STATUS */}
+                {/* Field F: COLOUR (Rendered ONLY when Printer Type is Color) */}
+                {formData.printerType === 'Color' && (
+                  <div className="form-group">
+                    <label
+                      htmlFor="editColour"
+                      style={{
+                        display: 'flex',
+                        alignItems: 'center',
+                        gap: '0.375rem',
+                        fontSize: '0.8125rem',
+                        fontWeight: '700',
+                        color: 'var(--iocl-navy)',
+                        marginBottom: '0.375rem',
+                        letterSpacing: '0.02em',
+                        textTransform: 'uppercase'
+                      }}
+                    >
+                      <Palette size={15} color="#64748B" />
+                      <span>COLOUR</span>
+                      <span style={{ color: '#DC2626' }}>*</span>
+                    </label>
+                    <select
+                      id="editColour"
+                      name="editColour"
+                      value={formData.colour}
+                      onChange={(e) => handleInputChange('colour', e.target.value)}
+                      disabled={isSaving}
+                      style={{
+                        width: '100%',
+                        height: '42px',
+                        padding: '0 0.875rem',
+                        borderRadius: '8px',
+                        border: '1px solid',
+                        borderColor: errors.colour ? '#DC2626' : formData.colour !== originalAsset.colour ? 'var(--iocl-saffron)' : '#CBD5E1',
+                        backgroundColor: errors.colour ? '#FFF8F8' : formData.colour !== originalAsset.colour ? '#FFFDF7' : '#FFFFFF',
+                        fontSize: '0.875rem',
+                        color: formData.colour ? '#0F172A' : '#64748B',
+                        outline: 'none',
+                        cursor: 'pointer'
+                      }}
+                    >
+                      <option value="">— Select Colour —</option>
+                      {COLOUR_OPTIONS.map((col) => (
+                        <option key={col.value} value={col.value}>
+                          {col.label}
+                        </option>
+                      ))}
+                    </select>
+                    {errors.colour && (
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '0.25rem', marginTop: '0.375rem', color: '#DC2626', fontSize: '0.75rem', fontWeight: '600' }}>
+                        <AlertCircle size={13} />
+                        <span>{errors.colour}</span>
+                      </div>
+                    )}
+                  </div>
+                )}
+
+                {/* Field G: ASSET STATUS */}
                 <div className="form-group">
                   <label
                     htmlFor="editStatus"
@@ -1775,8 +1960,8 @@ export const UpdateAsset = () => {
 
             <div style={{ padding: '1.5rem' }}>
               <p style={{ fontSize: '0.875rem', color: '#334155', margin: '0 0 1rem' }}>
-                You are about to save the following changes to PostgreSQL for printer asset{' '}
-                <strong>#{selectedAsset?.id} ({originalAsset?.serialNumber})</strong>:
+                You are about to save the following changes for printer Serial Number{' '}
+                <strong>({originalAsset?.serialNumber})</strong>:
               </p>
 
               <div

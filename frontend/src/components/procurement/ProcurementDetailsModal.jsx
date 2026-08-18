@@ -23,7 +23,6 @@ export const ProcurementDetailsModal = ({ record, onClose }) => {
             </div>
             <div>
               <h3 className="modal-title">Procurement Record Details</h3>
-              <p className="modal-subtitle">PostgreSQL Record ID: #{record.id}</p>
             </div>
           </div>
           <button type="button" className="modal-close-btn" onClick={onClose} aria-label="Close modal">

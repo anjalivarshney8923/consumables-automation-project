@@ -37,7 +37,7 @@ export const ProcurementRegister = () => {
         <div className="page-title-group">
           <h1 className="page-title-text">Procurement Register Entry</h1>
           <p className="page-subtitle-text">
-            Record new rate contracts and call-up purchase orders backed by PostgreSQL database storage
+            Record new rate contracts and call-up purchase orders 
           </p>
         </div>
       </header>

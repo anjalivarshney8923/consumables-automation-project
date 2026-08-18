@@ -39,7 +39,7 @@ export const RateContractDetails = () => {
     if (res.success && res.data) {
       setContractDetails(res.data);
     } else {
-      setError(res.message || 'Failed to load rate contract details from database.');
+      setError(res.message || 'Failed to load rate contract details.');
     }
     setLoading(false);
   }, [id]);
@@ -94,38 +94,6 @@ export const RateContractDetails = () => {
                 <h1 className="page-title-text" style={{ margin: 0 }}>
                   Rate Contract Details
                 </h1>
-                {contractDetails?.id && (
-                  <span
-                    style={{
-                      fontSize: '0.6875rem',
-                      backgroundColor: '#EFF6FF',
-                      color: '#1E40AF',
-                      fontWeight: '800',
-                      padding: '0.125rem 0.5rem',
-                      borderRadius: '4px',
-                      border: '1px solid #BFDBFE'
-                    }}
-                  >
-                    CONTRACT #{contractDetails.id}
-                  </span>
-                )}
-                <span
-                  style={{
-                    fontSize: '0.6875rem',
-                    backgroundColor: '#ECFDF5',
-                    color: '#047857',
-                    fontWeight: '800',
-                    padding: '0.125rem 0.5rem',
-                    borderRadius: '4px',
-                    border: '1px solid #A7F3D0',
-                    display: 'inline-flex',
-                    alignItems: 'center',
-                    gap: '0.25rem'
-                  }}
-                >
-                  <Database size={11} />
-                  POSTGRESQL SYNCED
-                </span>
               </div>
               <p className="page-subtitle-text" style={{ marginTop: '0.25rem' }}>
                 Complete Call-Up Purchase Order execution history and rate contract specifications
@@ -588,7 +556,7 @@ export const RateContractDetails = () => {
                     Call-Up Purchase Order History ({callUpPOs.length})
                   </h2>
                   <span style={{ fontSize: '0.75rem', color: '#64748B' }}>
-                    All individual Call-Up work orders dispatched against Rate Contract #{contractDetails.id}
+                    All individual Call-Up work orders dispatched 
                   </span>
                 </div>
               </div>

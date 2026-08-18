@@ -155,7 +155,7 @@ export const CallUpPOForm = ({ onEntryAdded }) => {
       const created = res.data;
       setSuccessMessage({
         title: 'Call-Up PO Created & Quantity Updated',
-        details: `Work Order ${created.poNumber} saved to PostgreSQL. Remaining available contract quantity: ${created.remainingAvailableQuantity}.`
+        details: `Work Order ${created.poNumber} saved. Remaining available contract quantity: ${created.remainingAvailableQuantity}.`
       });
 
       // Clear form inputs
@@ -201,19 +201,12 @@ export const CallUpPOForm = ({ onEntryAdded }) => {
         <div>
           <h2 className="form-card-title">Call-Up PO Entry</h2>
           <p className="form-card-subtitle">
-            Record a work-order call-up executed against an active master Rate Contract in PostgreSQL.
+            Record a work-order call-up executed against an active master Rate Contract.
           </p>
         </div>
-        <span className="badge-callup-type">Child Work Order</span>
       </div>
 
-      {/* Info Callout for Contract Relationship */}
-      <div className="info-relationship-banner" role="region" aria-label="Contract Relationship Info">
-        <Info size={18} className="info-icon" />
-        <div className="info-text">
-          <strong>Database Validation:</strong> Selecting a Rate Contract verifies the live available contract quota from PostgreSQL. Work Orders exceeding available contract quantity will be automatically rejected.
-        </div>
-      </div>
+      
 
       {serverError && (
         <div className="alert-banner alert-banner-danger mb-4" role="alert">

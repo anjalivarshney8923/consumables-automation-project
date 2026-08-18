@@ -2,23 +2,16 @@ import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import {
   AlertOctagon,
   Search,
-  Sliders,
   CheckCircle2,
   AlertTriangle,
   FileSpreadsheet,
-  Boxes,
-  Layers,
   Calculator,
   Save,
   RefreshCw,
-  Info,
-  ExternalLink,
   Flame,
-  Filter,
-  RotateCcw
+  Filter
 } from 'lucide-react';
 import { getTenderingAlerts, updateTenderingThreshold } from '../../services/alertService';
-import { Alert2SimulationBox } from '../../components/alerts/Alert2SimulationBox';
 import { CalculationBreakdownModal } from '../../components/alerts/CalculationBreakdownModal';
 
 export const TenderingAlerts = () => {
@@ -205,24 +198,11 @@ export const TenderingAlerts = () => {
             <div>
               <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
                 <h1 className="page-title-text" style={{ margin: 0 }}>
-                  ALERT 2 — TENDERING REQUIRED
+                  Tendering Alerts
                 </h1>
-                <span
-                  style={{
-                    fontSize: '0.6875rem',
-                    backgroundColor: '#FEF2F2',
-                    color: '#DC2626',
-                    fontWeight: '800',
-                    padding: '0.125rem 0.5rem',
-                    borderRadius: '4px',
-                    border: '1px solid #FECACA'
-                  }}
-                >
-                  TENDERING ALERT
-                </span>
               </div>
               <p className="page-subtitle-text" style={{ marginTop: '0.25rem' }}>
-                Monitor combined consumable availability and identify items requiring urgent tendering.
+                Urgent tendering requirements based on real inventory + RC data
               </p>
             </div>
           </div>
@@ -300,7 +280,7 @@ export const TenderingAlerts = () => {
           <div className="kpi-card-header">
             <span className="kpi-card-title">Total Items</span>
             <div className="kpi-icon-container kpi-icon-navy">
-              <Layers size={20} />
+              <FileSpreadsheet size={20} />
             </div>
           </div>
           <div className="kpi-card-body">
@@ -308,7 +288,6 @@ export const TenderingAlerts = () => {
           </div>
           <div className="kpi-card-footer">
             <span>Tracked Consumables</span>
-            <span style={{ fontWeight: '500' }}>PostgreSQL Records</span>
           </div>
         </div>
 
@@ -335,7 +314,6 @@ export const TenderingAlerts = () => {
             </span>
           </div>
           <div className="kpi-card-footer">
-            <span>Combined &lt; Threshold</span>
             <span style={{ fontWeight: '700', color: '#DC2626' }}>Action Required</span>
           </div>
         </div>
@@ -354,7 +332,6 @@ export const TenderingAlerts = () => {
             </span>
           </div>
           <div className="kpi-card-footer">
-            <span>Combined &ge; Threshold</span>
             <span style={{ fontWeight: '600', color: '#16A34A' }}>Healthy Quota</span>
           </div>
         </div>
@@ -383,14 +360,9 @@ export const TenderingAlerts = () => {
           </div>
           <div className="kpi-card-footer">
             <span>Critical Deficit Items</span>
-            <span style={{ fontWeight: '700', color: '#B91C1C' }}>Alert 2 Active</span>
+            <span style={{ fontWeight: '700', color: '#B91C1C' }}>Alert Active</span>
           </div>
         </div>
-      </section>
-
-      {/* Alert 2 Test / Simulation Section */}
-      <section aria-label="Interactive Simulation Sandbox" className="mb-6">
-        <Alert2SimulationBox />
       </section>
 
       {/* Search & Filter Bar */}
@@ -509,8 +481,7 @@ export const TenderingAlerts = () => {
           </div>
         </div>
       </div>
-
-      {/* Main Alert 2 Table */}
+      
       <div
         className="table-responsive-card"
         style={{
@@ -536,16 +507,12 @@ export const TenderingAlerts = () => {
           <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
             <FileSpreadsheet size={18} color="var(--iocl-navy)" />
             <strong style={{ fontSize: '0.875rem', color: 'var(--iocl-navy)' }}>
-              Consumables Combined Inventory & Tendering Status (PostgreSQL Database)
+              Consumables Combined Inventory & Tendering Status
             </strong>
             <span style={{ fontSize: '0.75rem', color: '#64748B' }}>
               ({filteredRecords.length} records shown)
             </span>
           </div>
-
-          <span style={{ fontSize: '0.75rem', color: '#64748B' }}>
-            Logic: <code>Combined (Store + RC) &lt; Tendering Threshold &rarr; Alert 2 Urgent</code>
-          </span>
         </div>
 
         {loading ? (
@@ -817,46 +784,6 @@ export const TenderingAlerts = () => {
             </table>
           </div>
         )}
-      </div>
-
-      {/* Informational Difference Callout: Alert 1 vs Alert 2 */}
-      <div
-        style={{
-          marginTop: '1.5rem',
-          padding: '1.25rem',
-          backgroundColor: '#FFFFFF',
-          borderRadius: '12px',
-          border: '1px solid #E2E8F0',
-          display: 'grid',
-          gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))',
-          gap: '1.25rem'
-        }}
-      >
-        <div style={{ display: 'flex', flexDirection: 'column', gap: '0.375rem', borderRight: '1px solid #F1F5F9', paddingRight: '1rem' }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-            <span style={{ fontSize: '0.6875rem', fontWeight: '800', backgroundColor: '#EA580C', color: '#FFFFFF', padding: '0.125rem 0.375rem', borderRadius: '4px' }}>
-              ALERT 1
-            </span>
-            <strong style={{ fontSize: '0.875rem', color: '#1E293B' }}>Call-Up PO Required</strong>
-          </div>
-          <p style={{ fontSize: '0.8125rem', color: '#64748B', margin: 0, lineHeight: '1.4' }}>
-            <strong>Condition:</strong> <code>Net Available in Rate Contract &le; PO Threshold</code>.
-            Triggers when remaining quota in a single rate contract needs a call-up purchase order.
-          </p>
-        </div>
-
-        <div style={{ display: 'flex', flexDirection: 'column', gap: '0.375rem' }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-            <span style={{ fontSize: '0.6875rem', fontWeight: '800', backgroundColor: '#DC2626', color: '#FFFFFF', padding: '0.125rem 0.375rem', borderRadius: '4px' }}>
-              ALERT 2
-            </span>
-            <strong style={{ fontSize: '0.875rem', color: '#DC2626' }}>Urgent Tendering Required</strong>
-          </div>
-          <p style={{ fontSize: '0.8125rem', color: '#64748B', margin: 0, lineHeight: '1.4' }}>
-            <strong>Condition:</strong> <code>Store Net Available + Rate Contract Net Available &lt; Tendering Threshold</code>.
-            Triggers when total organizational consumable availability is critically depleted and a new tender is mandatory.
-          </p>
-        </div>
       </div>
 
       {/* Expandable Calculation Modal */}

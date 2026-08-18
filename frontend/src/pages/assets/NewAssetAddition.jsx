@@ -41,8 +41,16 @@ const INITIAL_FORM_STATE = {
   department: '',
   cartridgePartNumber: '',
   printerType: 'Black & White',
+  colour: '',
   status: 'Active'
 };
+
+const COLOUR_OPTIONS = [
+  { label: 'Black', value: 'Black', hex: '#0F172A' },
+  { label: 'Cyan', value: 'Cyan', hex: '#06B6D4' },
+  { label: 'Magenta', value: 'Magenta', hex: '#D946EF' },
+  { label: 'Yellow', value: 'Yellow', hex: '#EAB308' }
+];
 
 export const NewAssetAddition = () => {
   const [formData, setFormData] = useState(INITIAL_FORM_STATE);
@@ -76,16 +84,61 @@ export const NewAssetAddition = () => {
 
   // Field change handler
   const handleInputChange = (field, value) => {
-    setFormData((prev) => ({
-      ...prev,
-      [field]: value
-    }));
+    setFormData((prev) => {
+      const updated = {
+        ...prev,
+        [field]: value
+      };
+
+      // 1. If switching to Black & White: automatically clear colour completely
+      if (field === 'printerType' && value === 'Black & White') {
+        updated.colour = '';
+      }
+
+      // 2. If switching to Color: auto-suggest colour based on cartridge part number/name if empty
+      if (field === 'printerType' && value === 'Color' && !updated.colour && prev.cartridgePartNumber) {
+        const upper = prev.cartridgePartNumber.toUpperCase();
+        if (upper.endsWith('-BLK') || upper.includes('BLK') || upper.includes('BLACK')) {
+          updated.colour = 'Black';
+        } else if (upper.endsWith('-CYN') || upper.includes('CYN') || upper.includes('CYAN')) {
+          updated.colour = 'Cyan';
+        } else if (upper.endsWith('-MAG') || upper.includes('MAG') || upper.includes('MAGENTA')) {
+          updated.colour = 'Magenta';
+        } else if (upper.endsWith('-YEL') || upper.includes('YEL') || upper.includes('YELLOW')) {
+          updated.colour = 'Yellow';
+        }
+      }
+
+      // 3. If cartridge changed while in Color mode: auto-suggest colour if empty
+      if (field === 'cartridgePartNumber' && updated.printerType === 'Color' && value && !prev.colour) {
+        const upper = value.toUpperCase();
+        if (upper.endsWith('-BLK') || upper.includes('BLK') || upper.includes('BLACK')) {
+          updated.colour = 'Black';
+        } else if (upper.endsWith('-CYN') || upper.includes('CYN') || upper.includes('CYAN')) {
+          updated.colour = 'Cyan';
+        } else if (upper.endsWith('-MAG') || upper.includes('MAG') || upper.includes('MAGENTA')) {
+          updated.colour = 'Magenta';
+        } else if (upper.endsWith('-YEL') || upper.includes('YEL') || upper.includes('YELLOW')) {
+          updated.colour = 'Yellow';
+        }
+      }
+
+      return updated;
+    });
 
     // Clear validation error for this field
     if (errors[field]) {
       setErrors((prev) => ({
         ...prev,
         [field]: null
+      }));
+    }
+
+    // If switching to Black & White, also clear colour validation error
+    if (field === 'printerType' && value === 'Black & White' && errors.colour) {
+      setErrors((prev) => ({
+        ...prev,
+        colour: null
       }));
     }
 
@@ -131,7 +184,14 @@ export const NewAssetAddition = () => {
       newErrors.printerType = 'Please select printer type.';
     }
 
-    // 6. Initial Status
+    // 6. Colour (Required ONLY for Color printers; NOT applicable for Black & White)
+    if (formData.printerType === 'Color') {
+      if (!formData.colour || !formData.colour.trim()) {
+        newErrors.colour = 'Colour is required for Color printers.';
+      }
+    }
+
+    // 7. Initial Status
     if (!formData.status || !formData.status.trim()) {
       newErrors.status = 'Please select asset status.';
     }
@@ -151,12 +211,15 @@ export const NewAssetAddition = () => {
 
     setIsSubmitting(true);
 
+    const isColor = formData.printerType === 'Color';
+
     const payload = {
       modelName: formData.modelName.trim(),
       serialNumber: formData.serialNumber.trim().toUpperCase(),
       department: formData.department.trim(),
       compatibleCartridge: formData.cartridgePartNumber.trim(),
-      printerType: formData.printerType === 'Color' ? 'COLOR' : 'BLACK_AND_WHITE',
+      printerType: isColor ? 'COLOR' : 'BLACK_AND_WHITE',
+      colour: isColor ? formData.colour.toUpperCase() : null,
       status: formData.status.toUpperCase().replace(/ /g, '_')
     };
 
@@ -233,7 +296,7 @@ export const NewAssetAddition = () => {
                 </span>
               </div>
               <p className="page-subtitle-text" style={{ marginTop: '0.25rem' }}>
-                Onboard a new printer asset into the central PostgreSQL fleet registry
+                Onboard a new printer asset into the central fleet registry
               </p>
             </div>
           </div>
@@ -296,24 +359,9 @@ export const NewAssetAddition = () => {
                   <h3 style={{ fontSize: '1rem', fontWeight: '700', color: '#166534', margin: 0 }}>
                     {successMessage}
                   </h3>
-                  {validatedAsset.id && (
-                    <span
-                      style={{
-                        fontSize: '0.75rem',
-                        backgroundColor: '#DCFCE7',
-                        color: '#15803D',
-                        fontWeight: '700',
-                        padding: '0.125rem 0.5rem',
-                        borderRadius: '4px',
-                        border: '1px solid #86EFAC'
-                      }}
-                    >
-                      Database ID #{validatedAsset.id}
-                    </span>
-                  )}
                 </div>
                 <p style={{ fontSize: '0.8125rem', color: '#15803D', marginTop: '0.25rem', marginBottom: '0.75rem' }}>
-                  The printer asset has been validated and permanently persisted in the PostgreSQL database.
+                  The printer asset has been validated and permanently persisted.
                 </p>
 
                 {/* Validated Asset Summary Chips */}
@@ -333,6 +381,23 @@ export const NewAssetAddition = () => {
                   <span style={{ fontSize: '0.75rem', fontWeight: '600', backgroundColor: '#FFFFFF', color: '#1E293B', padding: '0.25rem 0.625rem', borderRadius: '6px', border: '1px solid #DCFCE7' }}>
                     <strong>Type:</strong> {validatedAsset.printerType === 'COLOR' ? 'Color' : 'Black & White'}
                   </span>
+                  {validatedAsset.printerType === 'COLOR' && validatedAsset.colour && (
+                    <span style={{ fontSize: '0.75rem', fontWeight: '600', backgroundColor: '#FFFFFF', color: '#1E293B', padding: '0.25rem 0.625rem', borderRadius: '6px', border: '1px solid #DCFCE7', display: 'inline-flex', alignItems: 'center', gap: '0.375rem' }}>
+                      <strong>Colour:</strong>
+                      <span
+                        style={{
+                          width: '8px',
+                          height: '8px',
+                          borderRadius: '50%',
+                          backgroundColor:
+                            validatedAsset.colour === 'CYAN' ? '#06B6D4' :
+                            validatedAsset.colour === 'MAGENTA' ? '#D946EF' :
+                            validatedAsset.colour === 'YELLOW' ? '#EAB308' : '#0F172A'
+                        }}
+                      />
+                      <span>{validatedAsset.colour}</span>
+                    </span>
+                  )}
                   <span style={{ fontSize: '0.75rem', fontWeight: '700', backgroundColor: '#DCFCE7', color: '#166534', padding: '0.25rem 0.625rem', borderRadius: '6px', border: '1px solid #86EFAC' }}>
                     <strong>Status:</strong> {validatedAsset.status}
                   </span>
@@ -788,7 +853,66 @@ export const NewAssetAddition = () => {
               )}
             </div>
 
-            {/* Field F: INITIAL STATUS */}
+            {/* Field F: COLOUR (Rendered ONLY when Printer Type is Color) */}
+            {formData.printerType === 'Color' && (
+              <div className="form-group">
+                <label
+                  htmlFor="colour"
+                  style={{
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: '0.375rem',
+                    fontSize: '0.8125rem',
+                    fontWeight: '700',
+                    color: 'var(--iocl-navy)',
+                    marginBottom: '0.375rem',
+                    letterSpacing: '0.02em',
+                    textTransform: 'uppercase'
+                  }}
+                >
+                  <Palette size={15} color="#64748B" />
+                  <span>COLOUR</span>
+                  <span style={{ color: '#DC2626' }}>*</span>
+                </label>
+                <div style={{ position: 'relative' }}>
+                  <select
+                    id="colour"
+                    name="colour"
+                    value={formData.colour}
+                    onChange={(e) => handleInputChange('colour', e.target.value)}
+                    disabled={isSubmitting}
+                    style={{
+                      width: '100%',
+                      height: '42px',
+                      padding: '0 0.875rem',
+                      borderRadius: '8px',
+                      border: '1px solid',
+                      borderColor: errors.colour ? '#DC2626' : '#CBD5E1',
+                      backgroundColor: errors.colour ? '#FFF8F8' : '#FFFFFF',
+                      fontSize: '0.875rem',
+                      color: formData.colour ? '#0F172A' : '#64748B',
+                      outline: 'none',
+                      cursor: 'pointer'
+                    }}
+                  >
+                    <option value="">— Select Colour —</option>
+                    {COLOUR_OPTIONS.map((col) => (
+                      <option key={col.value} value={col.value}>
+                        {col.label}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+                {errors.colour && (
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '0.25rem', marginTop: '0.375rem', color: '#DC2626', fontSize: '0.75rem', fontWeight: '600' }}>
+                    <AlertCircle size={13} />
+                    <span>{errors.colour}</span>
+                  </div>
+                )}
+              </div>
+            )}
+
+            {/* Field G: INITIAL STATUS */}
             <div className="form-group">
               <label
                 htmlFor="status"
@@ -914,43 +1038,6 @@ export const NewAssetAddition = () => {
             </button>
           </div>
         </form>
-      </div>
-
-      {/* 5. Information Callout: Fleet Lifecycle Notice */}
-      <div
-        style={{
-          padding: '1.25rem 1.5rem',
-          backgroundColor: '#FFFFFF',
-          borderRadius: '12px',
-          border: '1px solid #E2E8F0',
-          display: 'flex',
-          alignItems: 'flex-start',
-          gap: '1rem'
-        }}
-      >
-        <div
-          style={{
-            width: '32px',
-            height: '32px',
-            borderRadius: '8px',
-            backgroundColor: '#FFF7ED',
-            color: 'var(--iocl-saffron)',
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-            flexShrink: 0
-          }}
-        >
-          <Info size={18} />
-        </div>
-        <div>
-          <h4 style={{ fontSize: '0.875rem', fontWeight: '700', color: '#1E293B', margin: 0 }}>
-            Asset Onboarding & Fleet Lifecycle Notice
-          </h4>
-          <p style={{ fontSize: '0.8125rem', color: '#64748B', marginTop: '0.25rem', marginBottom: 0, lineHeight: '1.4' }}>
-            Registering a printer asset onboards its unique serial number into the central IOCL PostgreSQL registry. Consumable replenishment and rate contracts remain independently tracked under the Procurement Register and Threshold modules.
-          </p>
-        </div>
       </div>
     </div>
   );

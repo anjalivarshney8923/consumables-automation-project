@@ -102,4 +102,35 @@ public class ProcurementController {
         CallUpPOResponse callUpPO = callUpPOService.getCallUpPOById(id);
         return ResponseEntity.ok(callUpPO);
     }
+
+    // ===================================================================
+    // Real PostgreSQL PO History Endpoints
+    // ===================================================================
+
+    @GetMapping("/history/cartridge/{cartridgeId}")
+    public ResponseEntity<com.iocl.procurement.dto.response.CartridgeProcurementHistoryResponse> getCartridgeProcurementHistory(
+            @PathVariable Long cartridgeId
+    ) {
+        com.iocl.procurement.dto.response.CartridgeProcurementHistoryResponse history =
+                rateContractService.getCartridgeProcurementHistory(cartridgeId);
+        return ResponseEntity.ok(history);
+    }
+
+    @GetMapping("/history/part-number/{partNumber}")
+    public ResponseEntity<com.iocl.procurement.dto.response.CartridgeProcurementHistoryResponse> getCartridgeProcurementHistoryByPartNumber(
+            @PathVariable String partNumber
+    ) {
+        com.iocl.procurement.dto.response.CartridgeProcurementHistoryResponse history =
+                rateContractService.getCartridgeProcurementHistoryByPartNumber(partNumber);
+        return ResponseEntity.ok(history);
+    }
+
+    @GetMapping({"/rate-contracts/{rateContractId}/history", "/{rateContractId}/history", "/history/rate-contract/{rateContractId}"})
+    public ResponseEntity<com.iocl.procurement.dto.response.CartridgeProcurementHistoryResponse> getRateContractProcurementHistory(
+            @PathVariable Long rateContractId
+    ) {
+        com.iocl.procurement.dto.response.CartridgeProcurementHistoryResponse history =
+                rateContractService.getRateContractProcurementHistory(rateContractId);
+        return ResponseEntity.ok(history);
+    }
 }

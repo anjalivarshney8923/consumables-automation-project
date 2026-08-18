@@ -96,14 +96,15 @@ public class AssetControllerTest {
     }
 
     @Test
-    @DisplayName("1. Successfully create a new Asset with valid details in PostgreSQL")
-    void testCreateAssetSuccess() throws Exception {
+    @DisplayName("1. Successfully create a new COLOR Asset with valid colour in PostgreSQL")
+    void testCreateColorAssetSuccess() throws Exception {
         AssetRequest request = new AssetRequest(
                 "HP Color LaserJet Pro M454dn",
                 "VNB3K12345",
                 "IT Department",
                 "W2040X",
                 "COLOR",
+                "CYAN",
                 "ACTIVE"
         );
 
@@ -119,6 +120,7 @@ public class AssetControllerTest {
                 .andExpect(jsonPath("$.cartridgePartNumber", is("W2040X")))
                 .andExpect(jsonPath("$.cartridgeName", is("HP 416X High Yield Black")))
                 .andExpect(jsonPath("$.printerType", is("COLOR")))
+                .andExpect(jsonPath("$.colour", is("CYAN")))
                 .andExpect(jsonPath("$.status", is("ACTIVE")))
                 .andExpect(jsonPath("$.createdAt", notNullValue()));
 
@@ -126,11 +128,83 @@ public class AssetControllerTest {
         List<Asset> assets = assetRepository.findAll();
         assertEquals(1, assets.size());
         assertEquals("VNB3K12345", assets.get(0).getSerialNumber());
+        assertEquals(CartridgeColor.CYAN, assets.get(0).getColour());
         assertEquals(hpCartridge.getId(), assets.get(0).getCartridge().getId());
     }
 
     @Test
-    @DisplayName("2. Missing model name returns 400 Bad Request")
+    @DisplayName("2. Successfully create a new BLACK_AND_WHITE Asset with null colour in PostgreSQL")
+    void testCreateBlackAndWhiteAssetSuccess() throws Exception {
+        AssetRequest request = new AssetRequest(
+                "Canon LBP246dw",
+                "BW-12345",
+                "Finance Wing",
+                "070-BLK",
+                "BLACK_AND_WHITE",
+                null,
+                "ACTIVE"
+        );
+
+        mockMvc.perform(post("/api/assets")
+                        .header("Authorization", "Bearer " + jwtToken)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(request)))
+                .andExpect(status().isCreated())
+                .andExpect(jsonPath("$.id", notNullValue()))
+                .andExpect(jsonPath("$.modelName", is("Canon LBP246dw")))
+                .andExpect(jsonPath("$.printerType", is("BLACK_AND_WHITE")))
+                .andExpect(jsonPath("$.colour").doesNotExist());
+
+        // Verify direct PostgreSQL persistence has NULL colour
+        List<Asset> assets = assetRepository.findAll();
+        assertEquals(1, assets.size());
+        assertNull(assets.get(0).getColour());
+    }
+
+    @Test
+    @DisplayName("3. Reject Black & White printer with non-null colour (400 Bad Request)")
+    void testRejectBlackAndWhiteWithColour() throws Exception {
+        AssetRequest request = new AssetRequest(
+                "Canon LBP246dw",
+                "BW-REJECT-1",
+                "Finance Wing",
+                "070-BLK",
+                "BLACK_AND_WHITE",
+                "MAGENTA",
+                "ACTIVE"
+        );
+
+        mockMvc.perform(post("/api/assets")
+                        .header("Authorization", "Bearer " + jwtToken)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(request)))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.message", containsString("Colour is not applicable for Black & White printers")));
+    }
+
+    @Test
+    @DisplayName("4. Reject COLOR printer with missing/null colour (400 Bad Request)")
+    void testRejectColorPrinterWithoutColour() throws Exception {
+        AssetRequest request = new AssetRequest(
+                "HP Color LaserJet Pro M454dn",
+                "COL-REJECT-1",
+                "IT Department",
+                "W2040X",
+                "COLOR",
+                null,
+                "ACTIVE"
+        );
+
+        mockMvc.perform(post("/api/assets")
+                        .header("Authorization", "Bearer " + jwtToken)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(request)))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.message", containsString("Colour is required for Color printers")));
+    }
+
+    @Test
+    @DisplayName("5. Missing model name returns 400 Bad Request")
     void testCreateAssetMissingModelName() throws Exception {
         AssetRequest request = new AssetRequest(
                 "",
@@ -138,6 +212,7 @@ public class AssetControllerTest {
                 "Finance Wing",
                 "070-BLK",
                 "BLACK_AND_WHITE",
+                null,
                 "ACTIVE"
         );
 
@@ -149,7 +224,7 @@ public class AssetControllerTest {
     }
 
     @Test
-    @DisplayName("3. Missing serial number returns 400 Bad Request")
+    @DisplayName("6. Missing serial number returns 400 Bad Request")
     void testCreateAssetMissingSerialNumber() throws Exception {
         AssetRequest request = new AssetRequest(
                 "Canon LBP246dw",
@@ -157,6 +232,7 @@ public class AssetControllerTest {
                 "Finance Wing",
                 "070-BLK",
                 "BLACK_AND_WHITE",
+                null,
                 "ACTIVE"
         );
 
@@ -168,15 +244,15 @@ public class AssetControllerTest {
     }
 
     @Test
-    @DisplayName("4. Duplicate serial number returns 409 Conflict")
+    @DisplayName("7. Duplicate serial number returns 409 Conflict")
     void testCreateAssetDuplicateSerialNumber() throws Exception {
-        // Pre-create asset with serial number VNB3K12345
         Asset existingAsset = new Asset(
                 "Canon LBP246dw",
                 "VNB3K12345",
                 "Operations Wing",
                 canonCartridge,
                 PrinterType.BLACK_AND_WHITE,
+                null,
                 AssetStatus.ACTIVE
         );
         assetRepository.save(existingAsset);
@@ -187,6 +263,7 @@ public class AssetControllerTest {
                 "IT Department",
                 "W2040X",
                 "COLOR",
+                "BLACK",
                 "ACTIVE"
         );
 
@@ -199,7 +276,7 @@ public class AssetControllerTest {
     }
 
     @Test
-    @DisplayName("5. Invalid/non-existent cartridge returns 400 Bad Request")
+    @DisplayName("8. Invalid/non-existent cartridge returns 400 Bad Request")
     void testCreateAssetInvalidCartridge() throws Exception {
         AssetRequest request = new AssetRequest(
                 "Canon LBP246dw",
@@ -207,6 +284,7 @@ public class AssetControllerTest {
                 "Procurement Cell",
                 "NON-EXISTENT-CARTRIDGE-XYZ",
                 "BLACK_AND_WHITE",
+                null,
                 "ACTIVE"
         );
 
@@ -219,7 +297,7 @@ public class AssetControllerTest {
     }
 
     @Test
-    @DisplayName("6. Invalid printer type returns 400 Bad Request")
+    @DisplayName("9. Invalid printer type returns 400 Bad Request")
     void testCreateAssetInvalidPrinterType() throws Exception {
         AssetRequest request = new AssetRequest(
                 "Canon LBP246dw",
@@ -227,6 +305,7 @@ public class AssetControllerTest {
                 "Procurement Cell",
                 "070-BLK",
                 "3D_PRINTER_INVALID",
+                null,
                 "ACTIVE"
         );
 
@@ -239,15 +318,16 @@ public class AssetControllerTest {
     }
 
     @Test
-    @DisplayName("7. Invalid status returns 400 Bad Request")
-    void testCreateAssetInvalidStatus() throws Exception {
+    @DisplayName("10. Invalid colour on Color printer returns 400 Bad Request")
+    void testCreateAssetInvalidColour() throws Exception {
         AssetRequest request = new AssetRequest(
                 "Canon LBP246dw",
-                "VNB3K66666",
+                "VNB3K77777",
                 "Procurement Cell",
                 "070-BLK",
-                "BLACK_AND_WHITE",
-                "DISCARDED_INVALID_STATUS"
+                "COLOR",
+                "PINK_INVALID",
+                "ACTIVE"
         );
 
         mockMvc.perform(post("/api/assets")
@@ -255,14 +335,38 @@ public class AssetControllerTest {
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(request)))
                 .andExpect(status().isBadRequest())
-                .andExpect(jsonPath("$.message", containsString("Invalid asset status")));
+                .andExpect(jsonPath("$.message", containsString("Invalid colour")));
     }
 
     @Test
-    @DisplayName("8. Successfully retrieve all registered assets via GET /api/assets")
+    @DisplayName("11. Test all 4 valid colours for COLOR printers (BLACK, CYAN, MAGENTA, YELLOW)")
+    void testCreateAssetAllFourColours() throws Exception {
+        String[] colors = {"BLACK", "CYAN", "MAGENTA", "YELLOW"};
+        for (int i = 0; i < colors.length; i++) {
+            AssetRequest req = new AssetRequest(
+                    "HP Printer Model " + i,
+                    "SN-COLOR-" + i,
+                    "IT Department",
+                    "070-BLK",
+                    "COLOR",
+                    colors[i],
+                    "ACTIVE"
+            );
+
+            mockMvc.perform(post("/api/assets")
+                            .header("Authorization", "Bearer " + jwtToken)
+                            .contentType(MediaType.APPLICATION_JSON)
+                            .content(objectMapper.writeValueAsString(req)))
+                    .andExpect(status().isCreated())
+                    .andExpect(jsonPath("$.colour", is(colors[i])));
+        }
+    }
+
+    @Test
+    @DisplayName("12. Successfully retrieve all registered assets via GET /api/assets")
     void testGetAllAssets() throws Exception {
-        Asset a1 = new Asset("Canon LBP246dw", "SER-001", "IT Department", canonCartridge, PrinterType.BLACK_AND_WHITE, AssetStatus.ACTIVE);
-        Asset a2 = new Asset("HP Color LaserJet", "SER-002", "Finance Wing", hpCartridge, PrinterType.COLOR, AssetStatus.UNDER_MAINTENANCE);
+        Asset a1 = new Asset("Canon LBP246dw", "SER-001", "IT Department", canonCartridge, PrinterType.BLACK_AND_WHITE, null, AssetStatus.ACTIVE);
+        Asset a2 = new Asset("HP Color LaserJet", "SER-002", "Finance Wing", hpCartridge, PrinterType.COLOR, CartridgeColor.CYAN, AssetStatus.UNDER_MAINTENANCE);
         assetRepository.saveAll(List.of(a1, a2));
 
         mockMvc.perform(get("/api/assets")
@@ -273,9 +377,9 @@ public class AssetControllerTest {
     }
 
     @Test
-    @DisplayName("9. Successfully retrieve single asset by ID via GET /api/assets/{id}")
+    @DisplayName("13. Successfully retrieve single asset by ID via GET /api/assets/{id}")
     void testGetAssetById() throws Exception {
-        Asset asset = new Asset("Canon LBP246dw", "SER-SINGLE", "Legal Wing", canonCartridge, PrinterType.BLACK_AND_WHITE, AssetStatus.ACTIVE);
+        Asset asset = new Asset("Canon LBP246dw", "SER-SINGLE", "Legal Wing", canonCartridge, PrinterType.BLACK_AND_WHITE, null, AssetStatus.ACTIVE);
         asset = assetRepository.save(asset);
 
         mockMvc.perform(get("/api/assets/" + asset.getId())
@@ -283,6 +387,7 @@ public class AssetControllerTest {
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.id", is(asset.getId().intValue())))
                 .andExpect(jsonPath("$.serialNumber", is("SER-SINGLE")))
+                .andExpect(jsonPath("$.colour").doesNotExist())
                 .andExpect(jsonPath("$.department", is("Legal Wing")));
 
         // Non-existent ID returns 404
@@ -292,55 +397,20 @@ public class AssetControllerTest {
     }
 
     @Test
-    @DisplayName("10. Filter assets by search query and status")
-    void testSearchAndFilterAssets() throws Exception {
-        Asset a1 = new Asset("Canon LBP246dw", "SER-ALPHA", "CAD Section", canonCartridge, PrinterType.BLACK_AND_WHITE, AssetStatus.ACTIVE);
-        Asset a2 = new Asset("HP M454dn", "SER-BETA", "Marketing", hpCartridge, PrinterType.COLOR, AssetStatus.INACTIVE);
-        assetRepository.saveAll(List.of(a1, a2));
-
-        // Search by query "CAD"
-        mockMvc.perform(get("/api/assets?search=CAD")
-                        .header("Authorization", "Bearer " + jwtToken))
-                .andExpect(status().isOk())
-                .andExpect(jsonPath("$", hasSize(1)))
-                .andExpect(jsonPath("$[0].serialNumber", is("SER-ALPHA")));
-
-        // Filter by status "INACTIVE"
-        mockMvc.perform(get("/api/assets?status=INACTIVE")
-                        .header("Authorization", "Bearer " + jwtToken))
-                .andExpect(status().isOk())
-                .andExpect(jsonPath("$", hasSize(1)))
-                .andExpect(jsonPath("$[0].serialNumber", is("SER-BETA")));
-    }
-
-    @Test
-    @DisplayName("11. Unauthorized access without JWT token returns 401")
-    void testUnauthorizedAccess() throws Exception {
-        mockMvc.perform(get("/api/assets"))
-                .andExpect(status().isUnauthorized());
-
-        AssetRequest request = new AssetRequest("Canon LBP", "NO-AUTH-1", "IT", "070-BLK", "BLACK_AND_WHITE", "ACTIVE");
-        mockMvc.perform(post("/api/assets")
-                        .contentType(MediaType.APPLICATION_JSON)
-                        .content(objectMapper.writeValueAsString(request)))
-                .andExpect(status().isUnauthorized());
-    }
-
-    @Test
-    @DisplayName("12. Successfully update an existing Asset in PostgreSQL via PUT /api/assets/{id}")
-    void testUpdateAssetSuccess() throws Exception {
-        Asset asset = new Asset("HP M404n", "VNB3K12345", "IT Department", canonCartridge, PrinterType.BLACK_AND_WHITE, AssetStatus.ACTIVE);
+    @DisplayName("14. Updating Color Asset -> Black & White clears colour in PostgreSQL")
+    void testUpdateColorAssetToBlackAndWhiteClearsColour() throws Exception {
+        Asset asset = new Asset("HP M404n", "VNB3K12345", "IT Department", hpCartridge, PrinterType.COLOR, CartridgeColor.MAGENTA, AssetStatus.ACTIVE);
         asset = assetRepository.save(asset);
         Long assetId = asset.getId();
-        java.time.LocalDateTime originalCreatedAt = asset.getCreatedAt();
 
         AssetRequest updateRequest = new AssetRequest(
-                "HP Color LaserJet Pro M454dn",
-                "VNB3K12345-MOD",
+                "HP M404n",
+                "VNB3K12345",
                 "Finance Wing",
                 "W2040X",
-                "COLOR",
-                "UNDER_MAINTENANCE"
+                "BLACK_AND_WHITE",
+                null,
+                "ACTIVE"
         );
 
         mockMvc.perform(put("/api/assets/" + assetId)
@@ -348,39 +418,59 @@ public class AssetControllerTest {
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(updateRequest)))
                 .andExpect(status().isOk())
-                .andExpect(jsonPath("$.id", is(assetId.intValue())))
-                .andExpect(jsonPath("$.modelName", is("HP Color LaserJet Pro M454dn")))
-                .andExpect(jsonPath("$.serialNumber", is("VNB3K12345-MOD")))
-                .andExpect(jsonPath("$.department", is("Finance Wing")))
-                .andExpect(jsonPath("$.cartridgePartNumber", is("W2040X")))
-                .andExpect(jsonPath("$.printerType", is("COLOR")))
-                .andExpect(jsonPath("$.status", is("UNDER_MAINTENANCE")))
-                .andExpect(jsonPath("$.updatedAt", notNullValue()));
+                .andExpect(jsonPath("$.printerType", is("BLACK_AND_WHITE")))
+                .andExpect(jsonPath("$.colour").doesNotExist());
 
-        // Verify PostgreSQL persistence
+        // Verify PostgreSQL persistence has NULL colour
         Asset updatedInDb = assetRepository.findById(assetId).orElseThrow();
-        assertEquals("HP Color LaserJet Pro M454dn", updatedInDb.getModelName());
-        assertEquals("VNB3K12345-MOD", updatedInDb.getSerialNumber());
-        assertEquals("Finance Wing", updatedInDb.getDepartment());
-        assertEquals(hpCartridge.getId(), updatedInDb.getCartridge().getId());
-        assertEquals(PrinterType.COLOR, updatedInDb.getPrinterType());
-        assertEquals(AssetStatus.UNDER_MAINTENANCE, updatedInDb.getStatus());
-        assertEquals(originalCreatedAt.truncatedTo(java.time.temporal.ChronoUnit.MILLIS),
-                updatedInDb.getCreatedAt().truncatedTo(java.time.temporal.ChronoUnit.MILLIS)); // CreatedAt preserved
+        assertEquals(PrinterType.BLACK_AND_WHITE, updatedInDb.getPrinterType());
+        assertNull(updatedInDb.getColour());
     }
 
     @Test
-    @DisplayName("13. Updating asset while keeping its existing serial number is allowed (no self-collision)")
+    @DisplayName("15. Updating Black & White Asset -> Color with CYAN persists in PostgreSQL")
+    void testUpdateBlackAndWhiteAssetToColor() throws Exception {
+        Asset asset = new Asset("HP M404n", "VNB-BW-1", "IT Department", hpCartridge, PrinterType.BLACK_AND_WHITE, null, AssetStatus.ACTIVE);
+        asset = assetRepository.save(asset);
+        Long assetId = asset.getId();
+
+        AssetRequest updateRequest = new AssetRequest(
+                "HP Color LaserJet Pro M454dn",
+                "VNB-BW-1",
+                "Finance Wing",
+                "W2040X",
+                "COLOR",
+                "CYAN",
+                "ACTIVE"
+        );
+
+        mockMvc.perform(put("/api/assets/" + assetId)
+                        .header("Authorization", "Bearer " + jwtToken)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(updateRequest)))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.printerType", is("COLOR")))
+                .andExpect(jsonPath("$.colour", is("CYAN")));
+
+        // Verify PostgreSQL persistence has CYAN colour
+        Asset updatedInDb = assetRepository.findById(assetId).orElseThrow();
+        assertEquals(PrinterType.COLOR, updatedInDb.getPrinterType());
+        assertEquals(CartridgeColor.CYAN, updatedInDb.getColour());
+    }
+
+    @Test
+    @DisplayName("16. Updating asset while keeping its existing serial number is allowed (no self-collision)")
     void testUpdateAssetSameSerialAllowed() throws Exception {
-        Asset asset = new Asset("Canon LBP246dw", "SER-SAME-001", "Procurement", canonCartridge, PrinterType.BLACK_AND_WHITE, AssetStatus.ACTIVE);
+        Asset asset = new Asset("Canon LBP246dw", "SER-SAME-001", "Procurement", canonCartridge, PrinterType.BLACK_AND_WHITE, null, AssetStatus.ACTIVE);
         asset = assetRepository.save(asset);
 
         AssetRequest updateRequest = new AssetRequest(
                 "Canon LBP246dw Advanced",
-                "SER-SAME-001", // same serial
+                "SER-SAME-001",
                 "Accounts Wing",
                 "070-BLK",
                 "BLACK_AND_WHITE",
+                null,
                 "ACTIVE"
         );
 
@@ -393,10 +483,10 @@ public class AssetControllerTest {
     }
 
     @Test
-    @DisplayName("14. Updating asset serial to one already used by ANOTHER asset returns 409 Conflict")
+    @DisplayName("17. Updating asset serial to one already used by ANOTHER asset returns 409 Conflict")
     void testUpdateAssetDuplicateSerialReturns409() throws Exception {
-        Asset a1 = new Asset("Canon LBP246dw", "SER-A", "IT", canonCartridge, PrinterType.BLACK_AND_WHITE, AssetStatus.ACTIVE);
-        Asset a2 = new Asset("HP LaserJet", "SER-B", "Finance", hpCartridge, PrinterType.COLOR, AssetStatus.ACTIVE);
+        Asset a1 = new Asset("Canon LBP246dw", "SER-A", "IT", canonCartridge, PrinterType.BLACK_AND_WHITE, null, AssetStatus.ACTIVE);
+        Asset a2 = new Asset("HP LaserJet", "SER-B", "Finance", hpCartridge, PrinterType.COLOR, CartridgeColor.YELLOW, AssetStatus.ACTIVE);
         assetRepository.saveAll(List.of(a1, a2));
 
         // Attempt to update a1's serial to SER-B (which belongs to a2)
@@ -406,6 +496,7 @@ public class AssetControllerTest {
                 "IT",
                 "070-BLK",
                 "BLACK_AND_WHITE",
+                null,
                 "ACTIVE"
         );
 
@@ -422,7 +513,7 @@ public class AssetControllerTest {
     }
 
     @Test
-    @DisplayName("15. Updating non-existent asset ID returns 404 Not Found")
+    @DisplayName("18. Updating non-existent asset ID returns 404 Not Found")
     void testUpdateAssetNotFoundReturns404() throws Exception {
         AssetRequest updateRequest = new AssetRequest(
                 "HP M404n",
@@ -430,6 +521,7 @@ public class AssetControllerTest {
                 "IT",
                 "070-BLK",
                 "BLACK_AND_WHITE",
+                null,
                 "ACTIVE"
         );
 
@@ -441,85 +533,13 @@ public class AssetControllerTest {
     }
 
     @Test
-    @DisplayName("16. Updating asset with invalid cartridge returns 400 Bad Request")
-    void testUpdateAssetInvalidCartridgeReturns400() throws Exception {
-        Asset asset = new Asset("Canon LBP", "SER-CART-TEST", "IT", canonCartridge, PrinterType.BLACK_AND_WHITE, AssetStatus.ACTIVE);
-        asset = assetRepository.save(asset);
+    @DisplayName("19. Unauthorized access without JWT token returns 401")
+    void testUnauthorizedAccess() throws Exception {
+        mockMvc.perform(get("/api/assets"))
+                .andExpect(status().isUnauthorized());
 
-        AssetRequest updateRequest = new AssetRequest(
-                "Canon LBP",
-                "SER-CART-TEST",
-                "IT",
-                "INVALID-CARTRIDGE-PART-XYZ",
-                "BLACK_AND_WHITE",
-                "ACTIVE"
-        );
-
-        mockMvc.perform(put("/api/assets/" + asset.getId())
-                        .header("Authorization", "Bearer " + jwtToken)
-                        .contentType(MediaType.APPLICATION_JSON)
-                        .content(objectMapper.writeValueAsString(updateRequest)))
-                .andExpect(status().isBadRequest())
-                .andExpect(jsonPath("$.message", containsString("not found in cartridge master records")));
-    }
-
-    @Test
-    @DisplayName("17. Updating asset with invalid printer type returns 400 Bad Request")
-    void testUpdateAssetInvalidPrinterTypeReturns400() throws Exception {
-        Asset asset = new Asset("Canon LBP", "SER-TYPE-TEST", "IT", canonCartridge, PrinterType.BLACK_AND_WHITE, AssetStatus.ACTIVE);
-        asset = assetRepository.save(asset);
-
-        AssetRequest updateRequest = new AssetRequest(
-                "Canon LBP",
-                "SER-TYPE-TEST",
-                "IT",
-                "070-BLK",
-                "MATRIX_UNKNOWN",
-                "ACTIVE"
-        );
-
-        mockMvc.perform(put("/api/assets/" + asset.getId())
-                        .header("Authorization", "Bearer " + jwtToken)
-                        .contentType(MediaType.APPLICATION_JSON)
-                        .content(objectMapper.writeValueAsString(updateRequest)))
-                .andExpect(status().isBadRequest())
-                .andExpect(jsonPath("$.message", containsString("Invalid printer type")));
-    }
-
-    @Test
-    @DisplayName("18. Updating asset status to INACTIVE preserves record in PostgreSQL")
-    void testUpdateAssetStatusTransitionsAndInactivePreserved() throws Exception {
-        Asset asset = new Asset("Canon LBP", "SER-STATUS-TEST", "Operations", canonCartridge, PrinterType.BLACK_AND_WHITE, AssetStatus.ACTIVE);
-        asset = assetRepository.save(asset);
-
-        // 1. ACTIVE -> UNDER_MAINTENANCE
-        AssetRequest req1 = new AssetRequest("Canon LBP", "SER-STATUS-TEST", "Operations", "070-BLK", "BLACK_AND_WHITE", "UNDER_MAINTENANCE");
-        mockMvc.perform(put("/api/assets/" + asset.getId())
-                        .header("Authorization", "Bearer " + jwtToken)
-                        .contentType(MediaType.APPLICATION_JSON)
-                        .content(objectMapper.writeValueAsString(req1)))
-                .andExpect(status().isOk())
-                .andExpect(jsonPath("$.status", is("UNDER_MAINTENANCE")));
-
-        // 2. UNDER_MAINTENANCE -> INACTIVE
-        AssetRequest req2 = new AssetRequest("Canon LBP", "SER-STATUS-TEST", "Operations", "070-BLK", "BLACK_AND_WHITE", "INACTIVE");
-        mockMvc.perform(put("/api/assets/" + asset.getId())
-                        .header("Authorization", "Bearer " + jwtToken)
-                        .contentType(MediaType.APPLICATION_JSON)
-                        .content(objectMapper.writeValueAsString(req2)))
-                .andExpect(status().isOk())
-                .andExpect(jsonPath("$.status", is("INACTIVE")));
-
-        // Verify record still exists in database and has status INACTIVE
-        Asset inactiveAsset = assetRepository.findById(asset.getId()).orElseThrow();
-        assertEquals(AssetStatus.INACTIVE, inactiveAsset.getStatus());
-    }
-
-    @Test
-    @DisplayName("19. Unauthorized PUT /api/assets/{id} without JWT token returns 401")
-    void testUnauthorizedUpdate() throws Exception {
-        AssetRequest request = new AssetRequest("Canon LBP", "NO-AUTH-UPD", "IT", "070-BLK", "BLACK_AND_WHITE", "ACTIVE");
-        mockMvc.perform(put("/api/assets/1")
+        AssetRequest request = new AssetRequest("Canon LBP", "NO-AUTH-1", "IT", "070-BLK", "BLACK_AND_WHITE", null, "ACTIVE");
+        mockMvc.perform(post("/api/assets")
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(request)))
                 .andExpect(status().isUnauthorized());

@@ -5,6 +5,7 @@ import com.iocl.procurement.dto.response.AssetResponse;
 import com.iocl.procurement.entity.Asset;
 import com.iocl.procurement.entity.AssetStatus;
 import com.iocl.procurement.entity.Cartridge;
+import com.iocl.procurement.entity.CartridgeColor;
 import com.iocl.procurement.entity.PrinterType;
 import com.iocl.procurement.exception.AppException;
 import com.iocl.procurement.exception.ResourceNotFoundException;
@@ -82,6 +83,34 @@ public class AssetServiceImpl implements AssetService {
             );
         }
 
+        // Cartridge colour validation based on PrinterType
+        String colourInput = request.getColour() != null ? request.getColour() : request.getColor();
+        CartridgeColor colour = null;
+
+        if (printerType == PrinterType.BLACK_AND_WHITE) {
+            if (colourInput != null && !colourInput.trim().isEmpty()) {
+                throw new AppException(
+                        "Colour is not applicable for Black & White printers.",
+                        HttpStatus.BAD_REQUEST
+                );
+            }
+            colour = null;
+        } else if (printerType == PrinterType.COLOR) {
+            if (colourInput == null || colourInput.trim().isEmpty()) {
+                throw new AppException(
+                        "Colour is required for Color printers. Allowed values: BLACK, CYAN, MAGENTA, YELLOW.",
+                        HttpStatus.BAD_REQUEST
+                );
+            }
+            colour = CartridgeColor.fromString(colourInput);
+            if (colour == null) {
+                throw new AppException(
+                        "Invalid colour: '" + colourInput + "'. Allowed values: BLACK, CYAN, MAGENTA, YELLOW.",
+                        HttpStatus.BAD_REQUEST
+                );
+            }
+        }
+
         // Asset status validation (defaults to ACTIVE if null or empty)
         AssetStatus status = AssetStatus.fromString(request.getStatus());
         if (status == null) {
@@ -97,12 +126,13 @@ public class AssetServiceImpl implements AssetService {
                 department,
                 cartridge,
                 printerType,
+                colour,
                 status
         );
 
         Asset savedAsset = assetRepository.save(asset);
-        logger.info("Successfully registered new asset ID: [{}] with serial number: [{}] for department: [{}]",
-                savedAsset.getId(), savedAsset.getSerialNumber(), savedAsset.getDepartment());
+        logger.info("Successfully registered new asset ID: [{}] with serial number: [{}], printerType: [{}], colour: [{}] for department: [{}]",
+                savedAsset.getId(), savedAsset.getSerialNumber(), savedAsset.getPrinterType(), savedAsset.getColour(), savedAsset.getDepartment());
 
         return new AssetResponse(savedAsset);
     }
@@ -159,6 +189,34 @@ public class AssetServiceImpl implements AssetService {
             );
         }
 
+        // Cartridge colour validation based on PrinterType
+        String colourInput = request.getColour() != null ? request.getColour() : request.getColor();
+        CartridgeColor colour = null;
+
+        if (printerType == PrinterType.BLACK_AND_WHITE) {
+            if (colourInput != null && !colourInput.trim().isEmpty()) {
+                throw new AppException(
+                        "Colour is not applicable for Black & White printers.",
+                        HttpStatus.BAD_REQUEST
+                );
+            }
+            colour = null;
+        } else if (printerType == PrinterType.COLOR) {
+            if (colourInput == null || colourInput.trim().isEmpty()) {
+                throw new AppException(
+                        "Colour is required for Color printers. Allowed values: BLACK, CYAN, MAGENTA, YELLOW.",
+                        HttpStatus.BAD_REQUEST
+                );
+            }
+            colour = CartridgeColor.fromString(colourInput);
+            if (colour == null) {
+                throw new AppException(
+                        "Invalid colour: '" + colourInput + "'. Allowed values: BLACK, CYAN, MAGENTA, YELLOW.",
+                        HttpStatus.BAD_REQUEST
+                );
+            }
+        }
+
         AssetStatus status = AssetStatus.fromString(request.getStatus());
         if (status == null) {
             throw new AppException(
@@ -173,12 +231,13 @@ public class AssetServiceImpl implements AssetService {
         asset.setDepartment(department);
         asset.setCartridge(cartridge);
         asset.setPrinterType(printerType);
+        asset.setColour(colour);
         asset.setStatus(status);
         asset.setUpdatedAt(java.time.LocalDateTime.now());
 
         Asset updatedAsset = assetRepository.save(asset);
-        logger.info("Successfully updated asset ID: [{}] with serial: [{}], department: [{}], status: [{}]",
-                updatedAsset.getId(), updatedAsset.getSerialNumber(), updatedAsset.getDepartment(), updatedAsset.getStatus());
+        logger.info("Successfully updated asset ID: [{}] with serial: [{}], colour: [{}], department: [{}], status: [{}]",
+                updatedAsset.getId(), updatedAsset.getSerialNumber(), updatedAsset.getColour(), updatedAsset.getDepartment(), updatedAsset.getStatus());
 
         return new AssetResponse(updatedAsset);
     }

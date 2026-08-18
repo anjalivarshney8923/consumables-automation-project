@@ -1,7 +1,8 @@
 import React, { useState } from 'react';
-import { Eye, ChevronLeft, ChevronRight, Inbox, AlertCircle } from 'lucide-react';
+import { Eye, ChevronLeft, ChevronRight, Inbox, AlertCircle, ChevronDown } from 'lucide-react';
 import { ProcurementStatusBadge } from './ProcurementStatusBadge';
 import { ProcurementDetailsModal } from './ProcurementDetailsModal';
+import { ProcurementRowHistory } from './ProcurementRowHistory';
 
 export const ProcurementTable = ({
   records = [],
@@ -15,6 +16,11 @@ export const ProcurementTable = ({
   onClearFilters
 }) => {
   const [selectedRecord, setSelectedRecord] = useState(null);
+  const [expandedRowId, setExpandedRowId] = useState(null);
+
+  const toggleRowExpansion = (rowId) => {
+    setExpandedRowId((prev) => (prev === rowId ? null : rowId));
+  };
 
   const startIndex = totalElements > 0 ? (currentPage - 1) * pageSize + 1 : 0;
   const endIndex = Math.min(currentPage * pageSize, totalElements);
@@ -26,6 +32,7 @@ export const ProcurementTable = ({
         <table className="procurement-table">
           <thead>
             <tr>
+              <th style={{ width: '36px', textAlign: 'center' }}></th>
               <th>Date</th>
               <th>Supplier Name</th>
               <th>Printer Name</th>
@@ -44,7 +51,7 @@ export const ProcurementTable = ({
           <tbody>
             {loading ? (
               <tr>
-                <td colSpan={13} className="text-center py-8">
+                <td colSpan={14} className="text-center py-8">
                   <div className="table-loading-box" style={{ padding: '2rem 0', textAlign: 'center' }}>
                     <div className="spinner text-navy mb-2" style={{ margin: '0 auto 0.5rem' }} />
                     <span style={{ fontSize: '0.875rem', fontWeight: 500, color: 'var(--text-muted)' }}>
@@ -55,7 +62,7 @@ export const ProcurementTable = ({
               </tr>
             ) : error ? (
               <tr>
-                <td colSpan={13} className="text-center py-8">
+                <td colSpan={14} className="text-center py-8">
                   <div className="table-error-box" style={{ padding: '2rem 0', textAlign: 'center' }}>
                     <AlertCircle size={24} className="text-danger mb-2" style={{ margin: '0 auto 0.5rem' }} />
                     <p className="font-semibold text-danger">{error}</p>
@@ -64,7 +71,7 @@ export const ProcurementTable = ({
               </tr>
             ) : records.length === 0 ? (
               <tr>
-                <td colSpan={13} className="text-center py-8">
+                <td colSpan={14} className="text-center py-8">
                   <div className="empty-state-box" style={{ background: '#FFFFFF', border: 'none' }}>
                     <div className="empty-state-icon">
                       <Inbox size={24} />
@@ -86,57 +93,109 @@ export const ProcurementTable = ({
                 </td>
               </tr>
             ) : (
-              records.map((row) => (
-                <tr key={row.id} className="table-row-hover">
-                  <td>
-                    <span className="font-medium text-primary">{row.date || 'N/A'}</span>
-                  </td>
-                  <td>
-                    <span className="font-semibold text-navy">{row.supplierName || 'N/A'}</span>
-                  </td>
-                  <td className="text-secondary" style={{ fontSize: '0.8125rem' }}>
-                    {row.printerName || 'N/A'}
-                  </td>
-                  <td>
-                    <span className="font-medium">{row.cartridgeName || 'N/A'}</span>
-                  </td>
-                  <td>
-                    <span className="part-number-chip">{row.cartridgePartNumber || 'N/A'}</span>
-                  </td>
-                  <td className="text-right font-medium">
-                    {row.contractQuantity}
-                  </td>
-                  <td className="text-right font-medium text-muted">
-                    {row.executedQuantity}
-                  </td>
-                  <td className="text-right font-medium text-saffron">
-                    {row.callUpPoQuantity}
-                  </td>
-                  <td className="text-right font-bold text-success">
-                    {row.netAvailableQuantity}
-                  </td>
-                  <td className="text-right font-medium">
-                    ₹ {Number(row.ratePerUnit || 0).toLocaleString('en-IN', { minimumFractionDigits: 2 })}
-                  </td>
-                  <td className="text-right text-muted">
-                    {row.tax}%
-                  </td>
-                  <td className="text-center">
-                    <ProcurementStatusBadge status={row.status} />
-                  </td>
-                  <td className="text-center">
-                    <button
-                      type="button"
-                      className="btn-view-details"
-                      onClick={() => setSelectedRecord(row)}
-                      title="View full record details"
+              records.map((row) => {
+                const isExpanded = expandedRowId === row.id;
+                return (
+                  <React.Fragment key={row.id}>
+                    <tr
+                      className="table-row-hover"
+                      onClick={() => toggleRowExpansion(row.id)}
+                      style={{
+                        cursor: 'pointer',
+                        backgroundColor: isExpanded ? '#EFF6FF' : undefined
+                      }}
+                      title="Click to expand/collapse PO transaction history"
                     >
-                      <Eye size={14} />
-                      <span>Details</span>
-                    </button>
-                  </td>
-                </tr>
-              ))
+                      <td style={{ textAlign: 'center', color: isExpanded ? '#1E40AF' : '#64748B' }}>
+                        <button
+                          type="button"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            toggleRowExpansion(row.id);
+                          }}
+                          style={{
+                            background: 'none',
+                            border: 'none',
+                            cursor: 'pointer',
+                            padding: '4px',
+                            display: 'inline-flex',
+                            alignItems: 'center',
+                            justifyContent: 'center',
+                            color: isExpanded ? '#1E40AF' : '#94A3B8'
+                          }}
+                        >
+                          {isExpanded ? <ChevronDown size={15} /> : <ChevronRight size={15} />}
+                        </button>
+                      </td>
+                      <td>
+                        <span className="font-medium text-primary">{row.date || 'N/A'}</span>
+                      </td>
+                      <td>
+                        <span className="font-semibold text-navy">{row.supplierName || 'N/A'}</span>
+                      </td>
+                      <td className="text-secondary" style={{ fontSize: '0.8125rem' }}>
+                        {row.printerName || 'N/A'}
+                      </td>
+                      <td>
+                        <span className="font-medium">{row.cartridgeName || 'N/A'}</span>
+                      </td>
+                      <td>
+                        <span className="part-number-chip">{row.cartridgePartNumber || 'N/A'}</span>
+                      </td>
+                      <td className="text-right font-medium">
+                        {row.contractQuantity}
+                      </td>
+                      <td className="text-right font-medium text-muted">
+                        {row.executedQuantity}
+                      </td>
+                      <td className="text-right font-medium text-saffron">
+                        {row.callUpPoQuantity}
+                      </td>
+                      <td className="text-right font-bold text-success">
+                        {row.netAvailableQuantity}
+                      </td>
+                      <td className="text-right font-medium">
+                        ₹ {Number(row.ratePerUnit || 0).toLocaleString('en-IN', { minimumFractionDigits: 2 })}
+                      </td>
+                      <td className="text-right text-muted">
+                        {row.tax}%
+                      </td>
+                      <td className="text-center">
+                        <ProcurementStatusBadge status={row.status} />
+                      </td>
+                      <td className="text-center">
+                        <button
+                          type="button"
+                          className="btn-view-details"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            setSelectedRecord(row);
+                          }}
+                          title="View full record details"
+                        >
+                          <Eye size={14} />
+                          <span>Details</span>
+                        </button>
+                      </td>
+                    </tr>
+
+                    {/* Expanded PO History Row */}
+                    {isExpanded && (
+                      <tr key={`history-${row.id}`}>
+                        <td colSpan={14} style={{ padding: 0, borderTop: 'none', backgroundColor: '#F8FAFC' }}>
+                          <ProcurementRowHistory
+                            rateContractId={row.id}
+                            supplierName={row.supplierName}
+                            partNumber={row.cartridgePartNumber}
+                            cartridgeId={row.cartridgeId}
+                            initialNetAvailable={row.netAvailableQuantity}
+                          />
+                        </td>
+                      </tr>
+                    )}
+                  </React.Fragment>
+                );
+              })
             )}
           </tbody>
         </table>

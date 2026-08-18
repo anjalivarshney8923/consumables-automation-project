@@ -145,7 +145,7 @@ export const ThresholdSettings = () => {
             <div>
               <h1 className="page-title-text">SETTING THRESHOLD LIMITS</h1>
               <p className="page-subtitle-text">
-                Configure PO Threshold limits for consumable cartridges. When Rate Contract Net Availability &le; PO Threshold, Alert 1 is triggered.
+                Configure PO Threshold limits for consumable cartridges. When Rate Contract Net Availability &le; PO Threshold, Alert is triggered.
               </p>
             </div>
           </div>
@@ -503,27 +503,6 @@ export const ThresholdSettings = () => {
             </table>
           </div>
         )}
-      </div>
-
-      {/* Info helper footer */}
-      <div
-        style={{
-          marginTop: '1.5rem',
-          padding: '1rem',
-          backgroundColor: '#F8FAFC',
-          borderRadius: '8px',
-          border: '1px solid #E2E8F0',
-          display: 'flex',
-          alignItems: 'flex-start',
-          gap: '0.75rem'
-        }}
-      >
-        <Info size={18} style={{ color: 'var(--iocl-navy)', flexShrink: 0, marginTop: '2px' }} />
-        <div style={{ fontSize: '0.8125rem', color: '#475569', lineHeight: '1.5' }}>
-          <strong>How Alert 1 Works:</strong> The Spring Boot backend continuously computes{' '}
-          <code>Net Available = Total Rate Contract Qty &minus; Executed Qty &minus; Call-Up POs</code>.
-          Whenever <code>Net Available &le; PO Threshold</code>, an active Procurement Alert is generated in PostgreSQL and displayed in the notifications bell and admin dashboard.
-        </div>
       </div>
     </div>
   );

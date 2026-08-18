@@ -15,6 +15,8 @@ public class AssetResponse {
     private String cartridgeName;
     private String compatibleCartridge;
     private String printerType;
+    private String colour;
+    private String color;
     private String status;
     private LocalDateTime createdAt;
     private LocalDateTime updatedAt;
@@ -35,6 +37,8 @@ public class AssetResponse {
                 this.compatibleCartridge = asset.getCartridge().getPartNumber();
             }
             this.printerType = asset.getPrinterType() != null ? asset.getPrinterType().name() : null;
+            this.colour = asset.getColour() != null ? asset.getColour().name() : null;
+            this.color = this.colour;
             this.status = asset.getStatus() != null ? asset.getStatus().name() : null;
             this.createdAt = asset.getCreatedAt();
             this.updatedAt = asset.getUpdatedAt();
@@ -113,6 +117,28 @@ public class AssetResponse {
 
     public void setPrinterType(String printerType) {
         this.printerType = printerType;
+    }
+
+    public String getColour() {
+        return colour;
+    }
+
+    public void setColour(String colour) {
+        this.colour = colour;
+        if (this.color == null) {
+            this.color = colour;
+        }
+    }
+
+    public String getColor() {
+        return color != null ? color : colour;
+    }
+
+    public void setColor(String color) {
+        this.color = color;
+        if (this.colour == null) {
+            this.colour = color;
+        }
     }
 
     public String getStatus() {

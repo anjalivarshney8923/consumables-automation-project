@@ -310,4 +310,240 @@ public class RateContractHistoryIntegrationTest {
         mockMvc.perform(get("/api/procurement/rate-contracts/1/call-up-pos"))
                 .andExpect(status().isUnauthorized());
     }
+
+    @Test
+    @DisplayName("6. Cartridge PO History Endpoint returns comprehensive history for part number")
+    void testCartridgeProcurementHistoryEndpoint() throws Exception {
+        // Contract 1: CF289A (1000 qty)
+        RateContract rc1 = new RateContract();
+        rc1.setContractDate(LocalDate.of(2026, 8, 1));
+        rc1.setSupplierName("Raghav Enterprises");
+        rc1.setCartridge(testCartridgeA);
+        rc1.setRatePerUnit(new BigDecimal("4500.00"));
+        rc1.setTaxPercentage(new BigDecimal("18.00"));
+        rc1.setTotalContractQuantity(1000);
+        rc1.setQuantityTakenThroughWO(150);
+        rc1.recalculateNetAvailableQuantity();
+        rc1 = rateContractRepository.save(rc1);
+
+        // PO 1 for Contract 1 (100 qty)
+        CallUpPurchaseOrder po1 = new CallUpPurchaseOrder();
+        po1.setPoNumber("PO-2026-001");
+        po1.setPoDate(LocalDate.of(2026, 8, 10));
+        po1.setSupplierName("Raghav Enterprises");
+        po1.setRateContract(rc1);
+        po1.setQuantity(100);
+        po1.setRemarks("Batch 1");
+        callUpPORepository.save(po1);
+
+        // PO 2 for Contract 1 (50 qty)
+        CallUpPurchaseOrder po2 = new CallUpPurchaseOrder();
+        po2.setPoNumber("PO-2026-002");
+        po2.setPoDate(LocalDate.of(2026, 8, 15));
+        po2.setSupplierName("Raghav Enterprises");
+        po2.setRateContract(rc1);
+        po2.setQuantity(50);
+        po2.setRemarks("Batch 2");
+        callUpPORepository.save(po2);
+
+        // Test GET /api/procurement/history/cartridge/{id}
+        mockMvc.perform(get("/api/procurement/history/cartridge/" + testCartridgeA.getId())
+                        .header("Authorization", "Bearer " + jwtToken))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.cartridgeId", is(testCartridgeA.getId().intValue())))
+                .andExpect(jsonPath("$.partNumber", is("CF289A")))
+                .andExpect(jsonPath("$.currentNetAvailable", is(850)))
+                .andExpect(jsonPath("$.totalContractQuantity", is(1000)))
+                .andExpect(jsonPath("$.totalTakenThroughWO", is(150)))
+                .andExpect(jsonPath("$.totalRateContracts", is(1)))
+                .andExpect(jsonPath("$.totalCallUpPOs", is(2)))
+                .andExpect(jsonPath("$.history", hasSize(3))) // 1 RC + 2 POs
+                .andExpect(jsonPath("$.history[*].recordType", containsInAnyOrder("RATE_CONTRACT", "CALL_UP_PO", "CALL_UP_PO")))
+                .andExpect(jsonPath("$.history[*].poNumber", containsInAnyOrder("RC-" + rc1.getId(), "PO-2026-001", "PO-2026-002")));
+
+        // Test GET /api/procurement/history/part-number/{partNumber}
+        mockMvc.perform(get("/api/procurement/history/part-number/CF289A")
+                        .header("Authorization", "Bearer " + jwtToken))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.partNumber", is("CF289A")))
+                .andExpect(jsonPath("$.currentNetAvailable", is(850)))
+                .andExpect(jsonPath("$.history", hasSize(3)));
+
+        // Test GET /api/procurement/history/rate-contract/{id}
+        mockMvc.perform(get("/api/procurement/history/rate-contract/" + rc1.getId())
+                        .header("Authorization", "Bearer " + jwtToken))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.currentNetAvailable", is(850)))
+                .andExpect(jsonPath("$.supplierName", is("Raghav Enterprises")))
+                .andExpect(jsonPath("$.rateContractId", is(rc1.getId().intValue())))
+                .andExpect(jsonPath("$.totalTakenThroughWO", is(150)))
+                .andExpect(jsonPath("$.history", hasSize(3)));
+
+        // Test GET /api/procurement/rate-contracts/{id}/history alias
+        mockMvc.perform(get("/api/procurement/rate-contracts/" + rc1.getId() + "/history")
+                        .header("Authorization", "Bearer " + jwtToken))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.supplierName", is("Raghav Enterprises")))
+                .andExpect(jsonPath("$.history", hasSize(3)));
+    }
+
+    @Test
+    @DisplayName("7. Multi-Supplier isolation: Expanding a specific Rate Contract returns ONLY that supplier's POs")
+    void testMultiSupplierHistoryIsolation() throws Exception {
+        // Create Contract 1 for Sagar Varshney on testCartridgeA (070-BLK / CF289A)
+        RateContract rcSagar = new RateContract();
+        rcSagar.setContractDate(LocalDate.of(2026, 8, 1));
+        rcSagar.setSupplierName("Sagar Varshney");
+        rcSagar.setCartridge(testCartridgeA);
+        rcSagar.setRatePerUnit(new BigDecimal("4000.00"));
+        rcSagar.setTaxPercentage(new BigDecimal("18.00"));
+        rcSagar.setTotalContractQuantity(500);
+        rcSagar.setQuantityTakenThroughWO(60);
+        rcSagar.recalculateNetAvailableQuantity();
+        rcSagar = rateContractRepository.save(rcSagar);
+
+        // Sagar PO 1 (50 qty)
+        CallUpPurchaseOrder poSagar1 = new CallUpPurchaseOrder();
+        poSagar1.setPoNumber("PO-SAGAR-001");
+        poSagar1.setPoDate(LocalDate.of(2026, 8, 5));
+        poSagar1.setSupplierName("Sagar Varshney");
+        poSagar1.setRateContract(rcSagar);
+        poSagar1.setQuantity(50);
+        callUpPORepository.save(poSagar1);
+
+        // Sagar PO 2 (10 qty)
+        CallUpPurchaseOrder poSagar2 = new CallUpPurchaseOrder();
+        poSagar2.setPoNumber("PO-SAGAR-002");
+        poSagar2.setPoDate(LocalDate.of(2026, 8, 12));
+        poSagar2.setSupplierName("Sagar Varshney");
+        poSagar2.setRateContract(rcSagar);
+        poSagar2.setQuantity(10);
+        callUpPORepository.save(poSagar2);
+
+        // Create Contract 2 for Rajesh on the SAME cartridge
+        RateContract rcRajesh = new RateContract();
+        rcRajesh.setContractDate(LocalDate.of(2026, 8, 2));
+        rcRajesh.setSupplierName("Rajesh");
+        rcRajesh.setCartridge(testCartridgeA);
+        rcRajesh.setRatePerUnit(new BigDecimal("4100.00"));
+        rcRajesh.setTaxPercentage(new BigDecimal("18.00"));
+        rcRajesh.setTotalContractQuantity(300);
+        rcRajesh.setQuantityTakenThroughWO(80);
+        rcRajesh.recalculateNetAvailableQuantity();
+        rcRajesh = rateContractRepository.save(rcRajesh);
+
+        // Rajesh PO 1 (80 qty)
+        CallUpPurchaseOrder poRajesh1 = new CallUpPurchaseOrder();
+        poRajesh1.setPoNumber("PO-RAJESH-001");
+        poRajesh1.setPoDate(LocalDate.of(2026, 8, 14));
+        poRajesh1.setSupplierName("Rajesh");
+        poRajesh1.setRateContract(rcRajesh);
+        poRajesh1.setQuantity(80);
+        callUpPORepository.save(poRajesh1);
+
+        // Query Sagar's Rate Contract History -> MUST CONTAIN ONLY SAGAR'S RECORDS (1 RC + 2 POs)
+        mockMvc.perform(get("/api/procurement/rate-contracts/" + rcSagar.getId() + "/history")
+                        .header("Authorization", "Bearer " + jwtToken))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.supplierName", is("Sagar Varshney")))
+                .andExpect(jsonPath("$.rateContractId", is(rcSagar.getId().intValue())))
+                .andExpect(jsonPath("$.history", hasSize(3)))
+                .andExpect(jsonPath("$.history[*].supplierName", everyItem(is("Sagar Varshney"))))
+                .andExpect(jsonPath("$.history[*].poNumber", containsInAnyOrder("RC-" + rcSagar.getId(), "PO-SAGAR-001", "PO-SAGAR-002")))
+                .andExpect(jsonPath("$.history[*].poNumber", not(hasItem("PO-RAJESH-001"))));
+
+        // Query Rajesh's Rate Contract History -> MUST CONTAIN ONLY RAJESH'S RECORDS (1 RC + 1 PO)
+        mockMvc.perform(get("/api/procurement/rate-contracts/" + rcRajesh.getId() + "/history")
+                        .header("Authorization", "Bearer " + jwtToken))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.supplierName", is("Rajesh")))
+                .andExpect(jsonPath("$.rateContractId", is(rcRajesh.getId().intValue())))
+                .andExpect(jsonPath("$.history", hasSize(2)))
+                .andExpect(jsonPath("$.history[*].supplierName", everyItem(is("Rajesh"))))
+                .andExpect(jsonPath("$.history[*].poNumber", containsInAnyOrder("RC-" + rcRajesh.getId(), "PO-RAJESH-001")))
+                .andExpect(jsonPath("$.history[*].poNumber", not(hasItem("PO-SAGAR-001"))))
+                .andExpect(jsonPath("$.history[*].poNumber", not(hasItem("PO-SAGAR-002"))));
+    }
+
+    @Test
+    @DisplayName("8. Chronological Running Balance: Contract 193 - 20 - 100 - 10 - 3 = 60, historical rows show 60, 63, 73, 173, 193")
+    void testChronologicalRunningBalanceCalculation() throws Exception {
+        // Create Rate Contract with 193 Contract Qty for Anjali Varshney
+        RateContract rc = new RateContract();
+        rc.setContractDate(LocalDate.of(2026, 8, 10));
+        rc.setSupplierName("Anjali Varshney");
+        rc.setCartridge(testCartridgeA);
+        rc.setRatePerUnit(new BigDecimal("4200.00"));
+        rc.setTaxPercentage(new BigDecimal("18.00"));
+        rc.setTotalContractQuantity(193);
+        rc.setQuantityTakenThroughWO(133);
+        rc.recalculateNetAvailableQuantity(); // 193 - 133 = 60
+        rc = rateContractRepository.save(rc);
+
+        // Transaction 1: 13-Aug, 20 taken -> remaining 173
+        CallUpPurchaseOrder po1 = new CallUpPurchaseOrder();
+        po1.setPoNumber("WO/2026");
+        po1.setPoDate(LocalDate.of(2026, 8, 13));
+        po1.setSupplierName("Anjali Varshney");
+        po1.setRateContract(rc);
+        po1.setQuantity(20);
+        callUpPORepository.save(po1);
+
+        // Transaction 2: 17-Aug, 100 taken -> remaining 73
+        CallUpPurchaseOrder po2 = new CallUpPurchaseOrder();
+        po2.setPoNumber("092nwjsn");
+        po2.setPoDate(LocalDate.of(2026, 8, 17));
+        po2.setSupplierName("Anjali Varshney");
+        po2.setRateContract(rc);
+        po2.setQuantity(100);
+        callUpPORepository.save(po2);
+
+        // Transaction 3: 18-Aug, 10 taken -> remaining 63
+        CallUpPurchaseOrder po3 = new CallUpPurchaseOrder();
+        po3.setPoNumber("76t7zgu");
+        po3.setPoDate(LocalDate.of(2026, 8, 18));
+        po3.setSupplierName("Anjali Varshney");
+        po3.setRateContract(rc);
+        po3.setQuantity(10);
+        callUpPORepository.save(po3);
+
+        // Transaction 4: 18-Aug, 3 taken -> remaining 60
+        CallUpPurchaseOrder po4 = new CallUpPurchaseOrder();
+        po4.setPoNumber("987897jkjb");
+        po4.setPoDate(LocalDate.of(2026, 8, 18));
+        po4.setSupplierName("Anjali Varshney");
+        po4.setRateContract(rc);
+        po4.setQuantity(3);
+        callUpPORepository.save(po4);
+
+        // Query Rate Contract History
+        mockMvc.perform(get("/api/procurement/rate-contracts/" + rc.getId() + "/history")
+                        .header("Authorization", "Bearer " + jwtToken))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.currentNetAvailable", is(60)))
+                .andExpect(jsonPath("$.totalContractQuantity", is(193)))
+                .andExpect(jsonPath("$.totalTakenThroughWO", is(133)))
+                .andExpect(jsonPath("$.history", hasSize(5)))
+                // Verify newest-first order and exact running balances after each transaction:
+                // Index 0: 987897jkjb (3 taken) -> running balance = 60
+                .andExpect(jsonPath("$.history[0].poNumber", is("987897jkjb")))
+                .andExpect(jsonPath("$.history[0].quantityTakenThroughWO", is(3)))
+                .andExpect(jsonPath("$.history[0].netAvailableQuantity", is(60)))
+                // Index 1: 76t7zgu (10 taken) -> running balance = 63
+                .andExpect(jsonPath("$.history[1].poNumber", is("76t7zgu")))
+                .andExpect(jsonPath("$.history[1].quantityTakenThroughWO", is(10)))
+                .andExpect(jsonPath("$.history[1].netAvailableQuantity", is(63)))
+                // Index 2: 092nwjsn (100 taken) -> running balance = 73
+                .andExpect(jsonPath("$.history[2].poNumber", is("092nwjsn")))
+                .andExpect(jsonPath("$.history[2].quantityTakenThroughWO", is(100)))
+                .andExpect(jsonPath("$.history[2].netAvailableQuantity", is(73)))
+                // Index 3: WO/2026 (20 taken) -> running balance = 173
+                .andExpect(jsonPath("$.history[3].poNumber", is("WO/2026")))
+                .andExpect(jsonPath("$.history[3].quantityTakenThroughWO", is(20)))
+                .andExpect(jsonPath("$.history[3].netAvailableQuantity", is(173)))
+                // Index 4: RC-x (Rate Contract starting balance) -> 193
+                .andExpect(jsonPath("$.history[4].poNumber", is("RC-" + rc.getId())))
+                .andExpect(jsonPath("$.history[4].contractQuantity", is(193)))
+                .andExpect(jsonPath("$.history[4].netAvailableQuantity", is(193)));
+    }
 }

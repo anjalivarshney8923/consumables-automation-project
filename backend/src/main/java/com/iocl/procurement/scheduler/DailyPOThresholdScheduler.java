@@ -22,9 +22,9 @@ public class DailyPOThresholdScheduler {
      * Evaluates all PostgreSQL procurement records and sends ONE consolidated summary email
      * of all consumables currently having Net Available < PO Threshold.
      */
-    @Scheduled(cron = "0 40 11 * * *", zone = "Asia/Kolkata")
+    @Scheduled(cron = "0 00 18 * * *", zone = "Asia/Kolkata")
     public void runDailyPOThresholdReport() {
-        logger.info("Daily scheduled PO threshold report triggered at 4:30 PM IST (Asia/Kolkata).");
+        logger.info("Daily s++cheduled PO threshold report triggered at 4:30 PM IST (Asia/Kolkata).");
         try {
             dailyReportService.generateAndSendDailyReport();
         } catch (Exception ex) {

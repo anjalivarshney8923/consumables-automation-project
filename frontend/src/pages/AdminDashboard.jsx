@@ -300,7 +300,7 @@ export const AdminDashboard = () => {
             </span>
           </div>
           <p className="welcome-subtext">
-            Consumables & Procurement Management System &bull; Real-Time Operational Dashboard
+            Consumables & Procurement Management System
           </p>
         </div>
 
@@ -394,7 +394,7 @@ export const AdminDashboard = () => {
             title="View Urgent Tendering Alerts"
           >
             <div className="kpi-card-header">
-              <span className="kpi-card-title">Tendering Alerts (Alert 2)</span>
+              <span className="kpi-card-title">Tendering Alerts</span>
               <div className="kpi-icon-container kpi-icon-red">
                 <AlertOctagon size={20} />
               </div>
@@ -709,7 +709,7 @@ export const AdminDashboard = () => {
         <div className="section-header">
           <div className="section-title">
             <AlertOctagon size={18} color="var(--iocl-red)" />
-            <span>Urgent Tendering Alerts (Alert 2 &bull; Combined &lt; Threshold)</span>
+            <span>Urgent Tendering Alerts</span>
           </div>
           <Link to="/admin/tendering-alerts" className="section-view-all-btn">
             <span>View All Tendering Alerts</span>
@@ -810,7 +810,6 @@ export const AdminDashboard = () => {
               <Activity size={18} color="var(--iocl-navy)" />
               <span>Recent System Activity</span>
             </div>
-            <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>Database Audit Trail</span>
           </div>
 
           <div className="section-body">
@@ -856,10 +855,10 @@ export const AdminDashboard = () => {
           <div className="section-header">
             <div className="section-title">
               <AlertTriangle size={18} color="var(--iocl-red)" />
-              <span>Active System Alerts (Alert 1 & Alert 2)</span>
+              <span>Active System Alerts</span>
             </div>
             <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-              <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>Real-time Monitoring</span>
+              <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>Refresh</span>
               <button
                 type="button"
                 onClick={fetchAlertsData}

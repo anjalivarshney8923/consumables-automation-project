@@ -31,6 +31,10 @@ public class Asset {
     private PrinterType printerType;
 
     @Enumerated(EnumType.STRING)
+    @Column(name = "colour", length = 30)
+    private CartridgeColor colour;
+
+    @Enumerated(EnumType.STRING)
     @Column(name = "status", nullable = false, length = 30, columnDefinition = "varchar(30) default 'ACTIVE'")
     private AssetStatus status = AssetStatus.ACTIVE;
 
@@ -51,11 +55,24 @@ public class Asset {
             PrinterType printerType,
             AssetStatus status
     ) {
+        this(modelName, serialNumber, department, cartridge, printerType, null, status);
+    }
+
+    public Asset(
+            String modelName,
+            String serialNumber,
+            String department,
+            Cartridge cartridge,
+            PrinterType printerType,
+            CartridgeColor colour,
+            AssetStatus status
+    ) {
         this.modelName = modelName;
         this.serialNumber = serialNumber;
         this.department = department;
         this.cartridge = cartridge;
         this.printerType = printerType;
+        this.colour = colour;
         this.status = status != null ? status : AssetStatus.ACTIVE;
     }
 
@@ -121,6 +138,22 @@ public class Asset {
 
     public void setPrinterType(PrinterType printerType) {
         this.printerType = printerType;
+    }
+
+    public CartridgeColor getColour() {
+        return colour;
+    }
+
+    public void setColour(CartridgeColor colour) {
+        this.colour = colour;
+    }
+
+    public CartridgeColor getColor() {
+        return colour;
+    }
+
+    public void setColor(CartridgeColor color) {
+        this.colour = color;
     }
 
     public AssetStatus getStatus() {

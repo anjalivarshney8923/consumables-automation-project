@@ -145,8 +145,8 @@ export const RateContractForm = ({ onEntryAdded }) => {
     if (res.success && res.data) {
       const created = res.data;
       setSuccessMessage({
-        title: 'Rate Contract Created & Saved to Database',
-        details: `Contract ID #${created.id} for "${created.supplierName}" (${created.cartridge?.cartridgeName}) with Qty: ${created.totalContractQuantity} was successfully saved to PostgreSQL.`
+        title: 'Rate Contract Created',
+        details: `Contract for "${created.supplierName}" (${created.cartridge?.cartridgeName}) with Qty: ${created.totalContractQuantity} was successfully saved.`
       });
 
       // Clear form inputs except date and tax
@@ -194,9 +194,6 @@ export const RateContractForm = ({ onEntryAdded }) => {
       <div className="form-card-header">
         <div>
           <h2 className="form-card-title">New Rate Contract Entry</h2>
-          <p className="form-card-subtitle">
-            Create a master Rate Contract (RC) backed by PostgreSQL database storage.
-          </p>
         </div>
         <span className="badge-contract-type">Master Rate Contract</span>
       </div>
@@ -433,7 +430,7 @@ export const RateContractForm = ({ onEntryAdded }) => {
           <button type="submit" className="btn-primary-action" disabled={isSubmitting}>
             {isSubmitting ? (
               <>
-                <Loader2 size={16} className="spinner" /> Saving to Database...
+                <Loader2 size={16} className="spinner" /> Saving 
               </>
             ) : (
               'Submit Rate Contract Entry'
