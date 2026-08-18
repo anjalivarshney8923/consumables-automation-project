@@ -411,6 +411,165 @@ public class EmailNotificationServiceImpl implements EmailNotificationService {
                 "This is an automated notification from the IOCL Consumables / Procurement Management System.\n";
     }
 
+    @Override
+    public void sendDailyPOThresholdReportEmail(List<com.iocl.procurement.dto.DailyPOThresholdReportItem> items) {
+        if (items == null || items.isEmpty()) {
+            logger.info("No low-availability items to include in daily PO threshold email report. Skipping email.");
+            return;
+        }
+
+        if (!mailEnabled) {
+            logger.info("Email notification is disabled via app.mail.enabled=false. Skipping daily PO threshold report email ({} items).", items.size());
+            return;
+        }
+
+        String recipientEmail = resolveAdminEmail();
+        if (recipientEmail == null || recipientEmail.isBlank()) {
+            logger.warn("No administrator email configured. Skipping daily PO threshold report email.");
+            return;
+        }
+
+        String dateStr = java.time.LocalDate.now().format(DateTimeFormatter.ofPattern("dd MMM yyyy"));
+        String subject = String.format("IOCL Daily PO Threshold Alert Report - %s", dateStr);
+        String htmlContent = buildDailyReportHtmlEmail(items, dateStr);
+        String plainTextContent = buildDailyReportPlainTextEmail(items, dateStr);
+
+        try {
+            MimeMessage mimeMessage = mailSender.createMimeMessage();
+            MimeMessageHelper helper = new MimeMessageHelper(mimeMessage, true, "UTF-8");
+
+            helper.setFrom(mailFrom.isBlank() ? "no-reply@iocl.in" : mailFrom);
+            helper.setTo(recipientEmail);
+            helper.setSubject(subject);
+            helper.setText(plainTextContent, htmlContent);
+
+            mailSender.send(mimeMessage);
+            logger.info("Daily PO threshold report email sent successfully for {} item(s) to recipient: {}", items.size(), recipientEmail);
+
+        } catch (MailException | MessagingException ex) {
+            logger.error("Daily PO threshold report email failed: Mail delivery error: {}", ex.getMessage());
+        } catch (Exception ex) {
+            logger.error("Daily PO threshold report email failed: Unexpected error: {}", ex.getMessage());
+        }
+    }
+
+    private String buildDailyReportHtmlEmail(List<com.iocl.procurement.dto.DailyPOThresholdReportItem> items, String dateStr) {
+        String timestamp = LocalDateTime.now().format(DateTimeFormatter.ofPattern("dd-MMM-yyyy HH:mm:ss"));
+
+        StringBuilder rows = new StringBuilder();
+        for (com.iocl.procurement.dto.DailyPOThresholdReportItem item : items) {
+            rows.append("<tr>")
+                .append("<td><span class='badge-part'>").append(escapeHtml(item.getPartNumber())).append("</span><br><small style='color:#64748B;'>").append(escapeHtml(item.getCartridgeName())).append("</small></td>")
+                .append("<td>").append(escapeHtml(item.getPrinterName())).append("</td>")
+                .append("<td>").append(escapeHtml(item.getSupplierNames())).append("</td>")
+                .append("<td style='text-align: right;'><span class='badge-danger'>").append(item.getNetAvailableQuantity()).append("</span></td>")
+                .append("<td style='text-align: right;'><strong>").append(item.getPoThreshold()).append("</strong></td>")
+                .append("<td style='text-align: right; color: #DC2626; font-weight: 700;'>").append(item.getShortfall()).append("</td>")
+                .append("</tr>");
+        }
+
+        return "<!DOCTYPE html>" +
+                "<html>" +
+                "<head>" +
+                "<meta charset='UTF-8'>" +
+                "<meta name='viewport' content='width=device-width, initial-scale=1.0'>" +
+                "<style>" +
+                "  body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; margin: 0; padding: 0; background-color: #F8FAFC; color: #1E293B; }" +
+                "  .container { max-width: 720px; margin: 20px auto; background-color: #FFFFFF; border-radius: 10px; overflow: hidden; border: 1px solid #E2E8F0; box-shadow: 0 4px 6px -1px rgba(0,0,0,0.05); }" +
+                "  .header { background: linear-gradient(135deg, #0B2545 0%, #134074 100%); padding: 24px 30px; text-align: left; color: #FFFFFF; }" +
+                "  .header h1 { margin: 0 0 6px 0; font-size: 20px; font-weight: 700; letter-spacing: 0.5px; }" +
+                "  .header p { margin: 0; font-size: 12px; color: #CBD5E1; text-transform: uppercase; letter-spacing: 1px; }" +
+                "  .report-banner { background-color: #FFF7ED; border-left: 5px solid #EA580C; padding: 14px 20px; margin: 20px 30px; border-radius: 4px; }" +
+                "  .report-banner strong { color: #9A3412; font-size: 14px; text-transform: uppercase; display: block; margin-bottom: 2px; }" +
+                "  .report-banner p { margin: 0; color: #C2410C; font-size: 13px; }" +
+                "  .content { padding: 0 30px 24px 30px; }" +
+                "  .content p { font-size: 14px; line-height: 1.6; color: #334155; margin-bottom: 16px; }" +
+                "  table { width: 100%; border-collapse: collapse; margin: 16px 0 24px 0; background-color: #FFFFFF; border-radius: 6px; overflow: hidden; border: 1px solid #E2E8F0; }" +
+                "  th { background-color: #0B2545; color: #FFFFFF; font-weight: 600; text-align: left; padding: 10px 12px; font-size: 11px; text-transform: uppercase; letter-spacing: 0.5px; }" +
+                "  td { padding: 10px 12px; font-size: 12px; border-bottom: 1px solid #F1F5F9; color: #1E293B; vertical-align: middle; }" +
+                "  tr:last-child td { border-bottom: none; }" +
+                "  tr:nth-child(even) { background-color: #F8FAFC; }" +
+                "  .badge-danger { background-color: #FEE2E2; color: #DC2626; font-weight: 700; padding: 2px 6px; border-radius: 4px; display: inline-block; font-family: monospace; }" +
+                "  .badge-part { font-family: monospace; font-weight: 700; background-color: #E2E8F0; padding: 2px 6px; border-radius: 4px; color: #0F172A; }" +
+                "  .summary-box { background-color: #F1F5F9; border-radius: 6px; padding: 12px 16px; margin-bottom: 16px; font-size: 13px; color: #334155; border: 1px solid #CBD5E1; }" +
+                "  .footer { background-color: #F1F5F9; padding: 18px 30px; text-align: center; font-size: 11px; color: #64748B; border-top: 1px solid #E2E8F0; }" +
+                "  .footer p { margin: 4px 0; }" +
+                "</style>" +
+                "</head>" +
+                "<body>" +
+                "<div class='container'>" +
+                "  <div class='header'>" +
+                "    <h1>Indian Oil Corporation Limited</h1>" +
+                "    <p>Consumables & Procurement Management System</p>" +
+                "  </div>" +
+                "  <div class='report-banner'>" +
+                "    <strong>Daily PO Threshold Alert Report</strong>" +
+                "    <p>Date: " + dateStr + " | Scheduled Check: 6:00 PM IST</p>" +
+                "  </div>" +
+                "  <div class='content'>" +
+                "    <p>Dear Administrator,</p>" +
+                "    <p>The daily automated inventory check has identified <strong>" + items.size() + "</strong> consumable item(s) currently having <strong>Net Available</strong> quantity below their configured PO threshold.</p>" +
+                "    <table>" +
+                "      <thead>" +
+                "        <tr>" +
+                "          <th>Cartridge</th>" +
+                "          <th>Printer Model</th>" +
+                "          <th>Supplier(s)</th>" +
+                "          <th style='text-align: right;'>Net Available</th>" +
+                "          <th style='text-align: right;'>PO Threshold</th>" +
+                "          <th style='text-align: right;'>Shortfall</th>" +
+                "        </tr>" +
+                "      </thead>" +
+                "      <tbody>" +
+                rows.toString() +
+                "      </tbody>" +
+                "    </table>" +
+                "    <div class='summary-box'>" +
+                "      <strong>Summary:</strong> Total items requiring procurement attention: <strong>" + items.size() + "</strong><br>" +
+                "      Please review rate contract allocations and initiate necessary Call-Up POs or new Rate Contracts." +
+                "    </div>" +
+                "    <p style='font-size: 12px; color: #64748B;'>This is an automatically generated daily consolidated report triggered at 6:00 PM IST.</p>" +
+                "  </div>" +
+                "  <div class='footer'>" +
+                "    <p><strong>IOCL Consumables / Procurement Management System</strong></p>" +
+                "    <p>Generated on: " + timestamp + " | Automated Daily Report</p>" +
+                "    <p style='color:#94A3B8;'>Please do not reply directly to this automated email.</p>" +
+                "  </div>" +
+                "</div>" +
+                "</body>" +
+                "</html>";
+    }
+
+    private String buildDailyReportPlainTextEmail(List<com.iocl.procurement.dto.DailyPOThresholdReportItem> items, String dateStr) {
+        StringBuilder sb = new StringBuilder();
+        sb.append("============================================================\n");
+        sb.append("IOCL CONSUMABLES PROCUREMENT SYSTEM\n");
+        sb.append("Daily PO Threshold Alert Report\n");
+        sb.append("Date: ").append(dateStr).append(" | 6:00 PM IST\n");
+        sb.append("============================================================\n\n");
+        sb.append("Dear Administrator,\n\n");
+        sb.append("The following consumables currently have Net Available below their configured PO threshold:\n\n");
+        sb.append(String.format("%-15s | %-25s | %-12s | %-12s | %-10s\n", "Cartridge", "Supplier", "Net Avail", "Threshold", "Shortfall"));
+        sb.append("------------------------------------------------------------------------------------\n");
+
+        for (com.iocl.procurement.dto.DailyPOThresholdReportItem item : items) {
+            sb.append(String.format("%-15s | %-25s | %-12d | %-12d | %-10d\n",
+                    item.getPartNumber(),
+                    item.getSupplierNames().length() > 25 ? item.getSupplierNames().substring(0, 22) + "..." : item.getSupplierNames(),
+                    item.getNetAvailableQuantity(),
+                    item.getPoThreshold(),
+                    item.getShortfall()
+            ));
+        }
+
+        sb.append("------------------------------------------------------------------------------------\n");
+        sb.append("Total items requiring attention: ").append(items.size()).append("\n\n");
+        sb.append("Please review the procurement requirements.\n");
+        sb.append("This is an automatically generated report from the IOCL Consumables Management System.\n");
+
+        return sb.toString();
+    }
+
     private String escapeHtml(String text) {
         if (text == null) return "";
         return text.replace("&", "&amp;")

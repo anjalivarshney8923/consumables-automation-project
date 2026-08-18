@@ -1,7 +1,9 @@
 package com.iocl.procurement.service;
 
+import com.iocl.procurement.dto.DailyPOThresholdReportItem;
 import com.iocl.procurement.entity.Cartridge;
 import com.iocl.procurement.entity.ProcurementAlert;
+import java.util.List;
 
 public interface EmailNotificationService {
 
@@ -26,4 +28,11 @@ public interface EmailNotificationService {
      * @param tenderingThreshold the configured tendering threshold limit
      */
     void sendTenderingAlertEmail(ProcurementAlert alert, Cartridge cartridge, Integer storeAvailable, Integer rcAvailable, Integer combinedAvailable, Integer tenderingThreshold);
+
+    /**
+     * Sends ONE consolidated daily email report containing all consumables currently below PO threshold.
+     *
+     * @param items list of items with Net Available < PO Threshold
+     */
+    void sendDailyPOThresholdReportEmail(List<DailyPOThresholdReportItem> items);
 }

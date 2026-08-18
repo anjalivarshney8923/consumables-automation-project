@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import { NavLink, useLocation } from 'react-router-dom';
 import {
   LayoutDashboard,
@@ -11,9 +11,42 @@ import {
   X
 } from 'lucide-react';
 import { IoclBrand } from '../branding/IoclBrand';
+import { getTenderingAlerts } from '../../services/alertService';
 
 export const Sidebar = ({ isOpen, onClose }) => {
   const location = useLocation();
+  const [tenderingUrgentCount, setTenderingUrgentCount] = useState(null);
+
+  // Fetch real Alert 2 count dynamically from backend state
+  useEffect(() => {
+    let isMounted = true;
+    const fetchTenderingCount = async () => {
+      try {
+        const res = await getTenderingAlerts();
+        if (res.success && Array.isArray(res.data) && isMounted) {
+          const count = res.data.filter((item) => {
+            const storeQty = Number(item.storeNetAvailableQuantity) || 0;
+            const rcQty = Number(item.rateContractNetAvailableQuantity) || 0;
+            const combinedQty = item.combinedNetAvailableQuantity !== undefined 
+              ? Number(item.combinedNetAvailableQuantity) 
+              : storeQty + rcQty;
+            const threshold = Number(item.tenderingThreshold) || 0;
+            return item.isUrgent !== undefined ? Boolean(item.isUrgent) : combinedQty < threshold;
+          }).length;
+          setTenderingUrgentCount(count);
+        }
+      } catch (err) {
+        // Keep previous or default if fetch fails
+      }
+    };
+
+    fetchTenderingCount();
+    const interval = setInterval(fetchTenderingCount, 20000);
+    return () => {
+      isMounted = false;
+      clearInterval(interval);
+    };
+  }, []);
 
   const navItems = [
     {
@@ -22,10 +55,10 @@ export const Sidebar = ({ isOpen, onClose }) => {
       icon: LayoutDashboard
     },
     {
-      label: 'Tendering Alerts (Alert 2)',
+      label: 'Tendering Alerts',
       path: '/admin/tendering-alerts',
       icon: AlertOctagon,
-      alertBadge: 'Alert 2'
+      alertBadge: tenderingUrgentCount !== null ? `Alert ${tenderingUrgentCount}` : 'Alert 2'
     },
     {
       label: 'Setting Threshold Limits',
@@ -66,28 +99,30 @@ export const Sidebar = ({ isOpen, onClose }) => {
       {/* Main Sidebar */}
       <aside className={`app-sidebar ${isOpen ? 'open' : ''}`}>
         {/* Sidebar Header with IOCL Branding */}
-        <div className="sidebar-header" style={{ justifyContent: 'space-between' }}>
+        <div className="sidebar-header">
           <IoclBrand theme="light" />
           {/* Close button for mobile screen drawer */}
           <button
             type="button"
-            className="header-toggle-btn"
+            className="sidebar-close-btn"
             onClick={onClose}
             aria-label="Close Sidebar"
             style={{
               display: isOpen ? 'inline-flex' : 'none',
               background: 'transparent',
+              border: 'none',
               color: '#FFFFFF',
-              borderColor: 'rgba(255,255,255,0.2)'
+              cursor: 'pointer',
+              padding: '4px'
             }}
           >
-            <X size={18} />
+            <X size={20} />
           </button>
         </div>
 
         {/* Navigation Item List */}
         <nav className="sidebar-nav" aria-label="Main Navigation">
-          <div className="nav-section-title">Main Menu</div>
+          <div className="nav-section-title">MAIN MENU</div>
 
           {navItems.map((item) => {
             const Icon = item.icon;
@@ -104,51 +139,23 @@ export const Sidebar = ({ isOpen, onClose }) => {
               (item.path !== '/admin/dashboard' && location.pathname.startsWith(item.path))
             );
 
-            if (isImplemented) {
-              return (
-                <NavLink
-                  key={item.label}
-                  to={item.path}
-                  className={`nav-item ${isActive ? 'active' : ''}`}
-                  onClick={onClose}
-                >
-                  <span className="nav-item-icon">
-                    <Icon size={18} />
-                  </span>
-                  <span className="nav-item-text">{item.label}</span>
-                  {item.alertBadge && (
-                    <span
-                      style={{
-                        marginLeft: 'auto',
-                        fontSize: '0.625rem',
-                        fontWeight: '800',
-                        backgroundColor: '#DC2626',
-                        color: '#FFFFFF',
-                        padding: '0.125rem 0.375rem',
-                        borderRadius: '4px',
-                        letterSpacing: '0.5px'
-                      }}
-                    >
-                      {item.alertBadge}
-                    </span>
-                  )}
-                </NavLink>
-              );
-            }
-
-            // Future Module Placeholders
             return (
-              <div
-                key={item.label}
-                className="nav-item nav-item-disabled"
-                title={`${item.label} (Module In Development)`}
+              <NavLink
+                key={item.path}
+                to={item.path}
+                className={`nav-item ${isActive ? 'active' : ''}`}
+                onClick={onClose}
               >
                 <span className="nav-item-icon">
                   <Icon size={18} />
                 </span>
                 <span className="nav-item-text">{item.label}</span>
-                {item.badge && <span className="nav-item-badge">{item.badge}</span>}
-              </div>
+                {item.alertBadge && (
+                  <span className="nav-alert-badge">
+                    {item.alertBadge}
+                  </span>
+                )}
+              </NavLink>
             );
           })}
         </nav>
@@ -156,9 +163,10 @@ export const Sidebar = ({ isOpen, onClose }) => {
         {/* Sidebar Footer */}
         <div className="sidebar-footer">
           <span>IOCL Internal Portal</span>
-          <span style={{ color: 'var(--iocl-saffron)', fontWeight: '600' }}>v1.0.0</span>
+          <span style={{ color: 'var(--iocl-saffron)', fontWeight: '700' }}>v1.0.0</span>
         </div>
       </aside>
     </>
   );
 };
+

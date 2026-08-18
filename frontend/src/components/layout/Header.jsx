@@ -2,7 +2,7 @@ import React, { useState, useEffect, useRef } from 'react';
 import {
   Menu,
   LogOut,
-  ShieldCheck,
+  Shield,
   User,
   Bell,
   AlertTriangle,
@@ -17,6 +17,7 @@ import { getUnreadAlerts, getAlertCounts, markAlertAsRead, markAllAlertsAsRead }
 
 /**
  * Top Header Navigation Bar with Interactive Procurement Alert Notification Center
+ * Visual design matching IOCL enterprise brand identity
  */
 export const Header = ({ onToggleSidebar }) => {
   const { adminUser, logout } = useAuth();
@@ -105,7 +106,7 @@ export const Header = ({ onToggleSidebar }) => {
 
   return (
     <header className="app-header">
-      {/* Left: Mobile Sidebar Toggle + Page Section Indicator */}
+      {/* Left: Mobile Sidebar Toggle + Portal Indicator */}
       <div className="header-left">
         <button
           type="button"
@@ -117,61 +118,30 @@ export const Header = ({ onToggleSidebar }) => {
           <Menu size={20} />
         </button>
 
-        <div style={{ display: 'flex', flexDirection: 'column' }}>
-          <span style={{ fontSize: '0.9375rem', fontWeight: '700', color: 'var(--iocl-navy)' }}>
+        <div className="header-title-block">
+          <span className="header-portal-title">
             Admin Portal
           </span>
-          <span style={{ fontSize: '0.6875rem', color: 'var(--text-muted)' }}>
+          <span className="header-portal-subtitle">
             Consumables & Procurement Management System
           </span>
         </div>
       </div>
 
       {/* Right: Notifications Bell, User Profile Chip & Logout */}
-      <div className="header-right" style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
+      <div className="header-right">
         {/* Notification Bell with Dropdown */}
         <div style={{ position: 'relative' }} ref={dropdownRef}>
           <button
             type="button"
+            className="header-bell-btn"
             onClick={handleToggleDropdown}
-            style={{
-              position: 'relative',
-              background: isOpen ? '#F1F5F9' : 'transparent',
-              border: '1px solid',
-              borderColor: isOpen ? '#CBD5E1' : 'transparent',
-              borderRadius: '8px',
-              padding: '0.5rem',
-              color: unreadCount > 0 ? 'var(--iocl-saffron)' : '#64748B',
-              cursor: 'pointer',
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-              transition: 'all 0.15s ease'
-            }}
             aria-label={`Notifications (${unreadCount} unread)`}
             title={`${unreadCount} Unread Alerts`}
           >
             <Bell size={20} />
             {unreadCount > 0 && (
-              <span
-                style={{
-                  position: 'absolute',
-                  top: '-4px',
-                  right: '-4px',
-                  backgroundColor: '#DC2626',
-                  color: '#FFFFFF',
-                  fontSize: '0.6875rem',
-                  fontWeight: '700',
-                  minWidth: '18px',
-                  height: '18px',
-                  borderRadius: '9999px',
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                  padding: '0 4px',
-                  boxShadow: '0 0 0 2px #FFFFFF'
-                }}
-              >
+              <span className="header-bell-badge">
                 {unreadCount > 99 ? '99+' : unreadCount}
               </span>
             )}
@@ -179,48 +149,16 @@ export const Header = ({ onToggleSidebar }) => {
 
           {/* Dropdown Menu */}
           {isOpen && (
-            <div
-              style={{
-                position: 'absolute',
-                right: 0,
-                top: 'calc(100% + 8px)',
-                width: '380px',
-                maxWidth: '90vw',
-                backgroundColor: '#FFFFFF',
-                borderRadius: '12px',
-                boxShadow: '0 10px 25px -5px rgba(0, 0, 0, 0.1), 0 8px 10px -6px rgba(0, 0, 0, 0.1)',
-                border: '1px solid #E2E8F0',
-                zIndex: 1000,
-                overflow: 'hidden'
-              }}
-            >
+            <div className="notification-dropdown">
               {/* Dropdown Header */}
-              <div
-                style={{
-                  padding: '0.875rem 1rem',
-                  backgroundColor: '#F8FAFC',
-                  borderBottom: '1px solid #E2E8F0',
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'space-between'
-                }}
-              >
+              <div className="notification-dropdown-header">
                 <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
                   <Bell size={16} color="var(--iocl-navy)" />
                   <span style={{ fontWeight: '700', fontSize: '0.875rem', color: 'var(--iocl-navy)' }}>
                     Procurement Alerts
                   </span>
                   {unreadCount > 0 && (
-                    <span
-                      style={{
-                        backgroundColor: '#FEE2E2',
-                        color: '#DC2626',
-                        fontSize: '0.6875rem',
-                        fontWeight: '700',
-                        padding: '0.125rem 0.5rem',
-                        borderRadius: '9999px'
-                      }}
-                    >
+                    <span className="notification-count-pill">
                       {unreadCount} New
                     </span>
                   )}
@@ -230,27 +168,17 @@ export const Header = ({ onToggleSidebar }) => {
                   <button
                     type="button"
                     onClick={handleMarkAllRead}
-                    style={{
-                      background: 'none',
-                      border: 'none',
-                      color: 'var(--iocl-navy)',
-                      fontSize: '0.75rem',
-                      fontWeight: '600',
-                      cursor: 'pointer',
-                      display: 'inline-flex',
-                      alignItems: 'center',
-                      gap: '0.25rem'
-                    }}
+                    className="btn-mark-all-read"
                     title="Mark all alerts as read"
                   >
                     <CheckCheck size={14} />
-                    Mark all read
+                    <span>Mark all read</span>
                   </button>
                 )}
               </div>
 
               {/* Alert Items List */}
-              <div style={{ maxHeight: '340px', overflowY: 'auto' }}>
+              <div className="notification-items-list">
                 {loading ? (
                   <div style={{ padding: '2rem', textAlign: 'center', color: '#64748B', fontSize: '0.8125rem' }}>
                     Loading alerts...
@@ -258,7 +186,7 @@ export const Header = ({ onToggleSidebar }) => {
                 ) : alerts.length === 0 ? (
                   <div style={{ padding: '2.5rem 1.5rem', textAlign: 'center' }}>
                     <CheckCircle2 size={32} color="#16A34A" style={{ margin: '0 auto 0.5rem' }} />
-                    <div style={{ fontWeight: '600', fontSize: '0.875rem', color: '#1E293B' }}>All Stock Levels Adequate</div>
+                    <div style={{ fontWeight: '700', fontSize: '0.875rem', color: '#1E293B' }}>All Stock Levels Adequate</div>
                     <p style={{ fontSize: '0.75rem', color: '#64748B', marginTop: '0.25rem' }}>
                       No active procurement threshold violations.
                     </p>
@@ -268,120 +196,65 @@ export const Header = ({ onToggleSidebar }) => {
                     const isUrgent = alert.severity === 'URGENT' || alert.alertType === 'TENDERING_REQUIRED';
 
                     return (
-                    <div
-                      key={alert.id}
-                      style={{
-                        padding: '0.875rem 1rem',
-                        borderBottom: '1px solid #F1F5F9',
-                        backgroundColor: isUrgent ? '#FEF2F2' : '#FFFBF6',
-                        borderLeft: isUrgent ? '4px solid #DC2626' : '4px solid var(--iocl-saffron)',
-                        display: 'flex',
-                        flexDirection: 'column',
-                        gap: '0.5rem',
-                        transition: 'background-color 0.15s ease'
-                      }}
-                    >
-                      <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: '0.5rem' }}>
-                        <div style={{ display: 'flex', alignItems: 'center', gap: '0.375rem', flexWrap: 'wrap' }}>
-                          <AlertTriangle size={15} color={isUrgent ? '#DC2626' : '#EA580C'} style={{ flexShrink: 0 }} />
-                          {isUrgent && (
-                            <span
-                              style={{
-                                fontSize: '0.625rem',
-                                fontWeight: '800',
-                                backgroundColor: '#DC2626',
-                                color: '#FFFFFF',
-                                padding: '0.125rem 0.375rem',
-                                borderRadius: '4px',
-                                textTransform: 'uppercase',
-                                letterSpacing: '0.5px'
-                              }}
-                            >
-                              URGENT
+                      <div
+                        key={alert.id}
+                        className={`notification-item-row ${isUrgent ? 'urgent' : 'warning'}`}
+                      >
+                        <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: '0.5rem' }}>
+                          <div style={{ display: 'flex', alignItems: 'center', gap: '0.375rem', flexWrap: 'wrap' }}>
+                            <AlertTriangle size={15} color={isUrgent ? '#E30613' : '#F58220'} style={{ flexShrink: 0 }} />
+                            {isUrgent && (
+                              <span className="alert-badge-urgent">
+                                URGENT
+                              </span>
+                            )}
+                            <span style={{ fontWeight: '700', fontSize: '0.8125rem', color: '#0F172A' }}>
+                              {alert.cartridgeName}
                             </span>
-                          )}
-                          <span style={{ fontWeight: '700', fontSize: '0.8125rem', color: '#1E293B' }}>
-                            {alert.cartridgeName}
-                          </span>
-                          <span
-                            style={{
-                              fontFamily: 'monospace',
-                              fontSize: '0.6875rem',
-                              backgroundColor: '#E2E8F0',
-                              padding: '0.125rem 0.375rem',
-                              borderRadius: '4px',
-                              fontWeight: '600'
-                            }}
+                            <span className="part-number-chip">
+                              {alert.partNumber}
+                            </span>
+                          </div>
+
+                          <button
+                            type="button"
+                            onClick={(e) => handleMarkAsRead(alert.id, e)}
+                            className="btn-mark-item-read"
+                            title="Mark this alert as read"
                           >
-                            {alert.partNumber}
-                          </span>
+                            Mark read
+                          </button>
                         </div>
 
-                        <button
-                          type="button"
-                          onClick={(e) => handleMarkAsRead(alert.id, e)}
-                          style={{
-                            background: 'none',
-                            border: 'none',
-                            color: '#64748B',
-                            fontSize: '0.6875rem',
-                            fontWeight: '600',
-                            cursor: 'pointer',
-                            padding: '0.125rem 0.375rem',
-                            borderRadius: '4px',
-                            backgroundColor: '#FFFFFF',
-                            boxShadow: '0 1px 2px rgba(0,0,0,0.05)'
-                          }}
-                          title="Mark this alert as read"
-                        >
-                          Mark read
-                        </button>
-                      </div>
+                        <p style={{ fontSize: '0.75rem', color: '#475569', margin: 0, lineHeight: '1.4' }}>
+                          {alert.message}
+                        </p>
 
-                      <p style={{ fontSize: '0.75rem', color: '#475569', margin: 0, lineHeight: '1.4' }}>
-                        {alert.message}
-                      </p>
-
-                      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', fontSize: '0.6875rem' }}>
-                        <div style={{ display: 'flex', gap: '0.5rem' }}>
-                          <span style={{ color: isUrgent ? '#DC2626' : '#EA580C', fontWeight: '600' }}>
-                            Available: {alert.netAvailableQuantity}
-                          </span>
-                          <span style={{ color: '#64748B' }}>
-                            Threshold: {alert.threshold}
+                        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', fontSize: '0.6875rem' }}>
+                          <div style={{ display: 'flex', gap: '0.5rem' }}>
+                            <span style={{ color: isUrgent ? '#E30613' : '#EA580C', fontWeight: '700' }}>
+                              Available: {alert.netAvailableQuantity}
+                            </span>
+                            <span style={{ color: '#64748B' }}>
+                              Threshold: {alert.threshold}
+                            </span>
+                          </div>
+                          <span style={{ color: '#94A3B8' }}>
+                            {alert.createdAt ? new Date(alert.createdAt).toLocaleDateString('en-IN', { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' }) : ''}
                           </span>
                         </div>
-                        <span style={{ color: '#94A3B8' }}>
-                          {alert.createdAt ? new Date(alert.createdAt).toLocaleDateString('en-IN', { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' }) : ''}
-                        </span>
                       </div>
-                    </div>
-                  );
+                    );
                   })
                 )}
               </div>
 
               {/* Dropdown Footer Link */}
-              <div
-                style={{
-                  padding: '0.625rem 1rem',
-                  backgroundColor: '#F8FAFC',
-                  borderTop: '1px solid #E2E8F0',
-                  textAlign: 'center'
-                }}
-              >
+              <div className="notification-dropdown-footer">
                 <Link
                   to="/admin/thresholds"
                   onClick={() => setIsOpen(false)}
-                  style={{
-                    fontSize: '0.75rem',
-                    color: 'var(--iocl-navy)',
-                    fontWeight: '600',
-                    textDecoration: 'none',
-                    display: 'inline-flex',
-                    alignItems: 'center',
-                    gap: '0.25rem'
-                  }}
+                  className="notification-footer-link"
                 >
                   <Sliders size={13} />
                   <span>Configure Threshold Limits</span>
@@ -392,17 +265,17 @@ export const Header = ({ onToggleSidebar }) => {
           )}
         </div>
 
-        {/* User Info Chip */}
+        {/* User Info Profile Chip */}
         <div className="user-profile-chip" title={`Logged in as ${displayName}`}>
           <div className="user-avatar" aria-hidden="true">
             <User size={16} />
           </div>
           <div className="user-info">
             <span className="user-name">{displayName}</span>
-            <span className="user-role-badge">
-              <ShieldCheck size={10} style={{ display: 'inline', marginRight: '2px' }} />
-              {roleName}
-            </span>
+            <div className="user-role-badge">
+              <Shield size={11} className="role-shield-icon" />
+              <span>{roleName}</span>
+            </div>
           </div>
         </div>
 
@@ -414,10 +287,11 @@ export const Header = ({ onToggleSidebar }) => {
           aria-label="Sign out of Admin Portal"
           title="Sign out"
         >
-          <LogOut size={16} />
+          <LogOut size={15} />
           <span>Logout</span>
         </button>
       </div>
     </header>
   );
 };
+

@@ -1,27 +1,22 @@
 import React, { useState } from 'react';
-import { useNavigate, useLocation, Link } from 'react-router-dom';
+import { useNavigate, Link } from 'react-router-dom';
 import { Eye, EyeOff, AlertCircle } from 'lucide-react';
-import { useAuth } from '../context/AuthContext';
-import { AuthLeftPanel } from '../components/auth/AuthLeftPanel';
+import { AuthLeftPanel } from '../../components/auth/AuthLeftPanel';
 
-export const Login = () => {
+export const UserLogin = () => {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
   const [errors, setErrors] = useState({});
   const [isSubmitting, setIsSubmitting] = useState(false);
 
-  const { login } = useAuth();
   const navigate = useNavigate();
-  const location = useLocation();
-
-  const from = location.state?.from?.pathname || '/admin/dashboard';
 
   const validateForm = () => {
     const newErrors = {};
 
     if (!email.trim()) {
-      newErrors.email = 'Username or Email is required.';
+      newErrors.email = 'Username or Store User ID is required.';
     }
 
     if (!password) {
@@ -32,7 +27,7 @@ export const Login = () => {
     return Object.keys(newErrors).length === 0;
   };
 
-  const handleSubmit = async (e) => {
+  const handleSubmit = (e) => {
     e.preventDefault();
 
     if (!validateForm()) {
@@ -41,18 +36,11 @@ export const Login = () => {
 
     setIsSubmitting(true);
 
-    try {
-      const result = await login(email, password);
-      if (result.success) {
-        navigate(from, { replace: true });
-      } else {
-        setErrors({ form: result.message || 'Invalid username or password.' });
-      }
-    } catch (err) {
-      setErrors({ form: 'An unexpected error occurred. Please try again.' });
-    } finally {
+    // Frontend transition to User Dashboard
+    setTimeout(() => {
       setIsSubmitting(false);
-    }
+      navigate('/user/dashboard');
+    }, 400);
   };
 
   return (
@@ -68,7 +56,7 @@ export const Login = () => {
     >
       {/* 1. LEFT BRANDING PANEL (50% Desktop) */}
       <AuthLeftPanel
-        systemDescription="Inventory & Asset Management System for consumables tracking, procurement automation, and fleet oversight."
+        systemDescription="Inventory & Asset Management System for consumables usage, execution tracking, and store operations."
       />
 
       {/* 2. RIGHT LOGIN FORM PANEL (50% Desktop) */}
@@ -116,7 +104,7 @@ export const Login = () => {
                 fontWeight: '500'
               }}
             >
-              Sign in to your admin account
+              Sign in to your user account
             </p>
           </div>
 
@@ -144,10 +132,10 @@ export const Login = () => {
 
           {/* Login Form */}
           <form onSubmit={handleSubmit} noValidate>
-            {/* USERNAME / EMAIL */}
+            {/* USERNAME / USER ID */}
             <div style={{ marginBottom: '1.25rem' }}>
               <label
-                htmlFor="admin-username"
+                htmlFor="user-username"
                 style={{
                   display: 'block',
                   fontSize: '0.75rem',
@@ -161,7 +149,7 @@ export const Login = () => {
                 USERNAME
               </label>
               <input
-                id="admin-username"
+                id="user-username"
                 name="username"
                 type="text"
                 value={email}
@@ -171,7 +159,7 @@ export const Login = () => {
                     setErrors((prev) => ({ ...prev, email: null, form: null }));
                   }
                 }}
-                placeholder="admin"
+                placeholder="store.user"
                 autoComplete="username"
                 disabled={isSubmitting}
                 style={{
@@ -200,7 +188,7 @@ export const Login = () => {
             {/* PASSWORD */}
             <div style={{ marginBottom: '1.75rem' }}>
               <label
-                htmlFor="admin-password"
+                htmlFor="user-password"
                 style={{
                   display: 'block',
                   fontSize: '0.75rem',
@@ -215,7 +203,7 @@ export const Login = () => {
               </label>
               <div style={{ position: 'relative', width: '100%' }}>
                 <input
-                  id="admin-password"
+                  id="user-password"
                   name="password"
                   type={showPassword ? 'text' : 'password'}
                   value={password}
@@ -306,19 +294,19 @@ export const Login = () => {
             </button>
           </form>
 
-          {/* Switch to User Portal Link */}
+          {/* Switch to Admin Login Link */}
           <div style={{ marginTop: '1.5rem', textAlign: 'center' }}>
             <span style={{ fontSize: '0.8125rem', color: '#94A3B8' }}>
-              Store Keeper / User?{' '}
+              Administrator?{' '}
               <Link
-                to="/user/login"
+                to="/login"
                 style={{
                   color: '#1E40AF',
                   fontWeight: '700',
                   textDecoration: 'none'
                 }}
               >
-                Switch to Store Portal
+                Switch to Admin Login
               </Link>
             </span>
           </div>

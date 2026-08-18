@@ -12,6 +12,13 @@ import { TenderingAlerts } from '../pages/alerts/TenderingAlerts';
 import { NewAssetAddition } from '../pages/assets/NewAssetAddition';
 import { UpdateAsset } from '../pages/assets/UpdateAsset';
 import { DashboardLayout } from '../components/layout/DashboardLayout';
+import { UserLayout } from '../components/layout/UserLayout';
+import { UserLogin } from '../pages/user/UserLogin';
+import { UserDashboard } from '../pages/user/UserDashboard';
+import { RecordUsage } from '../pages/user/RecordUsage';
+import { UsageHistory } from '../pages/user/UsageHistory';
+import { AssignedPOs } from '../pages/user/AssignedPOs';
+import { POUserDetails } from '../pages/user/POUserDetails';
 import { ProtectedRoute } from './ProtectedRoute';
 import { useAuth } from '../context/AuthContext';
 
@@ -20,13 +27,26 @@ export const AppRoutes = () => {
 
   return (
     <Routes>
-      {/* Public Route: Login */}
+      {/* Public Route: Admin Login */}
       <Route
         path="/login"
         element={
           isAuthenticated ? <Navigate to="/admin/dashboard" replace /> : <Login />
         }
       />
+
+      {/* Public Route: User / Store Login */}
+      <Route path="/user/login" element={<UserLogin />} />
+
+      {/* User / Store Portal Routes */}
+      <Route path="/user" element={<UserLayout />}>
+        <Route index element={<Navigate to="dashboard" replace />} />
+        <Route path="dashboard" element={<UserDashboard />} />
+        <Route path="record-usage" element={<RecordUsage />} />
+        <Route path="usage-history" element={<UsageHistory />} />
+        <Route path="assigned-pos" element={<AssignedPOs />} />
+        <Route path="assigned-pos/:id" element={<POUserDetails />} />
+      </Route>
 
       {/* Protected Routes: Admin Portal Layout */}
       <Route
