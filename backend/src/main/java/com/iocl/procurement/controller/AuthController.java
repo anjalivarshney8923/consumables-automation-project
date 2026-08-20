@@ -1,12 +1,18 @@
 package com.iocl.procurement.controller;
 
 import com.iocl.procurement.dto.request.LoginRequest;
+import com.iocl.procurement.dto.request.UserLoginRequest;
+import com.iocl.procurement.dto.request.UserRegistrationRequest;
 import com.iocl.procurement.dto.response.AdminResponse;
 import com.iocl.procurement.dto.response.LoginResponse;
+import com.iocl.procurement.dto.response.UserLoginResponse;
+import com.iocl.procurement.dto.response.UserRegistrationResponse;
 import com.iocl.procurement.service.AuthService;
+import com.iocl.procurement.service.UserService;
 import jakarta.validation.Valid;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.Authentication;
 import org.springframework.web.bind.annotation.GetMapping;
@@ -22,9 +28,11 @@ public class AuthController {
     private static final Logger logger = LoggerFactory.getLogger(AuthController.class);
 
     private final AuthService authService;
+    private final UserService userService;
 
-    public AuthController(AuthService authService) {
+    public AuthController(AuthService authService, UserService userService) {
         this.authService = authService;
+        this.userService = userService;
     }
 
     /**
@@ -39,6 +47,47 @@ public class AuthController {
         logger.info("Received login request for email: [{}]", loginRequest.getEmail());
         LoginResponse response = authService.login(loginRequest);
         return ResponseEntity.ok(response);
+    }
+
+    /**
+     * POST /api/auth/user/login
+     * Authenticates a Normal User (via username, email, or employee ID) and returns signed JWT token.
+     *
+     * @param request User login credentials
+     * @return 200 OK with UserLoginResponse, or 401/400/403 error
+     */
+    @PostMapping("/user/login")
+    public ResponseEntity<UserLoginResponse> loginUser(@Valid @RequestBody UserLoginRequest request) {
+        logger.info("Received user login request for identifier: [{}]", request.getUsernameOrEmail());
+        UserLoginResponse response = userService.loginUser(request);
+        return ResponseEntity.ok(response);
+    }
+
+    /**
+     * POST /api/auth/user/register
+     * Public endpoint for registering normal users.
+     * Always assigns Role.USER and UserStatus.ACTIVE.
+     *
+     * @param request User registration details
+     * @return 201 CREATED with UserRegistrationResponse
+     */
+    @PostMapping("/user/register")
+    public ResponseEntity<UserRegistrationResponse> registerUser(@Valid @RequestBody UserRegistrationRequest request) {
+        logger.info("Received user registration request for username: [{}], email: [{}]", request.getUsername(), request.getEmail());
+        UserRegistrationResponse response = userService.registerUser(request);
+        return ResponseEntity.status(HttpStatus.CREATED).body(response);
+    }
+
+    /**
+     * POST /api/auth/register
+     * Alias endpoint for normal user registration.
+     *
+     * @param request User registration details
+     * @return 201 CREATED with UserRegistrationResponse
+     */
+    @PostMapping("/register")
+    public ResponseEntity<UserRegistrationResponse> registerUserAlias(@Valid @RequestBody UserRegistrationRequest request) {
+        return registerUser(request);
     }
 
     /**

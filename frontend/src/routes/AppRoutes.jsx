@@ -14,8 +14,13 @@ import { UpdateAsset } from '../pages/assets/UpdateAsset';
 import { DashboardLayout } from '../components/layout/DashboardLayout';
 import { UserLayout } from '../components/layout/UserLayout';
 import { UserLogin } from '../pages/user/UserLogin';
+import { UserRegistration } from '../pages/auth/UserRegistration';
 import { UserDashboard } from '../pages/user/UserDashboard';
-import { RecordUsage } from '../pages/user/RecordUsage';
+import { UserProfile } from '../pages/user/UserProfile';
+import { UserAssets } from '../pages/user/UserAssets';
+import { UserActivity } from '../pages/user/UserActivity';
+import { UserNotifications } from '../pages/user/UserNotifications';
+import { AssetUsage } from '../pages/user/AssetUsage';
 import { UsageHistory } from '../pages/user/UsageHistory';
 import { AssignedPOs } from '../pages/user/AssignedPOs';
 import { POUserDetails } from '../pages/user/POUserDetails';
@@ -23,7 +28,8 @@ import { ProtectedRoute } from './ProtectedRoute';
 import { useAuth } from '../context/AuthContext';
 
 export const AppRoutes = () => {
-  const { isAuthenticated } = useAuth();
+  const { isAuthenticated, user, role } = useAuth();
+  const currentRole = role || user?.role;
 
   return (
     <Routes>
@@ -31,19 +37,44 @@ export const AppRoutes = () => {
       <Route
         path="/login"
         element={
-          isAuthenticated ? <Navigate to="/admin/dashboard" replace /> : <Login />
+          isAuthenticated
+            ? (currentRole === 'ADMIN' ? <Navigate to="/admin/dashboard" replace /> : <Navigate to="/user/dashboard" replace />)
+            : <Login />
         }
       />
 
       {/* Public Route: User / Store Login */}
-      <Route path="/user/login" element={<UserLogin />} />
+      <Route
+        path="/user/login"
+        element={
+          isAuthenticated
+            ? (currentRole === 'USER' ? <Navigate to="/user/dashboard" replace /> : <Navigate to="/admin/dashboard" replace />)
+            : <UserLogin />
+        }
+      />
+
+      {/* Public Route: User Registration */}
+      <Route path="/register" element={<UserRegistration />} />
+      <Route path="/user/register" element={<UserRegistration />} />
 
       {/* User / Store Portal Routes */}
-      <Route path="/user" element={<UserLayout />}>
+      <Route
+        path="/user"
+        element={
+          <ProtectedRoute allowedRoles={['USER', 'ADMIN']}>
+            <UserLayout />
+          </ProtectedRoute>
+        }
+      >
         <Route index element={<Navigate to="dashboard" replace />} />
         <Route path="dashboard" element={<UserDashboard />} />
-        <Route path="record-usage" element={<RecordUsage />} />
+        <Route path="profile" element={<UserProfile />} />
+        <Route path="assets" element={<UserAssets />} />
+        <Route path="usage" element={<AssetUsage />} />
+        <Route path="record-usage" element={<AssetUsage />} />
         <Route path="usage-history" element={<UsageHistory />} />
+        <Route path="activity" element={<UserActivity />} />
+        <Route path="notifications" element={<UserNotifications />} />
         <Route path="assigned-pos" element={<AssignedPOs />} />
         <Route path="assigned-pos/:id" element={<POUserDetails />} />
       </Route>
@@ -52,7 +83,7 @@ export const AppRoutes = () => {
       <Route
         path="/admin"
         element={
-          <ProtectedRoute>
+          <ProtectedRoute allowedRoles={['ADMIN']}>
             <DashboardLayout />
           </ProtectedRoute>
         }
@@ -80,7 +111,14 @@ export const AppRoutes = () => {
       <Route
         path="/"
         element={
-          <Navigate to={isAuthenticated ? "/admin/dashboard" : "/login"} replace />
+          <Navigate
+            to={
+              isAuthenticated
+                ? (currentRole === 'ADMIN' ? "/admin/dashboard" : "/user/dashboard")
+                : "/login"
+            }
+            replace
+          />
         }
       />
 
@@ -88,7 +126,14 @@ export const AppRoutes = () => {
       <Route
         path="*"
         element={
-          <Navigate to={isAuthenticated ? "/admin/dashboard" : "/login"} replace />
+          <Navigate
+            to={
+              isAuthenticated
+                ? (currentRole === 'ADMIN' ? "/admin/dashboard" : "/user/dashboard")
+                : "/login"
+            }
+            replace
+          />
         }
       />
     </Routes>

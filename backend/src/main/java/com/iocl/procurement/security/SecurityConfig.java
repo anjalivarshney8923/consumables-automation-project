@@ -70,12 +70,19 @@ public class SecurityConfig {
 
                 // Authorize HTTP requests
                 .authorizeHttpRequests(auth -> auth
-                        // Public auth endpoint (Login only)
-                        .requestMatchers(HttpMethod.POST, "/api/auth/login").permitAll()
+                        // Public auth endpoints (Admin Login, User Login, User Registration)
+                        .requestMatchers(HttpMethod.POST, "/api/auth/login", "/api/auth/user/login", "/api/auth/user/register", "/api/auth/register").permitAll()
                         // Allow internal error endpoint
                         .requestMatchers("/error").permitAll()
                         // Protected admin & auth endpoints
-                        .requestMatchers("/api/auth/me").authenticated()
+                        .requestMatchers("/api/auth/me").hasRole("ADMIN")
+                        // Read-only cartridge and asset reference data for normal users & admins
+                        .requestMatchers(HttpMethod.GET, "/api/procurement/cartridges", "/api/procurement/cartridges/**").hasAnyRole("USER", "ADMIN")
+                        .requestMatchers(HttpMethod.GET, "/api/assets", "/api/assets/**").hasAnyRole("USER", "ADMIN")
+                        // User portal asset usage endpoints
+                        .requestMatchers("/api/user/**").hasAnyRole("USER", "ADMIN")
+                        // Admin-only management endpoints
+                        .requestMatchers("/api/procurement/**", "/api/thresholds/**", "/api/alerts/**", "/api/assets/**", "/api/full-view/**", "/api/admin/**").hasRole("ADMIN")
                         // All other API endpoints require authentication
                         .requestMatchers("/api/**").authenticated()
                         .anyRequest().authenticated()

@@ -183,7 +183,12 @@ public class RateContractServiceImpl implements RateContractService {
             int dateCmp = (b.getDate() != null && a.getDate() != null) ? b.getDate().compareTo(a.getDate()) : 0;
             if (dateCmp != 0) return dateCmp;
             if (b.getCreatedAt() != null && a.getCreatedAt() != null) {
-                return b.getCreatedAt().compareTo(a.getCreatedAt());
+                int createdCmp = b.getCreatedAt().compareTo(a.getCreatedAt());
+                if (createdCmp != 0) return createdCmp;
+            }
+            if (b.getId() != null && a.getId() != null) {
+                int idCmp = b.getId().compareTo(a.getId());
+                if (idCmp != 0) return idCmp;
             }
             if ("CALL_UP_PO".equals(b.getRecordType()) && "RATE_CONTRACT".equals(a.getRecordType())) return 1;
             if ("RATE_CONTRACT".equals(b.getRecordType()) && "CALL_UP_PO".equals(a.getRecordType())) return -1;
@@ -273,12 +278,17 @@ public class RateContractServiceImpl implements RateContractService {
             }
         }
 
-        // Sort history: newest first (date desc, createdAt desc)
+        // Sort history: newest first (date desc, createdAt desc, id desc)
         historyItems.sort((a, b) -> {
             int dateCmp = (b.getDate() != null && a.getDate() != null) ? b.getDate().compareTo(a.getDate()) : 0;
             if (dateCmp != 0) return dateCmp;
             if (b.getCreatedAt() != null && a.getCreatedAt() != null) {
-                return b.getCreatedAt().compareTo(a.getCreatedAt());
+                int createdCmp = b.getCreatedAt().compareTo(a.getCreatedAt());
+                if (createdCmp != 0) return createdCmp;
+            }
+            if (b.getId() != null && a.getId() != null) {
+                int idCmp = b.getId().compareTo(a.getId());
+                if (idCmp != 0) return idCmp;
             }
             if ("CALL_UP_PO".equals(b.getRecordType()) && "RATE_CONTRACT".equals(a.getRecordType())) return 1;
             if ("RATE_CONTRACT".equals(b.getRecordType()) && "CALL_UP_PO".equals(a.getRecordType())) return -1;

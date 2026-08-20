@@ -2,18 +2,24 @@ import React from 'react';
 import { NavLink, useLocation, useNavigate } from 'react-router-dom';
 import {
   LayoutDashboard,
+  User,
+  Package,
   ClipboardEdit,
   History,
-  Package,
+  Bell,
   LogOut,
   X,
-  UserCheck
+  UserCheck,
+  ChevronLeft,
+  ChevronRight
 } from 'lucide-react';
 import { IoclBrand } from '../branding/IoclBrand';
+import { useAuth } from '../../context/AuthContext';
 
-export const UserSidebar = ({ isOpen, onClose }) => {
+export const UserSidebar = ({ isOpen, onClose, isCollapsed, onToggleCollapse }) => {
   const location = useLocation();
   const navigate = useNavigate();
+  const { user, logout } = useAuth();
 
   const navItems = [
     {
@@ -22,24 +28,34 @@ export const UserSidebar = ({ isOpen, onClose }) => {
       icon: LayoutDashboard
     },
     {
-      label: 'Record Usage',
-      path: '/user/record-usage',
+      label: 'My Profile',
+      path: '/user/profile',
+      icon: User
+    },
+    {
+      label: 'My Assets',
+      path: '/user/assets',
+      icon: Package
+    },
+    {
+      label: 'Asset Usage',
+      path: '/user/usage',
       icon: ClipboardEdit
     },
     {
-      label: 'Usage History',
-      path: '/user/usage-history',
+      label: 'My Activity',
+      path: '/user/activity',
       icon: History
     },
     {
-      label: 'My Assigned POs',
-      path: '/user/assigned-pos',
-      icon: Package
+      label: 'Notifications',
+      path: '/user/notifications',
+      icon: Bell
     }
   ];
 
-  const handleLogout = () => {
-    // Clear any frontend-only session state and redirect to user login
+  const handleLogout = async () => {
+    await logout();
     navigate('/user/login');
   };
 
@@ -53,14 +69,14 @@ export const UserSidebar = ({ isOpen, onClose }) => {
       />
 
       <aside
-        className={`app-sidebar ${isOpen ? 'open' : ''}`}
+        className={`app-sidebar ${isOpen ? 'open' : ''} ${isCollapsed ? 'collapsed' : ''}`}
         aria-label="User Navigation"
       >
         {/* Brand Header */}
         <div className="sidebar-brand-header">
           <IoclBrand
-            size="md"
-            subtitle="Consumables & Store Portal"
+            size={isCollapsed ? "sm" : "md"}
+            subtitle={isCollapsed ? "" : "User Portal"}
           />
           <button
             type="button"
@@ -73,28 +89,30 @@ export const UserSidebar = ({ isOpen, onClose }) => {
         </div>
 
         {/* Portal Identifier Badge */}
-        <div style={{ padding: '0.75rem 1.25rem 0.25rem' }}>
-          <div
-            style={{
-              padding: '0.375rem 0.75rem',
-              backgroundColor: 'rgba(255, 255, 255, 0.08)',
-              border: '1px solid rgba(255, 255, 255, 0.15)',
-              borderRadius: '6px',
-              display: 'flex',
-              alignItems: 'center',
-              gap: '0.5rem'
-            }}
-          >
-            <UserCheck size={14} color="var(--iocl-saffron)" />
-            <span style={{ fontSize: '0.6875rem', fontWeight: '800', color: '#CBD5E1', letterSpacing: '0.05em', textTransform: 'uppercase' }}>
-              STORE / USER PORTAL
-            </span>
+        {!isCollapsed && (
+          <div style={{ padding: '0.75rem 1.25rem 0.25rem' }}>
+            <div
+              style={{
+                padding: '0.375rem 0.75rem',
+                backgroundColor: 'rgba(255, 255, 255, 0.08)',
+                border: '1px solid rgba(255, 255, 255, 0.15)',
+                borderRadius: '6px',
+                display: 'flex',
+                alignItems: 'center',
+                gap: '0.5rem'
+              }}
+            >
+              <UserCheck size={14} color="var(--iocl-saffron)" />
+              <span style={{ fontSize: '0.6875rem', fontWeight: '800', color: '#CBD5E1', letterSpacing: '0.05em', textTransform: 'uppercase' }}>
+                USER PORTAL
+              </span>
+            </div>
           </div>
-        </div>
+        )}
 
-        {/* Navigation Navigation Menu */}
-        <nav className="sidebar-nav-menu">
-          <div className="nav-section-label">Store Operations</div>
+        {/* Navigation Menu */}
+        <nav className="sidebar-nav-menu" style={{ flex: 1, overflowY: 'auto' }}>
+          {!isCollapsed && <div className="nav-section-label">Operations & Portal</div>}
           <ul className="nav-list">
             {navItems.map((item) => {
               const Icon = item.icon;
@@ -107,15 +125,51 @@ export const UserSidebar = ({ isOpen, onClose }) => {
                     to={item.path}
                     className={`nav-link ${isActive ? 'active' : ''}`}
                     onClick={onClose}
+                    title={isCollapsed ? item.label : undefined}
                   >
                     <Icon size={18} className="nav-icon" />
-                    <span className="nav-label">{item.label}</span>
+                    {!isCollapsed && <span className="nav-label">{item.label}</span>}
                   </NavLink>
                 </li>
               );
             })}
           </ul>
         </nav>
+
+        {/* Collapse Toggle Button (Desktop) */}
+        {onToggleCollapse && (
+          <div
+            style={{
+              padding: '0.5rem 1.25rem',
+              display: 'none',
+              borderTop: '1px solid rgba(255, 255, 255, 0.08)'
+            }}
+            className="sidebar-collapse-wrapper"
+          >
+            <button
+              type="button"
+              onClick={onToggleCollapse}
+              style={{
+                width: '100%',
+                padding: '0.4rem',
+                backgroundColor: 'rgba(255, 255, 255, 0.05)',
+                border: '1px solid rgba(255, 255, 255, 0.1)',
+                borderRadius: '6px',
+                color: '#CBD5E1',
+                cursor: 'pointer',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                gap: '0.5rem',
+                fontSize: '0.75rem',
+                fontWeight: '600'
+              }}
+              title={isCollapsed ? "Expand Sidebar" : "Collapse Sidebar"}
+            >
+              {isCollapsed ? <ChevronRight size={16} /> : <><ChevronLeft size={16} /> <span>Collapse</span></>}
+            </button>
+          </div>
+        )}
 
         {/* User Sidebar Footer */}
         <div className="sidebar-footer">
@@ -124,18 +178,24 @@ export const UserSidebar = ({ isOpen, onClose }) => {
               className="user-avatar"
               style={{ backgroundColor: 'var(--iocl-saffron)' }}
             >
-              SU
+              {user?.fullName
+                ? user.fullName.substring(0, 2).toUpperCase()
+                : (user?.username ? user.username.substring(0, 2).toUpperCase() : 'U')}
             </div>
-            <div className="user-info">
-              <span className="user-name">Store Keeper</span>
-              <span className="user-role" style={{ color: 'var(--iocl-saffron)' }}>STORE USER</span>
-            </div>
+            {!isCollapsed && (
+              <div className="user-info">
+                <span className="user-name">{user?.fullName || user?.username || 'User Account'}</span>
+                <span className="user-role" style={{ color: 'var(--iocl-saffron)' }}>
+                  {user?.department || 'USER'}
+                </span>
+              </div>
+            )}
           </div>
           <button
             type="button"
             className="sidebar-logout-btn"
             onClick={handleLogout}
-            title="Sign out of Store Portal"
+            title="Sign out of User Portal"
             aria-label="Logout"
           >
             <LogOut size={16} />

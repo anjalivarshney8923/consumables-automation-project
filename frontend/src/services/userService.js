@@ -1,31 +1,14 @@
 /**
- * User / Store Portal Service
- * Prepared for future User Authentication & Profile Backend APIs.
+ * IOCL Consumables & Store Management Portal
+ * User Service
+ *
+ * Real API integration for normal user operations
  */
 
-export const userLogin = async (email, password) => {
-  // Prepared for future POST /api/user/login
-  return {
-    success: true,
-    message: 'Frontend-only login validation passed.',
-    user: {
-      id: 1,
-      name: 'Store Keeper / User',
-      email: email,
-      role: 'STORE_USER'
-    }
-  };
-};
+import { registerUser, loginNormalUser } from './authService';
 
-export const getUserProfile = async () => {
-  // Prepared for future GET /api/user/profile
-  return {
-    success: true,
-    data: {
-      id: 1,
-      name: 'Store Keeper / User',
-      email: 'user@iocl.co.in',
-      role: 'STORE_USER'
-    }
-  };
+export { registerUser, loginNormalUser };
+
+export const userLogin = async (identifier, password) => {
+  return loginNormalUser(identifier, password);
 };

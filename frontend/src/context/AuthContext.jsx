@@ -1,5 +1,5 @@
 import React, { createContext, useContext, useState, useEffect, useCallback } from 'react';
-import { loginUser, getCurrentAdmin, logoutUser } from '../services/authService';
+import { loginUser as apiLoginAdmin, loginNormalUser as apiLoginUser, getCurrentAdmin, logoutUser } from '../services/authService';
 
 const AuthContext = createContext(null);
 
@@ -8,7 +8,7 @@ const USER_KEY = 'iocl_auth_user';
 
 export const AuthProvider = ({ children }) => {
   const [token, setToken] = useState(() => sessionStorage.getItem(TOKEN_KEY) || null);
-  const [adminUser, setAdminUser] = useState(() => {
+  const [user, setUser] = useState(() => {
     try {
       const stored = sessionStorage.getItem(USER_KEY);
       return stored ? JSON.parse(stored) : null;
@@ -20,35 +20,43 @@ export const AuthProvider = ({ children }) => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
 
-  // Verify stored JWT token against backend GET /api/auth/me on initial load / reload
+  // Verify stored JWT token on initial load / reload
   const verifySession = useCallback(async () => {
     const storedToken = sessionStorage.getItem(TOKEN_KEY);
+    const storedUserStr = sessionStorage.getItem(USER_KEY);
 
-    if (!storedToken) {
+    if (!storedToken || !storedUserStr) {
       setIsAuthenticated(false);
-      setAdminUser(null);
+      setUser(null);
       setToken(null);
       setLoading(false);
       return;
     }
 
     try {
-      const result = await getCurrentAdmin(storedToken);
-      if (result.success && result.data) {
+      const parsedUser = JSON.parse(storedUserStr);
+      if (parsedUser.role === 'ADMIN') {
+        const result = await getCurrentAdmin(storedToken);
+        if (result.success && result.data) {
+          setIsAuthenticated(true);
+          setToken(storedToken);
+          setUser({ ...parsedUser, ...result.data });
+          sessionStorage.setItem(USER_KEY, JSON.stringify({ ...parsedUser, ...result.data }));
+        } else {
+          // Token is invalid or expired
+          sessionStorage.removeItem(TOKEN_KEY);
+          sessionStorage.removeItem(USER_KEY);
+          setIsAuthenticated(false);
+          setToken(null);
+          setUser(null);
+        }
+      } else {
+        // Normal USER session
         setIsAuthenticated(true);
         setToken(storedToken);
-        setAdminUser(result.data);
-        sessionStorage.setItem(USER_KEY, JSON.stringify(result.data));
-      } else {
-        // Token is invalid or expired
-        sessionStorage.removeItem(TOKEN_KEY);
-        sessionStorage.removeItem(USER_KEY);
-        setIsAuthenticated(false);
-        setToken(null);
-        setAdminUser(null);
+        setUser(parsedUser);
       }
     } catch (e) {
-      // In case of transient network issue, keep token if exists or clear gracefully
       console.warn('Session verification error:', e);
     } finally {
       setLoading(false);
@@ -60,23 +68,20 @@ export const AuthProvider = ({ children }) => {
   }, [verifySession]);
 
   /**
-   * Real database login action.
-   *
-   * @param {string} email
-   * @param {string} password
-   * @returns {Promise<{ success: boolean, message?: string }>}
+   * Real Admin login action against Spring Boot /api/auth/login.
    */
   const login = async (email, password) => {
     setError(null);
     try {
-      const result = await loginUser(email, password);
+      const result = await apiLoginAdmin(email, password);
       if (result.success && result.token && result.data) {
+        const adminData = { ...result.data, role: 'ADMIN' };
         sessionStorage.setItem(TOKEN_KEY, result.token);
-        sessionStorage.setItem(USER_KEY, JSON.stringify(result.data));
+        sessionStorage.setItem(USER_KEY, JSON.stringify(adminData));
         setToken(result.token);
-        setAdminUser(result.data);
+        setUser(adminData);
         setIsAuthenticated(true);
-        return { success: true };
+        return { success: true, data: adminData };
       } else {
         const errorMsg = result.message || 'Invalid email or password.';
         setError(errorMsg);
@@ -84,6 +89,33 @@ export const AuthProvider = ({ children }) => {
       }
     } catch (err) {
       const msg = err.message || 'An error occurred during authentication.';
+      setError(msg);
+      return { success: false, message: msg };
+    }
+  };
+
+  /**
+   * Real Normal User login action against Spring Boot /api/auth/user/login.
+   */
+  const loginUserAccount = async (identifier, password) => {
+    setError(null);
+    try {
+      const result = await apiLoginUser(identifier, password);
+      if (result.success && result.token && result.data) {
+        const userData = { ...result.data, role: 'USER' };
+        sessionStorage.setItem(TOKEN_KEY, result.token);
+        sessionStorage.setItem(USER_KEY, JSON.stringify(userData));
+        setToken(result.token);
+        setUser(userData);
+        setIsAuthenticated(true);
+        return { success: true, data: userData };
+      } else {
+        const errorMsg = result.message || 'Invalid username or password.';
+        setError(errorMsg);
+        return { success: false, message: errorMsg };
+      }
+    } catch (err) {
+      const msg = err.message || 'An error occurred during user authentication.';
       setError(msg);
       return { success: false, message: msg };
     }
@@ -99,7 +131,7 @@ export const AuthProvider = ({ children }) => {
       sessionStorage.removeItem(TOKEN_KEY);
       sessionStorage.removeItem(USER_KEY);
       setToken(null);
-      setAdminUser(null);
+      setUser(null);
       setIsAuthenticated(false);
       setError(null);
     }
@@ -110,10 +142,14 @@ export const AuthProvider = ({ children }) => {
       value={{
         isAuthenticated,
         token,
-        adminUser,
+        user,
+        adminUser: user, // Alias for backward compatibility with existing Admin components
+        role: user?.role || null,
         loading,
         error,
         login,
+        loginAdmin: login,
+        loginUserAccount,
         logout
       }}
     >

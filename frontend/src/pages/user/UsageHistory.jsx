@@ -1,10 +1,35 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
-import { History, Inbox, ClipboardEdit, Database, Filter, RefreshCw } from 'lucide-react';
+import { History, Inbox, ClipboardEdit, Loader2, RefreshCw, AlertCircle, FileText } from 'lucide-react';
+import { getUserUsageHistory } from '../../services/assetUsageService';
 
 export const UsageHistory = () => {
   const [historyRecords, setHistoryRecords] = useState([]);
-  const [isLoading, setIsLoading] = useState(false);
+  const [isLoading, setIsLoading] = useState(true);
+  const [error, setError] = useState(null);
+
+  const fetchHistory = async () => {
+    setIsLoading(true);
+    setError(null);
+    try {
+      const result = await getUserUsageHistory();
+      if (result.success && Array.isArray(result.data)) {
+        setHistoryRecords(result.data);
+      } else {
+        setError(result.message || 'Failed to load usage history from database.');
+        setHistoryRecords([]);
+      }
+    } catch (err) {
+      setError('Unable to connect to backend server. Please verify Spring Boot is running.');
+      setHistoryRecords([]);
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    fetchHistory();
+  }, []);
 
   return (
     <div className="procurement-page-container">
@@ -28,13 +53,31 @@ export const UsageHistory = () => {
             </span>
           </div>
           <p className="page-subtitle-text">
-            Historical log of all cartridge execution and issuance records submitted through the Store Portal.
+            Historical log of all cartridge consumption transactions submitted through the Store Portal.
           </p>
         </div>
 
         <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+          <button
+            type="button"
+            onClick={fetchHistory}
+            disabled={isLoading}
+            className="btn btn-secondary"
+            style={{
+              padding: '0.4375rem 0.875rem',
+              fontSize: '0.8125rem',
+              display: 'inline-flex',
+              alignItems: 'center',
+              gap: '0.375rem',
+              cursor: 'pointer'
+            }}
+          >
+            <RefreshCw size={14} className={isLoading ? 'spinner' : ''} />
+            <span>Refresh</span>
+          </button>
+
           <Link
-            to="/user/record-usage"
+            to="/user/usage"
             className="btn btn-primary"
             style={{
               padding: '0.4375rem 0.875rem',
@@ -50,6 +93,26 @@ export const UsageHistory = () => {
           </Link>
         </div>
       </header>
+
+      {error && (
+        <div
+          className="mb-6"
+          style={{
+            backgroundColor: '#FEF2F2',
+            border: '1px solid #FECACA',
+            borderRadius: '12px',
+            padding: '1rem 1.25rem',
+            display: 'flex',
+            alignItems: 'center',
+            gap: '0.625rem',
+            color: '#991B1B',
+            fontSize: '0.875rem'
+          }}
+        >
+          <AlertCircle size={18} color="#DC2626" />
+          <span>{error}</span>
+        </div>
+      )}
 
       {/* History Table Container */}
       <div
@@ -76,7 +139,7 @@ export const UsageHistory = () => {
           <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
             <History size={18} color="var(--iocl-navy)" />
             <h3 style={{ fontSize: '0.9375rem', fontWeight: '700', color: 'var(--iocl-navy)', margin: 0 }}>
-              Execution History Records
+              Execution History Records (PostgreSQL)
             </h3>
           </div>
 
@@ -94,32 +157,73 @@ export const UsageHistory = () => {
           </span>
         </div>
 
-        {/* Render Table or Clean Empty State */}
-        {historyRecords.length > 0 ? (
+        {/* Render Table or Loading / Clean Empty State */}
+        {isLoading ? (
+          <div style={{ padding: '3.5rem 1.5rem', textAlign: 'center', color: '#64748B' }}>
+            <Loader2 size={24} className="spinner text-navy" style={{ margin: '0 auto 0.5rem' }} />
+            <p style={{ fontSize: '0.875rem', fontWeight: 500 }}>Loading usage records from database...</p>
+          </div>
+        ) : historyRecords.length > 0 ? (
           <div style={{ overflowX: 'auto' }}>
             <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left', fontSize: '0.8125rem' }}>
               <thead>
                 <tr style={{ backgroundColor: '#F1F5F9', borderBottom: '1px solid #CBD5E1' }}>
-                  <th style={{ padding: '0.75rem 1rem', fontWeight: '700', color: 'var(--iocl-navy)' }}>DATE</th>
-                  <th style={{ padding: '0.75rem 1rem', fontWeight: '700', color: 'var(--iocl-navy)' }}>CARTRIDGE</th>
-                  <th style={{ padding: '0.75rem 1rem', fontWeight: '700', color: 'var(--iocl-navy)' }}>CALL-UP PO</th>
-                  <th style={{ padding: '0.75rem 1rem', fontWeight: '700', color: 'var(--iocl-navy)', textAlign: 'right' }}>PO QTY</th>
-                  <th style={{ padding: '0.75rem 1rem', fontWeight: '700', color: 'var(--iocl-navy)', textAlign: 'right' }}>EXECUTED QTY</th>
-                  <th style={{ padding: '0.75rem 1rem', fontWeight: '700', color: 'var(--iocl-navy)', textAlign: 'right' }}>REMAINING QTY</th>
-                  <th style={{ padding: '0.75rem 1rem', fontWeight: '700', color: 'var(--iocl-navy)' }}>STATUS</th>
+                  <th style={{ padding: '0.75rem 1rem', fontWeight: '700', color: 'var(--iocl-navy)' }}>TRANSACTION ID</th>
+                  <th style={{ padding: '0.75rem 1rem', fontWeight: '700', color: 'var(--iocl-navy)' }}>USAGE DATE</th>
+                  <th style={{ padding: '0.75rem 1rem', fontWeight: '700', color: 'var(--iocl-navy)' }}>PRINTER MODEL</th>
+                  <th style={{ padding: '0.75rem 1rem', fontWeight: '700', color: 'var(--iocl-navy)' }}>CARTRIDGE / PART NO.</th>
+                  <th style={{ padding: '0.75rem 1rem', fontWeight: '700', color: 'var(--iocl-navy)' }}>COLOUR</th>
+                  <th style={{ padding: '0.75rem 1rem', fontWeight: '700', color: 'var(--iocl-navy)', textAlign: 'right' }}>QTY USED</th>
+                  <th style={{ padding: '0.75rem 1rem', fontWeight: '700', color: 'var(--iocl-navy)' }}>LOCATION</th>
+                  <th style={{ padding: '0.75rem 1rem', fontWeight: '700', color: 'var(--iocl-navy)' }}>REFERENCE / WO</th>
+                  <th style={{ padding: '0.75rem 1rem', fontWeight: '700', color: 'var(--iocl-navy)' }}>REMARKS</th>
                 </tr>
               </thead>
               <tbody>
-                {historyRecords.map((item, idx) => (
-                  <tr key={idx} style={{ borderBottom: '1px solid #E2E8F0' }}>
-                    <td style={{ padding: '0.75rem 1rem' }}>{item.date}</td>
-                    <td style={{ padding: '0.75rem 1rem', fontWeight: '600' }}>{item.cartridge}</td>
-                    <td style={{ padding: '0.75rem 1rem', fontFamily: 'monospace' }}>{item.poNumber}</td>
-                    <td style={{ padding: '0.75rem 1rem', textAlign: 'right' }}>{item.poQuantity}</td>
-                    <td style={{ padding: '0.75rem 1rem', textAlign: 'right', color: '#EA580C', fontWeight: '700' }}>{item.executedQuantity}</td>
-                    <td style={{ padding: '0.75rem 1rem', textAlign: 'right', color: '#059669', fontWeight: '700' }}>{item.remainingQuantity}</td>
+                {historyRecords.map((item) => (
+                  <tr key={item.id} style={{ borderBottom: '1px solid #E2E8F0' }}>
+                    <td style={{ padding: '0.75rem 1rem', fontFamily: 'monospace', color: '#64748B', fontSize: '0.75rem' }}>
+                      #{item.id}
+                    </td>
+                    <td style={{ padding: '0.75rem 1rem', fontWeight: '600', color: '#1E293B' }}>
+                      {item.usageDate}
+                    </td>
+                    <td style={{ padding: '0.75rem 1rem', color: '#475569' }}>
+                      {item.printerModel || '—'}
+                    </td>
                     <td style={{ padding: '0.75rem 1rem' }}>
-                      <span className="badge-preview-tag">{item.status}</span>
+                      <span className="font-semibold text-navy">{item.partNumber || item.cartridgeName}</span>
+                    </td>
+                    <td style={{ padding: '0.75rem 1rem' }}>
+                      {item.colour ? (
+                        <span
+                          style={{
+                            padding: '0.15rem 0.45rem',
+                            borderRadius: '4px',
+                            fontSize: '0.6875rem',
+                            fontWeight: '700',
+                            backgroundColor: item.colour === 'BLACK' ? '#F1F5F9' : item.colour === 'CYAN' ? '#ECFEFF' : item.colour === 'MAGENTA' ? '#FDF4FF' : '#FEFCE8',
+                            color: item.colour === 'BLACK' ? '#0F172A' : item.colour === 'CYAN' ? '#0891B2' : item.colour === 'MAGENTA' ? '#C026D3' : '#CA8A04',
+                            border: '1px solid currentColor'
+                          }}
+                        >
+                          {item.colour}
+                        </span>
+                      ) : (
+                        <span style={{ color: '#94A3B8' }}>—</span>
+                      )}
+                    </td>
+                    <td style={{ padding: '0.75rem 1rem', textAlign: 'right', fontWeight: '700', color: '#D4001F' }}>
+                      {item.quantityUsed}
+                    </td>
+                    <td style={{ padding: '0.75rem 1rem', color: '#64748B', fontSize: '0.75rem' }}>
+                      {item.location} · {item.seatOrCabinNo}
+                    </td>
+                    <td style={{ padding: '0.75rem 1rem', fontFamily: 'monospace', fontSize: '0.75rem', color: '#475569' }}>
+                      {item.workOrderReference || '—'}
+                    </td>
+                    <td style={{ padding: '0.75rem 1rem', color: '#64748B', maxWidth: '220px', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }} title={item.remarks}>
+                      {item.remarks || '—'}
                     </td>
                   </tr>
                 ))}
@@ -144,28 +248,14 @@ export const UsageHistory = () => {
               <Inbox size={24} />
             </div>
             <h4 style={{ fontSize: '1rem', fontWeight: '700', color: '#1E293B', margin: '0 0 0.25rem' }}>
-              No Usage Records Available Yet
+              No Usage Records Found
             </h4>
             <p style={{ fontSize: '0.8125rem', color: '#64748B', maxWidth: '420px', margin: '0 auto 1.25rem' }}>
-              Usage history will appear after backend integration. When you record cartridge issuances, they will be logged here.
+              You have not submitted any consumable usage records yet. Click below to record your first cartridge usage.
             </p>
-            <Link
-              to="/user/record-usage"
-              style={{
-                padding: '0.5rem 1rem',
-                backgroundColor: 'var(--iocl-navy)',
-                borderRadius: '6px',
-                fontSize: '0.8125rem',
-                fontWeight: '600',
-                color: '#FFFFFF',
-                display: 'inline-flex',
-                alignItems: 'center',
-                gap: '0.375rem',
-                textDecoration: 'none'
-              }}
-            >
-              <ClipboardEdit size={15} />
-              <span>Record New Usage</span>
+            <Link to="/user/usage" className="btn btn-primary" style={{ display: 'inline-flex', alignItems: 'center', gap: '0.375rem', textDecoration: 'none' }}>
+              <ClipboardEdit size={14} />
+              <span>Record First Usage</span>
             </Link>
           </div>
         )}

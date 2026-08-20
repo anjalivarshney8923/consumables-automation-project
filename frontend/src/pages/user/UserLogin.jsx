@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import { Eye, EyeOff, AlertCircle } from 'lucide-react';
 import { AuthLeftPanel } from '../../components/auth/AuthLeftPanel';
+import { useAuth } from '../../context/AuthContext';
 
 export const UserLogin = () => {
   const [email, setEmail] = useState('');
@@ -11,6 +12,7 @@ export const UserLogin = () => {
   const [isSubmitting, setIsSubmitting] = useState(false);
 
   const navigate = useNavigate();
+  const { loginUserAccount } = useAuth();
 
   const validateForm = () => {
     const newErrors = {};
@@ -27,7 +29,7 @@ export const UserLogin = () => {
     return Object.keys(newErrors).length === 0;
   };
 
-  const handleSubmit = (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault();
 
     if (!validateForm()) {
@@ -35,12 +37,25 @@ export const UserLogin = () => {
     }
 
     setIsSubmitting(true);
+    setErrors({});
 
-    // Frontend transition to User Dashboard
-    setTimeout(() => {
+    try {
+      const result = await loginUserAccount(email, password);
+
+      if (result.success) {
+        navigate('/user/dashboard', { replace: true });
+      } else {
+        setErrors({
+          form: result.message || 'Invalid username or password.'
+        });
+      }
+    } catch (err) {
+      setErrors({
+        form: 'Unable to connect to the server. Please try again later.'
+      });
+    } finally {
       setIsSubmitting(false);
-      navigate('/user/dashboard');
-    }, 400);
+    }
   };
 
   return (
@@ -294,8 +309,25 @@ export const UserLogin = () => {
             </button>
           </form>
 
+          {/* Registration Link */}
+          <div style={{ marginTop: '1.25rem', textAlign: 'center' }}>
+            <span style={{ fontSize: '0.8125rem', color: '#64748B' }}>
+              New User?{' '}
+              <Link
+                to="/register"
+                style={{
+                  color: '#C4001A',
+                  fontWeight: '700',
+                  textDecoration: 'none'
+                }}
+              >
+                Create an Account
+              </Link>
+            </span>
+          </div>
+
           {/* Switch to Admin Login Link */}
-          <div style={{ marginTop: '1.5rem', textAlign: 'center' }}>
+          <div style={{ marginTop: '0.75rem', textAlign: 'center' }}>
             <span style={{ fontSize: '0.8125rem', color: '#94A3B8' }}>
               Administrator?{' '}
               <Link
