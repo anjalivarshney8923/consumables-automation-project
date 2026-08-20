@@ -18,10 +18,15 @@ const getAuthHeaders = () => {
 
 /**
  * Record a new consumable cartridge usage in PostgreSQL database.
+ * The backend authoritatively derives the recorded-by engineer from JWT.
  * 
  * @param {Object} usageData
- * @param {string} usageData.seatOrCabinNo
- * @param {string} usageData.location
+ * @param {string} usageData.beneficiaryEmployeeNo
+ * @param {string} usageData.beneficiaryEmployeeName
+ * @param {string} usageData.beneficiaryDepartment
+ * @param {string} usageData.beneficiarySeatOrCabinNo
+ * @param {string} usageData.beneficiaryLocation
+ * @param {string} usageData.beneficiaryEmail
  * @param {string} usageData.printerId
  * @param {string} [usageData.printerType]
  * @param {string} usageData.cartridgeId
@@ -75,13 +80,152 @@ export const recordAssetUsage = async (usageData) => {
 };
 
 /**
- * Fetch authenticated user's usage history from PostgreSQL.
+ * Fetch authenticated engineer's usage history with optional search, date range, filters, pagination, and sorting.
  * 
+ * @param {Object} [params]
+ * @param {string} [params.search]
+ * @param {string} [params.fromDate]
+ * @param {string} [params.toDate]
+ * @param {number|string} [params.cartridgeId]
+ * @param {string} [params.colour]
+ * @param {string} [params.printerId]
+ * @param {string} [params.beneficiaryEmployeeNo]
+ * @param {string} [params.department]
+ * @param {string} [params.status]
+ * @param {number} [params.page]
+ * @param {number} [params.size]
+ * @param {string} [params.sortBy]
+ * @param {string} [params.sortDir]
+ * @returns {Promise<{ success: boolean, data?: Object|Array, message?: string, status?: number }>}
+ */
+export const getUserUsageHistory = async (params = {}) => {
+  try {
+    const queryParams = new URLSearchParams();
+    if (params.search && params.search.trim()) queryParams.append('search', params.search.trim());
+    if (params.fromDate) queryParams.append('fromDate', params.fromDate);
+    if (params.toDate) queryParams.append('toDate', params.toDate);
+    if (params.cartridgeId && params.cartridgeId !== 'All Cartridges') queryParams.append('cartridgeId', params.cartridgeId);
+    if (params.colour && params.colour !== 'All Colours') queryParams.append('colour', params.colour);
+    if (params.printerId && params.printerId !== 'All Printers') queryParams.append('printerId', params.printerId);
+    if (params.beneficiaryEmployeeNo && params.beneficiaryEmployeeNo !== 'All Employees') queryParams.append('beneficiaryEmployeeNo', params.beneficiaryEmployeeNo);
+    if (params.department && params.department !== 'All Departments') queryParams.append('department', params.department);
+    if (params.status && params.status !== 'All Statuses') queryParams.append('status', params.status);
+    if (params.page !== undefined && params.page !== null) queryParams.append('page', params.page);
+    if (params.size !== undefined && params.size !== null) queryParams.append('size', params.size);
+    if (params.sortBy) queryParams.append('sortBy', params.sortBy);
+    if (params.sortDir) queryParams.append('sortDir', params.sortDir);
+
+    const queryString = queryParams.toString();
+    const url = queryString
+      ? `${API_BASE_URL}/api/user/asset-usage/paged?${queryString}`
+      : `${API_BASE_URL}/api/user/asset-usage`;
+
+    const response = await fetch(url, {
+      method: 'GET',
+      headers: getAuthHeaders()
+    });
+
+    let data = null;
+    try {
+      data = await response.json();
+    } catch {
+      data = null;
+    }
+
+    if (response.ok) {
+      return { success: true, data, status: response.status };
+    }
+
+    const errorMsg = data?.message || data?.error || `Server error (${response.status})`;
+    return { success: false, message: errorMsg, status: response.status };
+  } catch (err) {
+    return {
+      success: false,
+      message: 'Unable to connect to backend server. Please verify Spring Boot is running.'
+    };
+  }
+};
+
+/**
+ * Fetch summary metrics for the authenticated engineer's asset usage history.
+ * 
+ * @returns {Promise<{ success: boolean, data?: { totalRecords: number, totalQuantityUsed: number, thisMonthCount: number, lastUsageDate: string }, message?: string, status?: number }>}
+ */
+export const getUserUsageSummary = async () => {
+  try {
+    const response = await fetch(`${API_BASE_URL}/api/user/asset-usage/summary`, {
+      method: 'GET',
+      headers: getAuthHeaders()
+    });
+
+    let data = null;
+    try {
+      data = await response.json();
+    } catch {
+      data = null;
+    }
+
+    if (response.ok) {
+      return { success: true, data, status: response.status };
+    }
+
+    const errorMsg = data?.message || data?.error || `Server error (${response.status})`;
+    return { success: false, message: errorMsg, status: response.status };
+  } catch (err) {
+    return {
+      success: false,
+      message: 'Unable to connect to backend server. Please verify Spring Boot is running.'
+    };
+  }
+};
+
+/**
+ * Fetch a single usage record by ID for the authenticated engineer.
+ * 
+ * @param {number|string} id
+ * @returns {Promise<{ success: boolean, data?: Object, message?: string, status?: number }>}
+ */
+export const getUserUsageById = async (id) => {
+  try {
+    const response = await fetch(`${API_BASE_URL}/api/user/asset-usage/${id}`, {
+      method: 'GET',
+      headers: getAuthHeaders()
+    });
+
+    let data = null;
+    try {
+      data = await response.json();
+    } catch {
+      data = null;
+    }
+
+    if (response.ok) {
+      return { success: true, data, status: response.status };
+    }
+
+    const errorMsg = data?.message || data?.error || `Server error (${response.status})`;
+    return { success: false, message: errorMsg, status: response.status };
+  } catch (err) {
+    return {
+      success: false,
+      message: 'Unable to connect to backend server. Please verify Spring Boot is running.'
+    };
+  }
+};
+
+/**
+ * Search beneficiary employees from real company database.
+ * 
+ * @param {string} [query]
  * @returns {Promise<{ success: boolean, data?: Array, message?: string, status?: number }>}
  */
-export const getUserUsageHistory = async () => {
+export const searchBeneficiaries = async (query = '') => {
   try {
-    const response = await fetch(`${API_BASE_URL}/api/user/asset-usage`, {
+    const url = query
+      ? `${API_BASE_URL}/api/user/asset-usage/beneficiaries/search?query=${encodeURIComponent(query)}`
+      : `${API_BASE_URL}/api/user/asset-usage/beneficiaries/search`;
+
+    const response = await fetch(url, {
       method: 'GET',
       headers: getAuthHeaders()
     });
@@ -108,14 +252,13 @@ export const getUserUsageHistory = async () => {
 };
 
 /**
- * Fetch a single usage record by ID for the authenticated user.
+ * Fetch all usage records across enterprise for Admin Audit & History.
  * 
- * @param {number|string} id
- * @returns {Promise<{ success: boolean, data?: Object, message?: string, status?: number }>}
+ * @returns {Promise<{ success: boolean, data?: Array, message?: string, status?: number }>}
  */
-export const getUserUsageById = async (id) => {
+export const getAllUsageForAdmin = async () => {
   try {
-    const response = await fetch(`${API_BASE_URL}/api/user/asset-usage/${id}`, {
+    const response = await fetch(`${API_BASE_URL}/api/user/asset-usage/admin/all`, {
       method: 'GET',
       headers: getAuthHeaders()
     });
@@ -128,7 +271,7 @@ export const getUserUsageById = async (id) => {
     }
 
     if (response.ok) {
-      return { success: true, data, status: response.status };
+      return { success: true, data: Array.isArray(data) ? data : [], status: response.status };
     }
 
     const errorMsg = data?.message || data?.error || `Server error (${response.status})`;

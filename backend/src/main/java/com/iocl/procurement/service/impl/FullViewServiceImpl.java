@@ -5,6 +5,7 @@ import com.iocl.procurement.dto.response.FullViewRecordResponse;
 import com.iocl.procurement.entity.Cartridge;
 import com.iocl.procurement.entity.RateContract;
 import com.iocl.procurement.exception.ResourceNotFoundException;
+import com.iocl.procurement.repository.AssetUsageRepository;
 import com.iocl.procurement.repository.RateContractRepository;
 import com.iocl.procurement.service.FullViewService;
 import jakarta.persistence.criteria.Join;
@@ -26,9 +27,14 @@ import java.util.stream.Collectors;
 public class FullViewServiceImpl implements FullViewService {
 
     private final RateContractRepository rateContractRepository;
+    private final AssetUsageRepository assetUsageRepository;
 
-    public FullViewServiceImpl(RateContractRepository rateContractRepository) {
+    public FullViewServiceImpl(
+            RateContractRepository rateContractRepository,
+            AssetUsageRepository assetUsageRepository
+    ) {
         this.rateContractRepository = rateContractRepository;
+        this.assetUsageRepository = assetUsageRepository;
     }
 
     @Override
@@ -139,16 +145,18 @@ public class FullViewServiceImpl implements FullViewService {
         res.setDate(rc.getContractDate());
         res.setSupplierName(rc.getSupplierName());
 
+        Long cartridgeId = null;
         if (rc.getCartridge() != null) {
+            cartridgeId = rc.getCartridge().getId();
             res.setPrinterName(rc.getCartridge().getPrinterName());
             res.setCartridgeName(rc.getCartridge().getCartridgeName());
             res.setCartridgePartNumber(rc.getCartridge().getPartNumber());
         }
 
         int total = rc.getTotalContractQuantity() != null ? rc.getTotalContractQuantity() : 0;
-        int executed = rc.getQuantityAlreadyExecuted() != null ? rc.getQuantityAlreadyExecuted() : 0;
         int takenWO = rc.getQuantityTakenThroughWO() != null ? rc.getQuantityTakenThroughWO() : 0;
-        int available = rc.getNetAvailableQuantity() != null ? rc.getNetAvailableQuantity() : (total - executed - takenWO);
+        int executed = (cartridgeId != null) ? assetUsageRepository.getTotalQuantityUsedByCartridgeId(cartridgeId).intValue() : 0;
+        int available = Math.max(0, total - takenWO);
 
         res.setContractQuantity(total);
         res.setExecutedQuantity(executed);
@@ -156,12 +164,12 @@ public class FullViewServiceImpl implements FullViewService {
         res.setNetAvailableQuantity(available);
         res.setRatePerUnit(rc.getRatePerUnit());
         res.setTax(rc.getTaxPercentage());
-        res.setStatus(calculateStatus(total, executed, takenWO, available));
+        res.setStatus(calculateStatus(total, takenWO, available));
 
         return res;
     }
 
-    private String calculateStatus(int total, int executed, int takenWO, int available) {
+    private String calculateStatus(int total, int takenWO, int available) {
         if (available <= 0) {
             return "COMPLETED";
         }
@@ -169,7 +177,7 @@ public class FullViewServiceImpl implements FullViewService {
         if (available <= lowThreshold) {
             return "LOW_AVAILABILITY";
         }
-        if (executed > 0 || takenWO > 0) {
+        if (takenWO > 0) {
             return "PARTIALLY_USED";
         }
         return "ACTIVE";

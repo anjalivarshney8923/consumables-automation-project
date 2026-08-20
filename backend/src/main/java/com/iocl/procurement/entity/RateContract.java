@@ -71,9 +71,8 @@ public class RateContract {
 
     public void recalculateNetAvailableQuantity() {
         int total = this.totalContractQuantity != null ? this.totalContractQuantity : 0;
-        int executed = this.quantityAlreadyExecuted != null ? this.quantityAlreadyExecuted : 0;
         int takenWO = this.quantityTakenThroughWO != null ? this.quantityTakenThroughWO : 0;
-        this.netAvailableQuantity = total - executed - takenWO;
+        this.netAvailableQuantity = total - takenWO;
     }
 
     // Getters and Setters

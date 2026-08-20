@@ -19,10 +19,9 @@ import java.sql.Statement;
  * initializes EntityManagerFactory.
  *
  * This guarantees:
- * 1. New columns (store_quantity, tendering_threshold, severity) are safely created with defaults.
+ * 1. New columns (store_quantity, tendering_threshold, severity, beneficiary and recorded_by columns) are safely created.
  * 2. Existing populated rows are safely backfilled without NULL violations.
- * 3. NOT NULL constraints are only applied after data is guaranteed valid.
- * 4. Zero existing data is dropped, truncated, or lost.
+ * 3. Zero existing data is dropped, truncated, or lost.
  */
 @Component
 public class DatabaseMigrationPostProcessor implements BeanPostProcessor, PriorityOrdered {
@@ -86,9 +85,9 @@ public class DatabaseMigrationPostProcessor implements BeanPostProcessor, Priori
             logger.info(">>> Step 2: Migrating 'cartridge_thresholds' table for 'tendering_threshold'...");
             try {
                 st.execute("ALTER TABLE cartridge_thresholds ADD COLUMN IF NOT EXISTS tendering_threshold INTEGER DEFAULT 10;");
-                
+
                 // Populate business-reasonable tendering thresholds for known IOCL cartridges
-                String backfillTenderingSql = 
+                String backfillTenderingSql =
                         "UPDATE cartridge_thresholds SET tendering_threshold = CASE " +
                         "  WHEN cartridge_id IN (SELECT id FROM cartridges WHERE UPPER(part_number) = '070-BLK') THEN 25 " +
                         "  WHEN cartridge_id IN (SELECT id FROM cartridges WHERE UPPER(part_number) = '069-BLK') THEN 15 " +
@@ -143,7 +142,6 @@ public class DatabaseMigrationPostProcessor implements BeanPostProcessor, Priori
                 logger.info(">>> Updating check constraints on procurement_alerts table to allow TENDERING_REQUIRED and URGENT...");
                 if (dbProductName != null && dbProductName.toLowerCase().contains("postgres")) {
                     try {
-                        // Dynamically drop all check constraints mentioning alert_type
                         st.execute(
                             "DO $$ " +
                             "DECLARE r RECORD; " +
@@ -159,15 +157,12 @@ public class DatabaseMigrationPostProcessor implements BeanPostProcessor, Priori
                             "  END LOOP; " +
                             "END $$;"
                         );
-                        // Re-create constraint allowing both PROCUREMENT_THRESHOLD and TENDERING_REQUIRED
                         st.execute("ALTER TABLE procurement_alerts ADD CONSTRAINT procurement_alerts_alert_type_check CHECK (alert_type IN ('PROCUREMENT_THRESHOLD', 'TENDERING_REQUIRED'));");
-                        logger.info(">>> Successfully updated PostgreSQL constraint: procurement_alerts_alert_type_check");
                     } catch (Exception e) {
                         logger.warn("Notice updating PostgreSQL alert_type check constraint: {}", e.getMessage());
                     }
 
                     try {
-                        // Dynamically drop all check constraints mentioning severity
                         st.execute(
                             "DO $$ " +
                             "DECLARE r RECORD; " +
@@ -183,25 +178,9 @@ public class DatabaseMigrationPostProcessor implements BeanPostProcessor, Priori
                             "  END LOOP; " +
                             "END $$;"
                         );
-                        // Re-create constraint allowing both NORMAL and URGENT
                         st.execute("ALTER TABLE procurement_alerts ADD CONSTRAINT procurement_alerts_severity_check CHECK (severity IN ('NORMAL', 'URGENT'));");
-                        logger.info(">>> Successfully updated PostgreSQL constraint: procurement_alerts_severity_check");
                     } catch (Exception e) {
                         logger.warn("Notice updating PostgreSQL severity check constraint: {}", e.getMessage());
-                    }
-                } else {
-                    // Generic / H2 fallback
-                    try {
-                        st.execute("ALTER TABLE procurement_alerts DROP CONSTRAINT IF EXISTS procurement_alerts_alert_type_check;");
-                        st.execute("ALTER TABLE procurement_alerts ADD CONSTRAINT procurement_alerts_alert_type_check CHECK (alert_type IN ('PROCUREMENT_THRESHOLD', 'TENDERING_REQUIRED'));");
-                    } catch (Exception e) {
-                        logger.debug("Notice for fallback alert_type check constraint: {}", e.getMessage());
-                    }
-                    try {
-                        st.execute("ALTER TABLE procurement_alerts DROP CONSTRAINT IF EXISTS procurement_alerts_severity_check;");
-                        st.execute("ALTER TABLE procurement_alerts ADD CONSTRAINT procurement_alerts_severity_check CHECK (severity IN ('NORMAL', 'URGENT'));");
-                    } catch (Exception e) {
-                        logger.debug("Notice for fallback severity check constraint: {}", e.getMessage());
                     }
                 }
             } catch (Exception e) {
@@ -209,30 +188,42 @@ public class DatabaseMigrationPostProcessor implements BeanPostProcessor, Priori
             }
 
             // ===================================================================
-            // 4. VERIFY MIGRATION COMPLETENESS
+            // 4. ASSET_USAGES TABLE: recorded_by and beneficiary columns
             // ===================================================================
-            logger.info(">>> Step 4: Verifying database consistency and zero NULLs...");
-            
-            try (ResultSet rs = st.executeQuery("SELECT COUNT(*) FROM cartridges WHERE store_quantity IS NULL;")) {
-                if (rs.next()) {
-                    int nullStoreQty = rs.getInt(1);
-                    logger.info(">>> cartridges with NULL store_quantity: {}", nullStoreQty);
-                }
-            } catch (Exception ignored) {}
+            logger.info(">>> Step 4: Migrating 'asset_usages' table for recorded_by and beneficiary columns...");
+            try {
+                st.execute("ALTER TABLE asset_usages ADD COLUMN IF NOT EXISTS recorded_by_employee_no VARCHAR(50);");
+                st.execute("ALTER TABLE asset_usages ADD COLUMN IF NOT EXISTS recorded_by_employee_name VARCHAR(100);");
+                st.execute("ALTER TABLE asset_usages ADD COLUMN IF NOT EXISTS beneficiary_employee_no VARCHAR(50);");
+                st.execute("ALTER TABLE asset_usages ADD COLUMN IF NOT EXISTS beneficiary_employee_name VARCHAR(100);");
+                st.execute("ALTER TABLE asset_usages ADD COLUMN IF NOT EXISTS beneficiary_department VARCHAR(100);");
+                st.execute("ALTER TABLE asset_usages ADD COLUMN IF NOT EXISTS beneficiary_seat_or_cabin_no VARCHAR(100);");
+                st.execute("ALTER TABLE asset_usages ADD COLUMN IF NOT EXISTS beneficiary_location VARCHAR(100);");
+                st.execute("ALTER TABLE asset_usages ADD COLUMN IF NOT EXISTS beneficiary_email VARCHAR(255);");
 
-            try (ResultSet rs = st.executeQuery("SELECT COUNT(*) FROM cartridge_thresholds WHERE tendering_threshold IS NULL;")) {
-                if (rs.next()) {
-                    int nullTender = rs.getInt(1);
-                    logger.info(">>> cartridge_thresholds with NULL tendering_threshold: {}", nullTender);
-                }
-            } catch (Exception ignored) {}
+                // Backfill beneficiary columns from existing legacy columns if present
+                st.execute("UPDATE asset_usages SET beneficiary_employee_no = employee_id WHERE beneficiary_employee_no IS NULL AND employee_id IS NOT NULL;");
+                st.execute("UPDATE asset_usages SET beneficiary_employee_name = employee_name WHERE beneficiary_employee_name IS NULL AND employee_name IS NOT NULL;");
+                st.execute("UPDATE asset_usages SET beneficiary_department = department WHERE beneficiary_department IS NULL AND department IS NOT NULL;");
+                st.execute("UPDATE asset_usages SET beneficiary_seat_or_cabin_no = seat_or_cabin_no WHERE beneficiary_seat_or_cabin_no IS NULL AND seat_or_cabin_no IS NOT NULL;");
+                st.execute("UPDATE asset_usages SET beneficiary_location = location WHERE beneficiary_location IS NULL AND location IS NOT NULL;");
 
-            try (ResultSet rs = st.executeQuery("SELECT COUNT(*) FROM procurement_alerts WHERE severity IS NULL;")) {
-                if (rs.next()) {
-                    int nullSeverity = rs.getInt(1);
-                    logger.info(">>> procurement_alerts with NULL severity: {}", nullSeverity);
+                // Backfill recorded_by and beneficiary_email from user table if available
+                if (dbProductName != null && dbProductName.toLowerCase().contains("postgres")) {
+                    st.execute("UPDATE asset_usages au SET recorded_by_employee_no = u.employee_id, recorded_by_employee_name = u.full_name FROM users u WHERE au.user_id = u.id AND (au.recorded_by_employee_no IS NULL OR au.recorded_by_employee_name IS NULL);");
+                    st.execute("UPDATE asset_usages au SET beneficiary_email = u.email FROM users u WHERE UPPER(au.beneficiary_employee_no) = UPPER(u.employee_id) AND au.beneficiary_email IS NULL;");
                 }
-            } catch (Exception ignored) {}
+
+                // Create indexes for high performance querying
+                st.execute("CREATE INDEX IF NOT EXISTS idx_asset_usage_user_id ON asset_usages(user_id);");
+                st.execute("CREATE INDEX IF NOT EXISTS idx_asset_usage_date ON asset_usages(usage_date);");
+                st.execute("CREATE INDEX IF NOT EXISTS idx_asset_usage_beneficiary_emp_no ON asset_usages(beneficiary_employee_no);");
+                st.execute("CREATE INDEX IF NOT EXISTS idx_asset_usage_cartridge_id ON asset_usages(cartridge_id);");
+                st.execute("CREATE INDEX IF NOT EXISTS idx_asset_usage_asset_id ON asset_usages(asset_id);");
+                st.execute("CREATE INDEX IF NOT EXISTS idx_asset_usage_dept ON asset_usages(beneficiary_department);");
+            } catch (Exception e) {
+                logger.warn("Notice during asset_usages migration: {}", e.getMessage());
+            }
 
             logger.info(">>> Safe database schema migration completed successfully! <<<");
 

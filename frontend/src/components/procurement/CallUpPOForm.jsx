@@ -154,8 +154,8 @@ export const CallUpPOForm = ({ onEntryAdded }) => {
     if (res.success && res.data) {
       const created = res.data;
       setSuccessMessage({
-        title: 'Call-Up PO Created & Quantity Updated',
-        details: `Work Order ${created.poNumber} saved. Remaining available contract quantity: ${created.remainingAvailableQuantity}.`
+        title: 'Call-Up PO Created & Quantities Updated',
+        details: `Work Order ${created.poNumber} saved. Rate Contract remaining: ${created.remainingAvailableQuantity} units. Store inventory increased by ${created.quantity} units.`
       });
 
       // Clear form inputs
@@ -169,6 +169,13 @@ export const CallUpPOForm = ({ onEntryAdded }) => {
         remarks: ''
       });
       setSelectedContract(null);
+
+      // Refresh master Rate Contracts list from PostgreSQL
+      getRateContracts().then((rcRes) => {
+        if (rcRes.success && rcRes.data) {
+          setRateContracts(rcRes.data);
+        }
+      });
 
       // Notify parent to refresh real register table from PostgreSQL
       if (onEntryAdded) {

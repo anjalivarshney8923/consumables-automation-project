@@ -35,4 +35,12 @@ public interface EmailNotificationService {
      * @param items list of items with Net Available < PO Threshold
      */
     void sendDailyPOThresholdReportEmail(List<DailyPOThresholdReportItem> items);
+
+    /**
+     * Sends a transactional email notification to the beneficiary employee when cartridge usage is recorded.
+     *
+     * @param usage the persisted AssetUsage entity record
+     * @return true if email was sent successfully, false otherwise
+     */
+    boolean sendBeneficiaryUsageNotificationEmail(com.iocl.procurement.entity.AssetUsage usage);
 }

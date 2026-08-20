@@ -16,12 +16,15 @@ import {
   ShieldCheck,
   Inbox,
   Loader2,
-  RefreshCw
+  RefreshCw,
+  Search,
+  Building,
+  UserCheck
 } from 'lucide-react';
 import { useAuth } from '../../context/AuthContext';
 import { getAssets } from '../../services/assetService';
 import { getActiveCartridges } from '../../services/cartridgeService';
-import { recordAssetUsage, getUserUsageHistory } from '../../services/assetUsageService';
+import { recordAssetUsage, getUserUsageHistory, searchBeneficiaries } from '../../services/assetUsageService';
 
 // Standard Department Master Options
 const DEPARTMENT_OPTIONS = [
@@ -33,6 +36,7 @@ const DEPARTMENT_OPTIONS = [
   'Finance',
   'Stores',
   'Engineering',
+  'Human Resources',
   'Other'
 ];
 
@@ -64,17 +68,30 @@ export const AssetUsage = () => {
   const [isLoadingMasterData, setIsLoadingMasterData] = useState(true);
   const [masterDataError, setMasterDataError] = useState(null);
 
+  // Beneficiary Employee Search & Master Selection State
+  const [beneficiarySearchQuery, setBeneficiarySearchQuery] = useState('');
+  const [beneficiarySearchResults, setBeneficiarySearchResults] = useState([]);
+  const [isSearchingBeneficiary, setIsSearchingBeneficiary] = useState(false);
+  const [showBeneficiaryDropdown, setShowBeneficiaryDropdown] = useState(false);
+  const [selectedMasterEmployee, setSelectedMasterEmployee] = useState(null);
+
   // Form State
   const [formData, setFormData] = useState({
-    employeeNo: '',
-    employeeName: '',
-    department: '',
-    seatOrCabinNo: '',
-    location: '',
+    // Section 2: Beneficiary Details
+    beneficiaryEmployeeNo: '',
+    beneficiaryEmployeeName: '',
+    beneficiaryDepartment: '',
+    beneficiarySeatOrCabinNo: '',
+    beneficiaryLocation: 'Head Office',
+    beneficiaryEmail: '',
+
+    // Section 3: Asset & Cartridge Selection
     printerId: '',
     printerType: 'Black & White',
     cartridgeId: '',
     colour: '',
+
+    // Section 4: Usage Details
     quantityUsed: '1',
     usageDate: new Date().toISOString().split('T')[0],
     remarks: '',
@@ -91,24 +108,21 @@ export const AssetUsage = () => {
   const [recentUsages, setRecentUsages] = useState([]);
   const [isLoadingHistory, setIsLoadingHistory] = useState(false);
 
-  // Load Real Assets, Cartridges, and User Usage History on Mount
+  // Load Real Assets, Cartridges, and User Usage History on Mount and on Window Focus
   useEffect(() => {
     fetchMasterData();
     fetchUserUsageHistory();
-  }, []);
 
-  // Pre-fill user profile info from AuthContext
-  useEffect(() => {
-    if (user) {
-      setFormData((prev) => ({
-        ...prev,
-        employeeNo: user.employeeId || user.employeeNo || user.username || '',
-        employeeName: user.fullName || user.name || '',
-        department: prev.department || (DEPARTMENT_OPTIONS.includes(user.department) ? user.department : (user.department || '')),
-        location: prev.location || (LOCATION_OPTIONS.includes(user.location) ? user.location : (user.location || ''))
-      }));
-    }
-  }, [user]);
+    // Auto-refresh stock on window focus so admin PO updates are immediately seen
+    const handleFocus = () => {
+      fetchMasterData();
+    };
+
+    window.addEventListener('focus', handleFocus);
+    return () => {
+      window.removeEventListener('focus', handleFocus);
+    };
+  }, []);
 
   const fetchMasterData = async () => {
     setIsLoadingMasterData(true);
@@ -129,9 +143,12 @@ export const AssetUsage = () => {
         setCartridges(cartRes.data);
       } else {
         setCartridges([]);
+        if (!cartRes.success) {
+          setMasterDataError(cartRes.message || 'Unable to load current store inventory.');
+        }
       }
     } catch (err) {
-      setMasterDataError('Failed to load master assets and cartridge catalog.');
+      setMasterDataError('Unable to connect to backend server for inventory data.');
     } finally {
       setIsLoadingMasterData(false);
     }
@@ -153,12 +170,81 @@ export const AssetUsage = () => {
     }
   };
 
+  // Search Beneficiary Employees from Backend
+  const handleSearchBeneficiaries = async (query) => {
+    setBeneficiarySearchQuery(query);
+    if (!query || query.trim().length < 1) {
+      setBeneficiarySearchResults([]);
+      setShowBeneficiaryDropdown(false);
+      return;
+    }
+
+    setIsSearchingBeneficiary(true);
+    try {
+      const res = await searchBeneficiaries(query);
+      if (res.success && Array.isArray(res.data)) {
+        setBeneficiarySearchResults(res.data);
+        setShowBeneficiaryDropdown(true);
+      } else {
+        setBeneficiarySearchResults([]);
+        setShowBeneficiaryDropdown(true);
+      }
+    } catch {
+      setBeneficiarySearchResults([]);
+    } finally {
+      setIsSearchingBeneficiary(false);
+    }
+  };
+
+  // Select a beneficiary from employee directory (Option 1)
+  const handleSelectBeneficiary = (emp) => {
+    setSelectedMasterEmployee(emp);
+    setFormData((prev) => ({
+      ...prev,
+      beneficiaryEmployeeNo: emp.employeeNo || '',
+      beneficiaryEmployeeName: emp.employeeName || '',
+      beneficiaryDepartment: emp.department || prev.beneficiaryDepartment || 'Operations',
+      beneficiaryLocation: emp.location || prev.beneficiaryLocation || 'Head Office',
+      beneficiaryEmail: emp.email || prev.beneficiaryEmail || ''
+    }));
+
+    setBeneficiarySearchQuery('');
+    setShowBeneficiaryDropdown(false);
+
+    // Clear validation errors for beneficiary fields
+    setErrors((prev) => {
+      const next = { ...prev };
+      delete next.beneficiaryEmployeeNo;
+      delete next.beneficiaryEmployeeName;
+      delete next.beneficiaryDepartment;
+      delete next.beneficiaryLocation;
+      delete next.beneficiaryEmail;
+      return next;
+    });
+  };
+
+  // Clear selected beneficiary / Switch to manual entry (Option 2)
+  const handleClearBeneficiarySelection = () => {
+    setSelectedMasterEmployee(null);
+    setFormData((prev) => ({
+      ...prev,
+      beneficiaryEmployeeNo: '',
+      beneficiaryEmployeeName: '',
+      beneficiaryDepartment: '',
+      beneficiarySeatOrCabinNo: '',
+      beneficiaryLocation: 'Head Office',
+      beneficiaryEmail: ''
+    }));
+    setBeneficiarySearchQuery('');
+    setShowBeneficiaryDropdown(false);
+  };
+
   // Handle Input Changes with Automatic Printer Type & Colour Rules
   const handleInputChange = (field, value) => {
     setFormData((prev) => {
       const updated = { ...prev, [field]: value };
 
-      // When user selects a printer, auto-detect printer type from backend asset record
+      // When engineer selects a printer, auto-detect printer type and compatible cartridge
       if (field === 'printerId') {
         const selectedAsset = printers.find((p) => String(p.id) === String(value));
         if (selectedAsset) {
@@ -169,8 +255,12 @@ export const AssetUsage = () => {
             updated.colour = '';
           }
 
-          // If asset has a compatible cartridge, auto-suggest if available in cartridge list
-          if (selectedAsset.compatibleCartridge && !prev.cartridgeId) {
+          // If asset has an associated cartridge ID, auto-select it
+          if (selectedAsset.cartridgeId) {
+            updated.cartridgeId = String(selectedAsset.cartridgeId);
+          } else if (selectedAsset.cartridge?.id) {
+            updated.cartridgeId = String(selectedAsset.cartridge.id);
+          } else if (selectedAsset.compatibleCartridge) {
             const matchedCart = cartridges.find(
               (c) => c.partNumber?.toLowerCase() === selectedAsset.compatibleCartridge?.toLowerCase()
             );
@@ -181,7 +271,7 @@ export const AssetUsage = () => {
         }
       }
 
-      // If user toggles printer type to Black & White, clear colour
+      // If engineer toggles printer type to Black & White, clear colour
       if (field === 'printerType' && value === 'Black & White') {
         updated.colour = '';
       }
@@ -214,14 +304,34 @@ export const AssetUsage = () => {
   const validateForm = () => {
     const newErrors = {};
 
-    if (!formData.seatOrCabinNo || !formData.seatOrCabinNo.trim()) {
-      newErrors.seatOrCabinNo = 'Seat or cabin number is required.';
+    // Beneficiary Validations
+    if (!formData.beneficiaryEmployeeNo || !formData.beneficiaryEmployeeNo.trim()) {
+      newErrors.beneficiaryEmployeeNo = 'Beneficiary Employee No. is required.';
     }
 
-    if (!formData.location || !formData.location.trim()) {
-      newErrors.location = 'Please select a location.';
+    if (!formData.beneficiaryEmployeeName || !formData.beneficiaryEmployeeName.trim()) {
+      newErrors.beneficiaryEmployeeName = 'Beneficiary Employee Name is required.';
     }
 
+    if (!formData.beneficiaryDepartment || !formData.beneficiaryDepartment.trim()) {
+      newErrors.beneficiaryDepartment = 'Please select a beneficiary department.';
+    }
+
+    if (!formData.beneficiarySeatOrCabinNo || !formData.beneficiarySeatOrCabinNo.trim()) {
+      newErrors.beneficiarySeatOrCabinNo = 'Seat or cabin number is required.';
+    }
+
+    if (!formData.beneficiaryLocation || !formData.beneficiaryLocation.trim()) {
+      newErrors.beneficiaryLocation = 'Please select an office/location.';
+    }
+
+    if (!formData.beneficiaryEmail || !formData.beneficiaryEmail.trim()) {
+      newErrors.beneficiaryEmail = 'Beneficiary email is required.';
+    } else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(formData.beneficiaryEmail.trim())) {
+      newErrors.beneficiaryEmail = 'Please enter a valid beneficiary email address.';
+    }
+
+    // Asset & Cartridge Validations
     if (!formData.printerId || !formData.printerId.trim()) {
       newErrors.printerId = 'Please select an assigned printer.';
     }
@@ -236,6 +346,7 @@ export const AssetUsage = () => {
       }
     }
 
+    // Usage Details Validations
     if (!formData.quantityUsed || formData.quantityUsed.toString().trim() === '') {
       newErrors.quantityUsed = 'Quantity used is required.';
     } else {
@@ -244,6 +355,14 @@ export const AssetUsage = () => {
         newErrors.quantityUsed = 'Quantity used must be a positive whole number.';
       } else if (num > 1000) {
         newErrors.quantityUsed = 'Quantity used cannot exceed 1000 units.';
+      } else if (formData.cartridgeId) {
+        const selectedCart = cartridges.find((c) => c.id?.toString() === formData.cartridgeId.toString() || c.partNumber === formData.cartridgeId);
+        if (selectedCart && selectedCart.storeQuantity !== undefined) {
+          const availableStock = Number(selectedCart.storeQuantity) || 0;
+          if (num > availableStock) {
+            newErrors.quantityUsed = `Insufficient store stock. Available quantity: ${availableStock}.`;
+          }
+        }
       }
     }
 
@@ -286,8 +405,12 @@ export const AssetUsage = () => {
     setIsSubmitting(true);
 
     const payload = {
-      seatOrCabinNo: formData.seatOrCabinNo.trim(),
-      location: formData.location.trim(),
+      beneficiaryEmployeeNo: formData.beneficiaryEmployeeNo.trim(),
+      beneficiaryEmployeeName: formData.beneficiaryEmployeeName.trim(),
+      beneficiaryDepartment: formData.beneficiaryDepartment.trim(),
+      beneficiarySeatOrCabinNo: formData.beneficiarySeatOrCabinNo.trim(),
+      beneficiaryLocation: formData.beneficiaryLocation.trim(),
+      beneficiaryEmail: formData.beneficiaryEmail.trim(),
       printerId: formData.printerId.trim(),
       printerType: formData.printerType,
       cartridgeId: formData.cartridgeId.trim(),
@@ -295,8 +418,7 @@ export const AssetUsage = () => {
       quantityUsed: parseInt(formData.quantityUsed, 10),
       usageDate: formData.usageDate,
       remarks: formData.remarks?.trim() || null,
-      workOrderReference: formData.workOrderReference?.trim() || null,
-      department: formData.department?.trim() || null
+      workOrderReference: formData.workOrderReference?.trim() || null
     };
 
     try {
@@ -308,10 +430,14 @@ export const AssetUsage = () => {
           data: result.data
         });
 
-        // Reset transaction-specific fields while preserving user identity
-        setFormData((prev) => ({
-          ...prev,
-          seatOrCabinNo: '',
+        // Reset transaction-specific and beneficiary fields
+        setFormData({
+          beneficiaryEmployeeNo: '',
+          beneficiaryEmployeeName: '',
+          beneficiaryDepartment: '',
+          beneficiarySeatOrCabinNo: '',
+          beneficiaryLocation: 'Head Office',
+          beneficiaryEmail: '',
           printerId: '',
           printerType: 'Black & White',
           cartridgeId: '',
@@ -320,11 +446,12 @@ export const AssetUsage = () => {
           usageDate: new Date().toISOString().split('T')[0],
           remarks: '',
           workOrderReference: ''
-        }));
+        });
         setErrors({});
 
-        // Refresh usage history from PostgreSQL
+        // Refresh usage history and master data from PostgreSQL
         fetchUserUsageHistory();
+        fetchMasterData();
         window.scrollTo({ top: 0, behavior: 'smooth' });
       } else {
         setSubmitError(result.message || 'Unable to record asset usage. Please try again.');
@@ -339,11 +466,12 @@ export const AssetUsage = () => {
   // Reset Handler
   const handleReset = () => {
     setFormData({
-      employeeNo: user?.employeeId || user?.employeeNo || user?.username || '',
-      employeeName: user?.fullName || user?.name || '',
-      department: DEPARTMENT_OPTIONS.includes(user?.department) ? user.department : (user?.department || ''),
-      seatOrCabinNo: '',
-      location: LOCATION_OPTIONS.includes(user?.location) ? user.location : (user?.location || ''),
+      beneficiaryEmployeeNo: '',
+      beneficiaryEmployeeName: '',
+      beneficiaryDepartment: '',
+      beneficiarySeatOrCabinNo: '',
+      beneficiaryLocation: 'Head Office',
+      beneficiaryEmail: '',
       printerId: '',
       printerType: 'Black & White',
       cartridgeId: '',
@@ -357,6 +485,9 @@ export const AssetUsage = () => {
     setSubmitSuccess(null);
     setSubmitError(null);
   };
+
+  const engineerName = user?.fullName || user?.name || user?.username || 'Authenticated Engineer';
+  const engineerEmpNo = user?.employeeId || user?.employeeNo || user?.username || 'ENG-USER';
 
   return (
     <div className="dashboard-container">
@@ -377,14 +508,14 @@ export const AssetUsage = () => {
                 letterSpacing: '0.04em'
               }}
             >
-              USER PORTAL
+              TECHNICAL / ENGINEER PORTAL
             </span>
           </div>
           <p className="page-subtitle-text" style={{ fontSize: '0.9375rem', fontWeight: '600', color: 'var(--iocl-navy)' }}>
-            Record Cartridge / Consumable Usage
+            Record Consumable Usage for Employee / Cabin
           </p>
           <p style={{ fontSize: '0.8125rem', color: '#64748B', margin: '0.25rem 0 0' }}>
-            Submit real consumable consumption records to update the central inventory and procurement register.
+            Submit real consumable consumption records to update central inventory, Rate Contract execution, and the Procurement Register.
           </p>
         </div>
 
@@ -404,7 +535,7 @@ export const AssetUsage = () => {
             }}
           >
             <ShieldCheck size={16} color="var(--iocl-saffron)" />
-            <span>Authenticated Consumption Tracking</span>
+            <span>Authenticated Engineer Tracking</span>
           </div>
         </div>
       </header>
@@ -443,11 +574,22 @@ export const AssetUsage = () => {
                 {submitSuccess.message}
               </h3>
               <p style={{ fontSize: '0.8125rem', color: '#15803D', marginTop: '0.25rem', marginBottom: '0.75rem' }}>
-                Usage record has been persisted in PostgreSQL and central quantities have been updated.
+                Usage record has been persisted in PostgreSQL and Store Inventory quantity has been deducted.
               </p>
 
               {/* Transaction Summary Chips */}
               <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.5rem' }}>
+                <span style={{ fontSize: '0.75rem', fontWeight: '600', backgroundColor: '#FFFFFF', color: '#1E293B', padding: '0.25rem 0.625rem', borderRadius: '6px', border: '1px solid #DCFCE7' }}>
+                  <strong>Recorded By:</strong> {submitSuccess.data.recordedByEmployeeName || engineerName} ({submitSuccess.data.recordedByEmployeeNo || engineerEmpNo})
+                </span>
+                <span style={{ fontSize: '0.75rem', fontWeight: '600', backgroundColor: '#FFFFFF', color: '#1E293B', padding: '0.25rem 0.625rem', borderRadius: '6px', border: '1px solid #DCFCE7' }}>
+                  <strong>Usage For:</strong> {submitSuccess.data.beneficiaryEmployeeName} ({submitSuccess.data.beneficiaryEmployeeNo}) - Cabin: {submitSuccess.data.beneficiarySeatOrCabinNo}
+                </span>
+                {submitSuccess.data.beneficiaryEmail && (
+                  <span style={{ fontSize: '0.75rem', fontWeight: '600', backgroundColor: '#FFFFFF', color: '#1E293B', padding: '0.25rem 0.625rem', borderRadius: '6px', border: '1px solid #DCFCE7' }}>
+                    <strong>Email:</strong> {submitSuccess.data.beneficiaryEmail}
+                  </span>
+                )}
                 <span style={{ fontSize: '0.75rem', fontWeight: '600', backgroundColor: '#FFFFFF', color: '#1E293B', padding: '0.25rem 0.625rem', borderRadius: '6px', border: '1px solid #DCFCE7' }}>
                   <strong>Cartridge:</strong> {submitSuccess.data.partNumber || submitSuccess.data.cartridgeName}
                 </span>
@@ -592,7 +734,7 @@ export const AssetUsage = () => {
         <form ref={formRef} onSubmit={handleSubmit} noValidate style={{ padding: '2rem 1.75rem' }}>
 
           {/* ============================================================
-              SECTION 1: EMPLOYEE INFORMATION
+              SECTION 1: RECORDED BY (Authenticated Engineer - READ ONLY)
               ============================================================ */}
           <div style={{ marginBottom: '2rem' }}>
             <div
@@ -605,7 +747,7 @@ export const AssetUsage = () => {
                 borderBottom: '2px solid #F1F5F9'
               }}
             >
-              <User size={18} color="var(--iocl-navy)" />
+              <UserCheck size={18} color="var(--iocl-navy)" />
               <h3
                 style={{
                   fontSize: '0.875rem',
@@ -616,18 +758,25 @@ export const AssetUsage = () => {
                   margin: 0
                 }}
               >
-                1. Employee Information (Authenticated)
+                1. RECORDED BY (Authenticated Engineer)
               </h3>
+              <span style={{ fontSize: '0.75rem', color: '#64748B', marginLeft: 'auto', fontWeight: '600' }}>
+                Authoritative from Login Session (Read-Only)
+              </span>
             </div>
 
             <div
               style={{
                 display: 'grid',
                 gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))',
-                gap: '1.25rem'
+                gap: '1.25rem',
+                backgroundColor: '#F8FAFC',
+                padding: '1.25rem',
+                borderRadius: '10px',
+                border: '1px solid #E2E8F0'
               }}
             >
-              {/* Field: Employee No. (Derived from JWT) */}
+              {/* Engineer Name (Read-Only) */}
               <div className="form-group">
                 <label
                   style={{
@@ -640,19 +789,18 @@ export const AssetUsage = () => {
                     marginBottom: '0.375rem'
                   }}
                 >
-                  <span>Employee No.</span>
+                  <span>Engineer Name:</span>
                 </label>
                 <input
                   type="text"
-                  value={formData.employeeNo}
+                  value={engineerName}
                   disabled
                   style={{
                     width: '100%',
-                    height: '42px',
-                    padding: '0 0.875rem',
-                    borderRadius: '8px',
+                    padding: '0.625rem 0.875rem',
+                    backgroundColor: '#F1F5F9',
                     border: '1px solid #CBD5E1',
-                    backgroundColor: '#F8FAFC',
+                    borderRadius: '8px',
                     fontSize: '0.875rem',
                     color: '#475569',
                     fontWeight: '600',
@@ -661,7 +809,7 @@ export const AssetUsage = () => {
                 />
               </div>
 
-              {/* Field: Employee Name */}
+              {/* Engineer Employee No. (Read-Only) */}
               <div className="form-group">
                 <label
                   style={{
@@ -674,99 +822,261 @@ export const AssetUsage = () => {
                     marginBottom: '0.375rem'
                   }}
                 >
-                  <span>Employee Name</span>
+                  <span>Engineer Employee No:</span>
                 </label>
                 <input
                   type="text"
-                  value={formData.employeeName}
+                  value={engineerEmpNo}
                   disabled
                   style={{
                     width: '100%',
-                    height: '42px',
-                    padding: '0 0.875rem',
-                    borderRadius: '8px',
+                    padding: '0.625rem 0.875rem',
+                    backgroundColor: '#F1F5F9',
                     border: '1px solid #CBD5E1',
-                    backgroundColor: '#F8FAFC',
+                    borderRadius: '8px',
                     fontSize: '0.875rem',
                     color: '#475569',
                     fontWeight: '600',
                     cursor: 'not-allowed'
                   }}
                 />
-              </div>
-
-              {/* Field: Department */}
-              <div className="form-group">
-                <label
-                  htmlFor="field-department"
-                  style={{
-                    display: 'flex',
-                    alignItems: 'center',
-                    gap: '0.25rem',
-                    fontSize: '0.8125rem',
-                    fontWeight: '700',
-                    color: '#334155',
-                    marginBottom: '0.375rem'
-                  }}
-                >
-                  <span>Department</span>
-                </label>
-                <select
-                  id="field-department"
-                  name="department"
-                  value={formData.department}
-                  onChange={(e) => handleInputChange('department', e.target.value)}
-                  style={{
-                    width: '100%',
-                    height: '42px',
-                    padding: '0 0.875rem',
-                    borderRadius: '8px',
-                    border: '1px solid #CBD5E1',
-                    backgroundColor: '#FFFFFF',
-                    fontSize: '0.875rem',
-                    color: formData.department ? '#0F172A' : '#64748B',
-                    outline: 'none',
-                    cursor: 'pointer'
-                  }}
-                >
-                  <option value="">Select Department</option>
-                  {DEPARTMENT_OPTIONS.map((dept) => (
-                    <option key={dept} value={dept}>
-                      {dept}
-                    </option>
-                  ))}
-                </select>
               </div>
             </div>
           </div>
 
           {/* ============================================================
-              SECTION 2: LOCATION INFORMATION
+              SECTION 2: USAGE BENEFICIARY / TARGET EMPLOYEE DETAILS
               ============================================================ */}
           <div style={{ marginBottom: '2rem' }}>
             <div
               style={{
                 display: 'flex',
                 alignItems: 'center',
+                justifyContent: 'space-between',
+                flexWrap: 'wrap',
                 gap: '0.5rem',
                 paddingBottom: '0.75rem',
                 marginBottom: '1.25rem',
                 borderBottom: '2px solid #F1F5F9'
               }}
             >
-              <MapPin size={18} color="var(--iocl-navy)" />
-              <h3
+              <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                <User size={18} color="var(--iocl-navy)" />
+                <h3
+                  style={{
+                    fontSize: '0.875rem',
+                    fontWeight: '800',
+                    color: 'var(--iocl-navy)',
+                    textTransform: 'uppercase',
+                    letterSpacing: '0.04em',
+                    margin: 0
+                  }}
+                >
+                  2. USAGE BENEFICIARY (Target Employee & Cabin)
+                </h3>
+              </div>
+
+              {/* Status Indicator: Auto-fill vs Manual */}
+              {selectedMasterEmployee ? (
+                <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                  <span
+                    style={{
+                      fontSize: '0.75rem',
+                      fontWeight: '700',
+                      backgroundColor: '#F0FDF4',
+                      color: '#166534',
+                      padding: '0.2rem 0.6rem',
+                      borderRadius: '6px',
+                      border: '1px solid #BBF7D0',
+                      display: 'inline-flex',
+                      alignItems: 'center',
+                      gap: '0.25rem'
+                    }}
+                  >
+                    <CheckCircle2 size={12} />
+                    <span>Auto-filled from Employee Master</span>
+                  </span>
+                  <button
+                    type="button"
+                    onClick={handleClearBeneficiarySelection}
+                    style={{
+                      fontSize: '0.6875rem',
+                      color: '#DC2626',
+                      backgroundColor: '#FEF2F2',
+                      border: '1px solid #FECACA',
+                      borderRadius: '4px',
+                      padding: '0.2rem 0.5rem',
+                      fontWeight: '700',
+                      cursor: 'pointer'
+                    }}
+                    title="Clear auto-filled employee and enter details manually"
+                  >
+                    Clear / Enter Manually
+                  </button>
+                </div>
+              ) : (
+                <span
+                  style={{
+                    fontSize: '0.75rem',
+                    color: '#64748B',
+                    backgroundColor: '#F8FAFC',
+                    padding: '0.2rem 0.5rem',
+                    borderRadius: '4px',
+                    border: '1px solid #E2E8F0',
+                    fontWeight: '600'
+                  }}
+                >
+                  Option 1: Search Master | Option 2: Enter Manually
+                </span>
+              )}
+            </div>
+
+            {/* Beneficiary Search Bar (Option 1) */}
+            <div style={{ marginBottom: '1.25rem', position: 'relative' }}>
+              <label
                 style={{
-                  fontSize: '0.875rem',
-                  fontWeight: '800',
-                  color: 'var(--iocl-navy)',
-                  textTransform: 'uppercase',
-                  letterSpacing: '0.04em',
-                  margin: 0
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '0.375rem',
+                  fontSize: '0.8125rem',
+                  fontWeight: '700',
+                  color: '#334155',
+                  marginBottom: '0.375rem'
                 }}
               >
-                2. Location Details
-              </h3>
+                <Search size={14} color="var(--iocl-navy)" />
+                <span>Search Employee Master (Option 1: Search & Auto-Fill)</span>
+              </label>
+              <div style={{ position: 'relative' }}>
+                <input
+                  type="text"
+                  value={beneficiarySearchQuery}
+                  onChange={(e) => handleSearchBeneficiaries(e.target.value)}
+                  onFocus={() => {
+                    if (beneficiarySearchQuery.trim().length > 0) {
+                      setShowBeneficiaryDropdown(true);
+                    }
+                  }}
+                  placeholder="Type employee name, employee ID, department, or email to search..."
+                  style={{
+                    width: '100%',
+                    padding: '0.625rem 0.875rem 0.625rem 2.25rem',
+                    border: '1px solid #CBD5E1',
+                    borderRadius: '8px',
+                    fontSize: '0.875rem',
+                    color: '#1E293B',
+                    backgroundColor: '#FFFFFF'
+                  }}
+                />
+                <Search
+                  size={16}
+                  color="#94A3B8"
+                  style={{ position: 'absolute', left: '0.75rem', top: '50%', transform: 'translateY(-50%)' }}
+                />
+                {isSearchingBeneficiary && (
+                  <Loader2
+                    size={16}
+                    className="spinner text-navy"
+                    style={{ position: 'absolute', right: '0.75rem', top: '50%', transform: 'translateY(-50%)' }}
+                  />
+                )}
+              </div>
+
+              {/* Dropdown search results */}
+              {showBeneficiaryDropdown && (
+                <div
+                  style={{
+                    position: 'absolute',
+                    top: '100%',
+                    left: 0,
+                    right: 0,
+                    zIndex: 30,
+                    backgroundColor: '#FFFFFF',
+                    border: '1px solid #CBD5E1',
+                    borderRadius: '8px',
+                    boxShadow: '0 8px 16px rgba(0,0,0,0.12)',
+                    marginTop: '0.25rem',
+                    maxHeight: '260px',
+                    overflowY: 'auto'
+                  }}
+                >
+                  {beneficiarySearchResults.length > 0 ? (
+                    beneficiarySearchResults.map((emp) => (
+                      <div
+                        key={emp.id || emp.employeeNo}
+                        onClick={() => handleSelectBeneficiary(emp)}
+                        style={{
+                          padding: '0.75rem 1rem',
+                          borderBottom: '1px solid #F1F5F9',
+                          cursor: 'pointer',
+                          display: 'flex',
+                          alignItems: 'center',
+                          justifyContent: 'space-between',
+                          transition: 'background-color 0.15s ease'
+                        }}
+                        onMouseEnter={(e) => e.currentTarget.style.backgroundColor = '#F8FAFC'}
+                        onMouseLeave={(e) => e.currentTarget.style.backgroundColor = '#FFFFFF'}
+                      >
+                        <div>
+                          <div style={{ fontSize: '0.875rem', fontWeight: '700', color: '#1E293B' }}>
+                            {emp.employeeName}
+                          </div>
+                          <div style={{ fontSize: '0.75rem', color: '#64748B', marginTop: '0.15rem' }}>
+                            Emp ID: <strong>{emp.employeeNo}</strong> · Dept: {emp.department || '—'} · Location: {emp.location || '—'}
+                          </div>
+                          {emp.email && (
+                            <div style={{ fontSize: '0.6875rem', color: '#0284C7', marginTop: '0.1rem' }}>
+                              {emp.email}
+                            </div>
+                          )}
+                        </div>
+                        <span
+                          style={{
+                            fontSize: '0.6875rem',
+                            backgroundColor: '#EFF6FF',
+                            color: '#1E40AF',
+                            padding: '0.25rem 0.6rem',
+                            borderRadius: '4px',
+                            fontWeight: '700',
+                            border: '1px solid #BFDBFE'
+                          }}
+                        >
+                          Auto-Fill
+                        </span>
+                      </div>
+                    ))
+                  ) : (
+                    <div style={{ padding: '1rem', textAlign: 'center', color: '#64748B' }}>
+                      <p style={{ fontSize: '0.8125rem', fontWeight: '600', color: '#1E293B', margin: '0 0 0.25rem' }}>
+                        No employee found for "{beneficiarySearchQuery}"
+                      </p>
+                      <span style={{ fontSize: '0.75rem', color: '#94A3B8', display: 'block', marginBottom: '0.5rem' }}>
+                        Option 2: You can enter the beneficiary details manually in the fields below.
+                      </span>
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setShowBeneficiaryDropdown(false);
+                          const el = document.getElementById('field-beneficiaryEmployeeNo');
+                          if (el) el.focus();
+                        }}
+                        style={{
+                          fontSize: '0.75rem',
+                          fontWeight: '700',
+                          backgroundColor: 'var(--iocl-navy)',
+                          color: '#FFFFFF',
+                          border: 'none',
+                          borderRadius: '6px',
+                          padding: '0.35rem 0.75rem',
+                          cursor: 'pointer'
+                        }}
+                      >
+                        Enter Details Manually Below
+                      </button>
+                    </div>
+                  )}
+                </div>
+              )}
             </div>
 
             <div
@@ -776,10 +1086,10 @@ export const AssetUsage = () => {
                 gap: '1.25rem'
               }}
             >
-              {/* Field: Seat No. / Cabin No. */}
+              {/* Field: Beneficiary Employee No. */}
               <div className="form-group">
                 <label
-                  htmlFor="field-seatOrCabinNo"
+                  htmlFor="field-beneficiaryEmployeeNo"
                   style={{
                     display: 'flex',
                     alignItems: 'center',
@@ -790,41 +1100,164 @@ export const AssetUsage = () => {
                     marginBottom: '0.375rem'
                   }}
                 >
-                  <span>Seat No. / Cabin No.</span>
+                  <span>Beneficiary Employee No.</span>
                   <span style={{ color: '#DC2626' }}>*</span>
                 </label>
                 <input
-                  id="field-seatOrCabinNo"
-                  name="seatOrCabinNo"
+                  id="field-beneficiaryEmployeeNo"
                   type="text"
-                  placeholder="e.g. Cabin-402 or Seat A-12"
-                  value={formData.seatOrCabinNo}
-                  onChange={(e) => handleInputChange('seatOrCabinNo', e.target.value)}
+                  value={formData.beneficiaryEmployeeNo}
+                  onChange={(e) => handleInputChange('beneficiaryEmployeeNo', e.target.value)}
+                  placeholder="e.g. EMP001"
                   style={{
                     width: '100%',
-                    height: '42px',
-                    padding: '0 0.875rem',
+                    padding: '0.625rem 0.875rem',
+                    border: errors.beneficiaryEmployeeNo ? '1px solid #DC2626' : '1px solid #CBD5E1',
                     borderRadius: '8px',
-                    border: '1px solid',
-                    borderColor: errors.seatOrCabinNo ? '#DC2626' : '#CBD5E1',
-                    backgroundColor: errors.seatOrCabinNo ? '#FFF8F8' : '#FFFFFF',
                     fontSize: '0.875rem',
-                    color: '#0F172A',
-                    outline: 'none'
+                    color: '#1E293B',
+                    backgroundColor: '#FFFFFF',
+                    boxShadow: errors.beneficiaryEmployeeNo ? '0 0 0 1px #DC2626' : 'none'
                   }}
                 />
-                {errors.seatOrCabinNo && (
-                  <div style={{ display: 'flex', alignItems: 'center', gap: '0.25rem', marginTop: '0.375rem', color: '#DC2626', fontSize: '0.75rem', fontWeight: '600' }}>
-                    <AlertCircle size={13} />
-                    <span>{errors.seatOrCabinNo}</span>
-                  </div>
+                {errors.beneficiaryEmployeeNo && (
+                  <span style={{ fontSize: '0.75rem', color: '#DC2626', marginTop: '0.25rem', display: 'block', fontWeight: '500' }}>
+                    {errors.beneficiaryEmployeeNo}
+                  </span>
                 )}
               </div>
 
-              {/* Field: Office / Location */}
+              {/* Field: Beneficiary Employee Name */}
               <div className="form-group">
                 <label
-                  htmlFor="field-location"
+                  htmlFor="field-beneficiaryEmployeeName"
+                  style={{
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: '0.25rem',
+                    fontSize: '0.8125rem',
+                    fontWeight: '700',
+                    color: '#334155',
+                    marginBottom: '0.375rem'
+                  }}
+                >
+                  <span>Beneficiary Employee Name</span>
+                  <span style={{ color: '#DC2626' }}>*</span>
+                </label>
+                <input
+                  id="field-beneficiaryEmployeeName"
+                  type="text"
+                  value={formData.beneficiaryEmployeeName}
+                  onChange={(e) => handleInputChange('beneficiaryEmployeeName', e.target.value)}
+                  placeholder="e.g. Anjali Varshney"
+                  style={{
+                    width: '100%',
+                    padding: '0.625rem 0.875rem',
+                    border: errors.beneficiaryEmployeeName ? '1px solid #DC2626' : '1px solid #CBD5E1',
+                    borderRadius: '8px',
+                    fontSize: '0.875rem',
+                    color: '#1E293B',
+                    backgroundColor: '#FFFFFF',
+                    boxShadow: errors.beneficiaryEmployeeName ? '0 0 0 1px #DC2626' : 'none'
+                  }}
+                />
+                {errors.beneficiaryEmployeeName && (
+                  <span style={{ fontSize: '0.75rem', color: '#DC2626', marginTop: '0.25rem', display: 'block', fontWeight: '500' }}>
+                    {errors.beneficiaryEmployeeName}
+                  </span>
+                )}
+              </div>
+
+              {/* Field: Beneficiary Department */}
+              <div className="form-group">
+                <label
+                  htmlFor="field-beneficiaryDepartment"
+                  style={{
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: '0.25rem',
+                    fontSize: '0.8125rem',
+                    fontWeight: '700',
+                    color: '#334155',
+                    marginBottom: '0.375rem'
+                  }}
+                >
+                  <span>Beneficiary Department</span>
+                  <span style={{ color: '#DC2626' }}>*</span>
+                </label>
+                <select
+                  id="field-beneficiaryDepartment"
+                  value={formData.beneficiaryDepartment}
+                  onChange={(e) => handleInputChange('beneficiaryDepartment', e.target.value)}
+                  style={{
+                    width: '100%',
+                    padding: '0.625rem 0.875rem',
+                    border: errors.beneficiaryDepartment ? '1px solid #DC2626' : '1px solid #CBD5E1',
+                    borderRadius: '8px',
+                    fontSize: '0.875rem',
+                    color: formData.beneficiaryDepartment ? '#1E293B' : '#94A3B8',
+                    backgroundColor: '#FFFFFF'
+                  }}
+                >
+                  <option value="">Select Department...</option>
+                  {DEPARTMENT_OPTIONS.map((d) => (
+                    <option key={d} value={d}>
+                      {d}
+                    </option>
+                  ))}
+                </select>
+                {errors.beneficiaryDepartment && (
+                  <span style={{ fontSize: '0.75rem', color: '#DC2626', marginTop: '0.25rem', display: 'block', fontWeight: '500' }}>
+                    {errors.beneficiaryDepartment}
+                  </span>
+                )}
+              </div>
+
+              {/* Field: Seat / Cabin No. */}
+              <div className="form-group">
+                <label
+                  htmlFor="field-beneficiarySeatOrCabinNo"
+                  style={{
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: '0.25rem',
+                    fontSize: '0.8125rem',
+                    fontWeight: '700',
+                    color: '#334155',
+                    marginBottom: '0.375rem'
+                  }}
+                >
+                  <span>Seat / Cabin No.</span>
+                  <span style={{ color: '#DC2626' }}>*</span>
+                </label>
+                <input
+                  id="field-beneficiarySeatOrCabinNo"
+                  type="text"
+                  value={formData.beneficiarySeatOrCabinNo}
+                  onChange={(e) => handleInputChange('beneficiarySeatOrCabinNo', e.target.value)}
+                  placeholder="e.g. A-204, Floor 2"
+                  style={{
+                    width: '100%',
+                    padding: '0.625rem 0.875rem',
+                    border: errors.beneficiarySeatOrCabinNo ? '1px solid #DC2626' : '1px solid #CBD5E1',
+                    borderRadius: '8px',
+                    fontSize: '0.875rem',
+                    color: '#1E293B',
+                    backgroundColor: '#FFFFFF',
+                    boxShadow: errors.beneficiarySeatOrCabinNo ? '0 0 0 1px #DC2626' : 'none'
+                  }}
+                />
+                {errors.beneficiarySeatOrCabinNo && (
+                  <span style={{ fontSize: '0.75rem', color: '#DC2626', marginTop: '0.25rem', display: 'block', fontWeight: '500' }}>
+                    {errors.beneficiarySeatOrCabinNo}
+                  </span>
+                )}
+              </div>
+
+              {/* Field: Beneficiary Office / Location */}
+              <div className="form-group">
+                <label
+                  htmlFor="field-beneficiaryLocation"
                   style={{
                     display: 'flex',
                     alignItems: 'center',
@@ -839,43 +1272,77 @@ export const AssetUsage = () => {
                   <span style={{ color: '#DC2626' }}>*</span>
                 </label>
                 <select
-                  id="field-location"
-                  name="location"
-                  value={formData.location}
-                  onChange={(e) => handleInputChange('location', e.target.value)}
+                  id="field-beneficiaryLocation"
+                  value={formData.beneficiaryLocation}
+                  onChange={(e) => handleInputChange('beneficiaryLocation', e.target.value)}
                   style={{
                     width: '100%',
-                    height: '42px',
-                    padding: '0 0.875rem',
+                    padding: '0.625rem 0.875rem',
+                    border: errors.beneficiaryLocation ? '1px solid #DC2626' : '1px solid #CBD5E1',
                     borderRadius: '8px',
-                    border: '1px solid',
-                    borderColor: errors.location ? '#DC2626' : '#CBD5E1',
-                    backgroundColor: errors.location ? '#FFF8F8' : '#FFFFFF',
                     fontSize: '0.875rem',
-                    color: formData.location ? '#0F172A' : '#64748B',
-                    outline: 'none',
-                    cursor: 'pointer'
+                    color: '#1E293B',
+                    backgroundColor: '#FFFFFF'
                   }}
                 >
-                  <option value="">Select Location</option>
                   {LOCATION_OPTIONS.map((loc) => (
                     <option key={loc} value={loc}>
                       {loc}
                     </option>
                   ))}
                 </select>
-                {errors.location && (
-                  <div style={{ display: 'flex', alignItems: 'center', gap: '0.25rem', marginTop: '0.375rem', color: '#DC2626', fontSize: '0.75rem', fontWeight: '600' }}>
-                    <AlertCircle size={13} />
-                    <span>{errors.location}</span>
-                  </div>
+                {errors.beneficiaryLocation && (
+                  <span style={{ fontSize: '0.75rem', color: '#DC2626', marginTop: '0.25rem', display: 'block', fontWeight: '500' }}>
+                    {errors.beneficiaryLocation}
+                  </span>
+                )}
+              </div>
+
+              {/* Field: Beneficiary Email */}
+              <div className="form-group">
+                <label
+                  htmlFor="field-beneficiaryEmail"
+                  style={{
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: '0.25rem',
+                    fontSize: '0.8125rem',
+                    fontWeight: '700',
+                    color: '#334155',
+                    marginBottom: '0.375rem'
+                  }}
+                >
+                  <span>Beneficiary Email</span>
+                  <span style={{ color: '#DC2626' }}>*</span>
+                </label>
+                <input
+                  id="field-beneficiaryEmail"
+                  type="email"
+                  value={formData.beneficiaryEmail}
+                  onChange={(e) => handleInputChange('beneficiaryEmail', e.target.value)}
+                  placeholder="e.g. anjali@example.com"
+                  style={{
+                    width: '100%',
+                    padding: '0.625rem 0.875rem',
+                    border: errors.beneficiaryEmail ? '1px solid #DC2626' : '1px solid #CBD5E1',
+                    borderRadius: '8px',
+                    fontSize: '0.875rem',
+                    color: '#1E293B',
+                    backgroundColor: '#FFFFFF',
+                    boxShadow: errors.beneficiaryEmail ? '0 0 0 1px #DC2626' : 'none'
+                  }}
+                />
+                {errors.beneficiaryEmail && (
+                  <span style={{ fontSize: '0.75rem', color: '#DC2626', marginTop: '0.25rem', display: 'block', fontWeight: '500' }}>
+                    {errors.beneficiaryEmail}
+                  </span>
                 )}
               </div>
             </div>
           </div>
 
           {/* ============================================================
-              SECTION 3: ASSET INFORMATION
+              SECTION 3: ASSET / CONSUMABLE
               ============================================================ */}
           <div style={{ marginBottom: '2rem' }}>
             <div
@@ -899,7 +1366,7 @@ export const AssetUsage = () => {
                   margin: 0
                 }}
               >
-                3. Asset & Consumable Information
+                3. Asset & Consumable Cartridge Selection
               </h3>
             </div>
 
@@ -910,7 +1377,7 @@ export const AssetUsage = () => {
                 gap: '1.25rem'
               }}
             >
-              {/* Field: Printer Dropdown (Loaded from Backend /api/assets) */}
+              {/* Field: Printer */}
               <div className="form-group">
                 <label
                   htmlFor="field-printerId"
@@ -924,45 +1391,38 @@ export const AssetUsage = () => {
                     marginBottom: '0.375rem'
                   }}
                 >
-                  <span>Printer / Model</span>
+                  <span>Assigned Printer</span>
                   <span style={{ color: '#DC2626' }}>*</span>
-                  {isLoadingMasterData && <Loader2 size={12} className="spinner text-muted" />}
                 </label>
                 <select
                   id="field-printerId"
-                  name="printerId"
                   value={formData.printerId}
                   onChange={(e) => handleInputChange('printerId', e.target.value)}
                   style={{
                     width: '100%',
-                    height: '42px',
-                    padding: '0 0.875rem',
+                    padding: '0.625rem 0.875rem',
+                    border: errors.printerId ? '1px solid #DC2626' : '1px solid #CBD5E1',
                     borderRadius: '8px',
-                    border: '1px solid',
-                    borderColor: errors.printerId ? '#DC2626' : '#CBD5E1',
-                    backgroundColor: errors.printerId ? '#FFF8F8' : '#FFFFFF',
                     fontSize: '0.875rem',
-                    color: formData.printerId ? '#0F172A' : '#64748B',
-                    outline: 'none',
-                    cursor: 'pointer'
+                    color: formData.printerId ? '#1E293B' : '#94A3B8',
+                    backgroundColor: '#FFFFFF'
                   }}
                 >
-                  <option value="">Select Printer</option>
-                  {printers.map((asset) => (
-                    <option key={asset.id} value={asset.id}>
-                      {asset.modelName} ({asset.serialNumber || `ID: ${asset.id}`}) — {asset.printerType === 'COLOR' ? 'Color' : 'B&W'}
+                  <option value="">Select Printer / Device...</option>
+                  {printers.map((p) => (
+                    <option key={p.id} value={p.id}>
+                      {p.modelName} (SN: {p.serialNumber || 'N/A'}) - {p.printerType || 'B&W'}
                     </option>
                   ))}
                 </select>
                 {errors.printerId && (
-                  <div style={{ display: 'flex', alignItems: 'center', gap: '0.25rem', marginTop: '0.375rem', color: '#DC2626', fontSize: '0.75rem', fontWeight: '600' }}>
-                    <AlertCircle size={13} />
-                    <span>{errors.printerId}</span>
-                  </div>
+                  <span style={{ fontSize: '0.75rem', color: '#DC2626', marginTop: '0.25rem', display: 'block', fontWeight: '500' }}>
+                    {errors.printerId}
+                  </span>
                 )}
               </div>
 
-              {/* Field: Printer Type (Selector / State indicator) */}
+              {/* Field: Printer Type (Auto-detected / Display) */}
               <div className="form-group">
                 <label
                   style={{
@@ -975,115 +1435,156 @@ export const AssetUsage = () => {
                     marginBottom: '0.375rem'
                   }}
                 >
-                  <Palette size={14} color="#64748B" />
                   <span>Printer Type</span>
                 </label>
                 <div
                   style={{
-                    display: 'grid',
-                    gridTemplateColumns: '1fr 1fr',
+                    display: 'flex',
+                    alignItems: 'center',
                     gap: '0.5rem',
+                    padding: '0.5rem 0.75rem',
+                    backgroundColor: '#F8FAFC',
+                    border: '1px solid #CBD5E1',
+                    borderRadius: '8px',
                     height: '42px'
                   }}
                 >
-                  <button
-                    type="button"
-                    onClick={() => handleInputChange('printerType', 'Black & White')}
+                  <span
                     style={{
-                      display: 'flex',
-                      alignItems: 'center',
-                      justifyContent: 'center',
-                      borderRadius: '8px',
-                      border: '2px solid',
-                      borderColor: formData.printerType === 'Black & White' ? 'var(--iocl-navy)' : '#CBD5E1',
-                      backgroundColor: formData.printerType === 'Black & White' ? '#F1F5F9' : '#FFFFFF',
-                      color: formData.printerType === 'Black & White' ? 'var(--iocl-navy)' : '#64748B',
                       fontSize: '0.8125rem',
-                      fontWeight: formData.printerType === 'Black & White' ? '700' : '500',
-                      cursor: 'pointer',
-                      transition: 'all 0.15s ease'
+                      fontWeight: '800',
+                      color: formData.printerType === 'Color' ? '#D946EF' : '#1E293B',
+                      display: 'inline-flex',
+                      alignItems: 'center',
+                      gap: '0.375rem'
                     }}
                   >
-                    Black & White
-                  </button>
-
-                  <button
-                    type="button"
-                    onClick={() => handleInputChange('printerType', 'Color')}
-                    style={{
-                      display: 'flex',
-                      alignItems: 'center',
-                      justifyContent: 'center',
-                      borderRadius: '8px',
-                      border: '2px solid',
-                      borderColor: formData.printerType === 'Color' ? '#D4001F' : '#CBD5E1',
-                      backgroundColor: formData.printerType === 'Color' ? '#FEF2F2' : '#FFFFFF',
-                      color: formData.printerType === 'Color' ? '#D4001F' : '#64748B',
-                      fontSize: '0.8125rem',
-                      fontWeight: formData.printerType === 'Color' ? '700' : '500',
-                      cursor: 'pointer',
-                      transition: 'all 0.15s ease'
-                    }}
-                  >
-                    Color
-                  </button>
+                    {formData.printerType === 'Color' ? '🎨 COLOR PRINTER' : '🖨️ BLACK & WHITE (MONO)'}
+                  </span>
+                  <span style={{ fontSize: '0.6875rem', color: '#64748B', marginLeft: 'auto' }}>
+                    (Auto-detected)
+                  </span>
                 </div>
               </div>
 
-              {/* Field: Cartridge Dropdown (Loaded from Backend /api/procurement/cartridges) */}
+              {/* Field: Cartridge Selection */}
               <div className="form-group">
                 <label
                   htmlFor="field-cartridgeId"
                   style={{
                     display: 'flex',
                     alignItems: 'center',
-                    gap: '0.25rem',
+                    justifyContent: 'space-between',
                     fontSize: '0.8125rem',
                     fontWeight: '700',
                     color: '#334155',
                     marginBottom: '0.375rem'
                   }}
                 >
-                  <Package size={14} color="#64748B" />
-                  <span>Cartridge / Part Number</span>
-                  <span style={{ color: '#DC2626' }}>*</span>
-                  {isLoadingMasterData && <Loader2 size={12} className="spinner text-muted" />}
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '0.25rem' }}>
+                    <span>Consumable Cartridge / Part No.</span>
+                    <span style={{ color: '#DC2626' }}>*</span>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={fetchMasterData}
+                    disabled={isLoadingMasterData}
+                    style={{
+                      background: 'none',
+                      border: 'none',
+                      color: '#0284C7',
+                      fontSize: '0.75rem',
+                      fontWeight: '600',
+                      cursor: 'pointer',
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: '0.25rem',
+                      padding: 0
+                    }}
+                    title="Refresh store inventory from server"
+                  >
+                    <RefreshCw size={12} className={isLoadingMasterData ? 'animate-spin' : ''} />
+                    {isLoadingMasterData ? 'Refreshing...' : 'Refresh Stock'}
+                  </button>
                 </label>
                 <select
                   id="field-cartridgeId"
-                  name="cartridgeId"
                   value={formData.cartridgeId}
                   onChange={(e) => handleInputChange('cartridgeId', e.target.value)}
+                  disabled={isLoadingMasterData}
                   style={{
                     width: '100%',
-                    height: '42px',
-                    padding: '0 0.875rem',
+                    padding: '0.625rem 0.875rem',
+                    border: errors.cartridgeId ? '1px solid #DC2626' : '1px solid #CBD5E1',
                     borderRadius: '8px',
-                    border: '1px solid',
-                    borderColor: errors.cartridgeId ? '#DC2626' : '#CBD5E1',
-                    backgroundColor: errors.cartridgeId ? '#FFF8F8' : '#FFFFFF',
                     fontSize: '0.875rem',
-                    color: formData.cartridgeId ? '#0F172A' : '#64748B',
-                    outline: 'none',
-                    cursor: 'pointer'
+                    color: formData.cartridgeId ? '#1E293B' : '#94A3B8',
+                    backgroundColor: '#FFFFFF'
                   }}
                 >
-                  <option value="">Select Cartridge</option>
-                  {cartridges.map((c) => (
-                    <option key={c.id} value={c.id}>
-                      {c.partNumber} — {c.cartridgeName} ({c.printerName})
-                    </option>
-                  ))}
+                  <option value="">
+                    {isLoadingMasterData ? 'Loading store stock from server...' : 'Select Cartridge Part Number...'}
+                  </option>
+                  {cartridges.map((c) => {
+                    const stockLabel = isLoadingMasterData
+                      ? 'Loading stock...'
+                      : c.storeQuantity != null
+                      ? `Store Stock: ${c.storeQuantity} units`
+                      : 'Stock unavailable';
+                    return (
+                      <option key={c.id} value={c.id}>
+                        {c.partNumber} — {c.cartridgeName} ({stockLabel})
+                      </option>
+                    );
+                  })}
                 </select>
+                {formData.cartridgeId && (() => {
+                  const selected = cartridges.find((c) => c.id?.toString() === formData.cartridgeId.toString() || c.partNumber === formData.cartridgeId);
+                  if (isLoadingMasterData) {
+                    return (
+                      <div style={{ marginTop: '0.375rem' }}>
+                        <span style={{ fontSize: '0.75rem', color: '#64748B', fontWeight: '500' }}>
+                          ⏳ Loading live store stock from PostgreSQL...
+                        </span>
+                      </div>
+                    );
+                  }
+                  if (masterDataError) {
+                    return (
+                      <div style={{ marginTop: '0.375rem' }}>
+                        <span style={{ fontSize: '0.75rem', color: '#DC2626', fontWeight: '600' }}>
+                          ⚠️ {masterDataError}
+                        </span>
+                      </div>
+                    );
+                  }
+                  const stock = selected?.storeQuantity != null ? selected.storeQuantity : 0;
+                  return (
+                    <div style={{ marginTop: '0.375rem', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                      <span
+                        style={{
+                          fontSize: '0.75rem',
+                          fontWeight: '700',
+                          padding: '0.15rem 0.5rem',
+                          borderRadius: '4px',
+                          backgroundColor: stock > 0 ? '#EFF6FF' : '#FEF2F2',
+                          color: stock > 0 ? '#1E40AF' : '#DC2626',
+                          border: stock > 0 ? '1px solid #BFDBFE' : '1px solid #FECACA'
+                        }}
+                      >
+                        📦 Available Store Inventory: <strong>{stock}</strong> units
+                      </span>
+                    </div>
+                  );
+                })()}
                 {errors.cartridgeId && (
-                  <div style={{ display: 'flex', alignItems: 'center', gap: '0.25rem', marginTop: '0.375rem', color: '#DC2626', fontSize: '0.75rem', fontWeight: '600' }}>
-                    <AlertCircle size={13} />
-                    <span>{errors.cartridgeId}</span>
-                  </div>
+                  <span style={{ fontSize: '0.75rem', color: '#DC2626', marginTop: '0.25rem', display: 'block', fontWeight: '500' }}>
+                    {errors.cartridgeId}
+                  </span>
                 )}
               </div>
 
-              {/* Conditional Field: Colour (Displayed ONLY when Printer Type is Color) */}
+              {/* Field: Colour (Mandatory if Color, Hidden if Black & White) */}
               {formData.printerType === 'Color' && (
                 <div className="form-group" style={{ animation: 'fadeIn 0.2s ease-out' }}>
                   <label
@@ -1098,40 +1599,51 @@ export const AssetUsage = () => {
                       marginBottom: '0.375rem'
                     }}
                   >
-                    <span>Colour</span>
+                    <span>Cartridge Colour</span>
                     <span style={{ color: '#DC2626' }}>*</span>
                   </label>
-                  <select
-                    id="field-colour"
-                    name="colour"
-                    value={formData.colour}
-                    onChange={(e) => handleInputChange('colour', e.target.value)}
-                    style={{
-                      width: '100%',
-                      height: '42px',
-                      padding: '0 0.875rem',
-                      borderRadius: '8px',
-                      border: '1px solid',
-                      borderColor: errors.colour ? '#DC2626' : '#CBD5E1',
-                      backgroundColor: errors.colour ? '#FFF8F8' : '#FFFFFF',
-                      fontSize: '0.875rem',
-                      color: formData.colour ? '#0F172A' : '#64748B',
-                      outline: 'none',
-                      cursor: 'pointer'
-                    }}
-                  >
-                    <option value="">Select Colour</option>
-                    {COLOUR_OPTIONS.map((c) => (
-                      <option key={c.value} value={c.value}>
-                        {c.label}
-                      </option>
-                    ))}
-                  </select>
+                  <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '0.5rem' }}>
+                    {COLOUR_OPTIONS.map((c) => {
+                      const isSelected = formData.colour === c.value;
+                      return (
+                        <button
+                          key={c.value}
+                          type="button"
+                          onClick={() => handleInputChange('colour', c.value)}
+                          style={{
+                            padding: '0.5rem 0.25rem',
+                            borderRadius: '8px',
+                            border: isSelected ? '2px solid #D4001F' : '1px solid #CBD5E1',
+                            backgroundColor: isSelected ? '#FEF2F2' : '#FFFFFF',
+                            color: isSelected ? '#D4001F' : '#334155',
+                            fontSize: '0.75rem',
+                            fontWeight: '700',
+                            cursor: 'pointer',
+                            display: 'flex',
+                            flexDirection: 'column',
+                            alignItems: 'center',
+                            gap: '0.25rem',
+                            transition: 'all 0.15s ease'
+                          }}
+                        >
+                          <span
+                            style={{
+                              width: '14px',
+                              height: '14px',
+                              borderRadius: '50%',
+                              backgroundColor: c.hex,
+                              border: '1px solid #CBD5E1'
+                            }}
+                          />
+                          <span>{c.label}</span>
+                        </button>
+                      );
+                    })}
+                  </div>
                   {errors.colour && (
-                    <div style={{ display: 'flex', alignItems: 'center', gap: '0.25rem', marginTop: '0.375rem', color: '#DC2626', fontSize: '0.75rem', fontWeight: '600' }}>
-                      <AlertCircle size={13} />
-                      <span>{errors.colour}</span>
-                    </div>
+                    <span style={{ fontSize: '0.75rem', color: '#DC2626', marginTop: '0.25rem', display: 'block', fontWeight: '500' }}>
+                      {errors.colour}
+                    </span>
                   )}
                 </div>
               )}
@@ -1139,9 +1651,9 @@ export const AssetUsage = () => {
           </div>
 
           {/* ============================================================
-              SECTION 4: USAGE INFORMATION
+              SECTION 4: USAGE DETAILS
               ============================================================ */}
-          <div style={{ marginBottom: '1.5rem' }}>
+          <div style={{ marginBottom: '2rem' }}>
             <div
               style={{
                 display: 'flex',
@@ -1163,7 +1675,7 @@ export const AssetUsage = () => {
                   margin: 0
                 }}
               >
-                4. Quantity & Usage Details
+                4. Usage Details & Tracking
               </h3>
             </div>
 
@@ -1171,8 +1683,7 @@ export const AssetUsage = () => {
               style={{
                 display: 'grid',
                 gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))',
-                gap: '1.25rem',
-                marginBottom: '1.25rem'
+                gap: '1.25rem'
               }}
             >
               {/* Field: Quantity Used */}
@@ -1189,37 +1700,31 @@ export const AssetUsage = () => {
                     marginBottom: '0.375rem'
                   }}
                 >
-                  <span>Quantity Used</span>
+                  <span>Quantity Used (Units)</span>
                   <span style={{ color: '#DC2626' }}>*</span>
                 </label>
                 <input
                   id="field-quantityUsed"
-                  name="quantityUsed"
                   type="number"
                   min="1"
                   max="1000"
-                  step="1"
-                  placeholder="Enter quantity (e.g. 1)"
                   value={formData.quantityUsed}
                   onChange={(e) => handleInputChange('quantityUsed', e.target.value)}
                   style={{
                     width: '100%',
-                    height: '42px',
-                    padding: '0 0.875rem',
+                    padding: '0.625rem 0.875rem',
+                    border: errors.quantityUsed ? '1px solid #DC2626' : '1px solid #CBD5E1',
                     borderRadius: '8px',
-                    border: '1px solid',
-                    borderColor: errors.quantityUsed ? '#DC2626' : '#CBD5E1',
-                    backgroundColor: errors.quantityUsed ? '#FFF8F8' : '#FFFFFF',
                     fontSize: '0.875rem',
-                    color: '#0F172A',
-                    outline: 'none'
+                    color: '#1E293B',
+                    backgroundColor: '#FFFFFF',
+                    fontWeight: '700'
                   }}
                 />
                 {errors.quantityUsed && (
-                  <div style={{ display: 'flex', alignItems: 'center', gap: '0.25rem', marginTop: '0.375rem', color: '#DC2626', fontSize: '0.75rem', fontWeight: '600' }}>
-                    <AlertCircle size={13} />
-                    <span>{errors.quantityUsed}</span>
-                  </div>
+                  <span style={{ fontSize: '0.75rem', color: '#DC2626', marginTop: '0.25rem', display: 'block', fontWeight: '500' }}>
+                    {errors.quantityUsed}
+                  </span>
                 )}
               </div>
 
@@ -1237,79 +1742,69 @@ export const AssetUsage = () => {
                     marginBottom: '0.375rem'
                   }}
                 >
-                  <Calendar size={14} color="#64748B" />
                   <span>Usage Date</span>
                   <span style={{ color: '#DC2626' }}>*</span>
                 </label>
                 <input
                   id="field-usageDate"
-                  name="usageDate"
                   type="date"
                   max={new Date().toISOString().split('T')[0]}
                   value={formData.usageDate}
                   onChange={(e) => handleInputChange('usageDate', e.target.value)}
                   style={{
                     width: '100%',
-                    height: '42px',
-                    padding: '0 0.875rem',
+                    padding: '0.625rem 0.875rem',
+                    border: errors.usageDate ? '1px solid #DC2626' : '1px solid #CBD5E1',
                     borderRadius: '8px',
-                    border: '1px solid',
-                    borderColor: errors.usageDate ? '#DC2626' : '#CBD5E1',
-                    backgroundColor: errors.usageDate ? '#FFF8F8' : '#FFFFFF',
                     fontSize: '0.875rem',
-                    color: '#0F172A',
-                    outline: 'none'
+                    color: '#1E293B',
+                    backgroundColor: '#FFFFFF'
                   }}
                 />
                 {errors.usageDate && (
-                  <div style={{ display: 'flex', alignItems: 'center', gap: '0.25rem', marginTop: '0.375rem', color: '#DC2626', fontSize: '0.75rem', fontWeight: '600' }}>
-                    <AlertCircle size={13} />
-                    <span>{errors.usageDate}</span>
-                  </div>
+                  <span style={{ fontSize: '0.75rem', color: '#DC2626', marginTop: '0.25rem', display: 'block', fontWeight: '500' }}>
+                    {errors.usageDate}
+                  </span>
                 )}
+              </div>
+
+              {/* Field: Work Order Reference */}
+              <div className="form-group">
+                <label
+                  htmlFor="field-workOrderReference"
+                  style={{
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: '0.25rem',
+                    fontSize: '0.8125rem',
+                    fontWeight: '700',
+                    color: '#334155',
+                    marginBottom: '0.375rem'
+                  }}
+                >
+                  <span>Work Order / Reference No.</span>
+                </label>
+                <input
+                  id="field-workOrderReference"
+                  type="text"
+                  value={formData.workOrderReference}
+                  onChange={(e) => handleInputChange('workOrderReference', e.target.value)}
+                  placeholder="e.g. WO-2026-AUG-04"
+                  style={{
+                    width: '100%',
+                    padding: '0.625rem 0.875rem',
+                    border: '1px solid #CBD5E1',
+                    borderRadius: '8px',
+                    fontSize: '0.875rem',
+                    color: '#1E293B',
+                    backgroundColor: '#FFFFFF'
+                  }}
+                />
               </div>
             </div>
 
-            {/* Field: Reference / Work Order No. */}
-            <div className="form-group" style={{ marginBottom: '1.25rem' }}>
-              <label
-                htmlFor="field-workOrderReference"
-                style={{
-                  display: 'flex',
-                  alignItems: 'center',
-                  gap: '0.25rem',
-                  fontSize: '0.8125rem',
-                  fontWeight: '700',
-                  color: '#334155',
-                  marginBottom: '0.375rem'
-                }}
-              >
-                <ClipboardList size={14} color="#64748B" />
-                <span>Reference / Work Order No. (Optional)</span>
-              </label>
-              <input
-                id="field-workOrderReference"
-                name="workOrderReference"
-                type="text"
-                placeholder="e.g. WO-2026-AUG-102"
-                value={formData.workOrderReference}
-                onChange={(e) => handleInputChange('workOrderReference', e.target.value)}
-                style={{
-                  width: '100%',
-                  height: '42px',
-                  padding: '0 0.875rem',
-                  borderRadius: '8px',
-                  border: '1px solid #CBD5E1',
-                  backgroundColor: '#FFFFFF',
-                  fontSize: '0.875rem',
-                  color: '#0F172A',
-                  outline: 'none'
-                }}
-              />
-            </div>
-
-            {/* Field: Purpose / Remarks */}
-            <div className="form-group">
+            {/* Field: Remarks */}
+            <div className="form-group" style={{ marginTop: '1.25rem' }}>
               <label
                 htmlFor="field-remarks"
                 style={{
@@ -1322,27 +1817,23 @@ export const AssetUsage = () => {
                   marginBottom: '0.375rem'
                 }}
               >
-                <FileText size={14} color="#64748B" />
-                <span>Purpose / Remarks (Optional)</span>
+                <span>Remarks / Justification</span>
               </label>
               <textarea
                 id="field-remarks"
-                name="remarks"
-                rows={3}
-                placeholder="Enter remarks or reason for consumption (e.g. Routine cartridge replacement due to low toner)"
+                rows="3"
                 value={formData.remarks}
                 onChange={(e) => handleInputChange('remarks', e.target.value)}
+                placeholder="e.g. Previous cartridge empty. Replaced with genuine OEM unit for cabin printer."
                 style={{
                   width: '100%',
-                  padding: '0.75rem 0.875rem',
-                  borderRadius: '8px',
+                  padding: '0.625rem 0.875rem',
                   border: '1px solid #CBD5E1',
-                  backgroundColor: '#FFFFFF',
+                  borderRadius: '8px',
                   fontSize: '0.875rem',
-                  color: '#0F172A',
-                  outline: 'none',
-                  resize: 'vertical',
-                  fontFamily: 'inherit'
+                  color: '#1E293B',
+                  backgroundColor: '#FFFFFF',
+                  resize: 'vertical'
                 }}
               />
             </div>
@@ -1351,13 +1842,12 @@ export const AssetUsage = () => {
           {/* Form Action Buttons */}
           <div
             style={{
-              marginTop: '2rem',
               display: 'flex',
               alignItems: 'center',
               justifyContent: 'flex-end',
               gap: '1rem',
-              borderTop: '1px solid #E2E8F0',
               paddingTop: '1.5rem',
+              borderTop: '1px solid #E2E8F0',
               flexWrap: 'wrap'
             }}
           >
@@ -1366,6 +1856,9 @@ export const AssetUsage = () => {
               onClick={handleReset}
               disabled={isSubmitting}
               style={{
+                display: 'inline-flex',
+                alignItems: 'center',
+                gap: '0.375rem',
                 padding: '0.625rem 1.25rem',
                 backgroundColor: '#FFFFFF',
                 border: '1px solid #CBD5E1',
@@ -1373,45 +1866,46 @@ export const AssetUsage = () => {
                 fontSize: '0.875rem',
                 fontWeight: '600',
                 color: '#475569',
-                cursor: isSubmitting ? 'not-allowed' : 'pointer',
-                display: 'inline-flex',
-                alignItems: 'center',
-                gap: '0.375rem',
-                transition: 'all 0.15s ease'
+                cursor: 'pointer',
+                transition: 'background-color 0.15s ease'
               }}
+              onMouseEnter={(e) => e.currentTarget.style.backgroundColor = '#F8FAFC'}
+              onMouseLeave={(e) => e.currentTarget.style.backgroundColor = '#FFFFFF'}
             >
-              <RotateCcw size={15} />
-              <span>Reset</span>
+              <RotateCcw size={16} />
+              <span>Reset Form</span>
             </button>
 
             <button
               type="submit"
-              disabled={isSubmitting}
+              disabled={isSubmitting || isLoadingMasterData}
               style={{
-                padding: '0.625rem 1.75rem',
+                display: 'inline-flex',
+                alignItems: 'center',
+                gap: '0.5rem',
+                padding: '0.625rem 1.5rem',
                 backgroundColor: isSubmitting ? '#94A3B8' : '#D4001F',
-                color: '#FFFFFF',
                 border: 'none',
                 borderRadius: '8px',
                 fontSize: '0.875rem',
                 fontWeight: '700',
+                color: '#FFFFFF',
                 cursor: isSubmitting ? 'not-allowed' : 'pointer',
-                display: 'inline-flex',
-                alignItems: 'center',
-                gap: '0.5rem',
-                boxShadow: '0 2px 8px rgba(212, 0, 31, 0.25)',
+                boxShadow: '0 2px 6px rgba(212,0,31,0.25)',
                 transition: 'background-color 0.15s ease'
               }}
+              onMouseEnter={(e) => !isSubmitting && (e.currentTarget.style.backgroundColor = '#BA001A')}
+              onMouseLeave={(e) => !isSubmitting && (e.currentTarget.style.backgroundColor = '#D4001F')}
             >
               {isSubmitting ? (
                 <>
-                  <Loader2 size={16} className="spinner" />
-                  <span>Recording Usage...</span>
+                  <Loader2 size={16} className="spinner text-white" />
+                  <span>Recording in PostgreSQL...</span>
                 </>
               ) : (
                 <>
-                  <CheckCircle2 size={16} />
-                  <span>Record Usage</span>
+                  <ClipboardEdit size={16} />
+                  <span>RECORD ASSET USAGE</span>
                 </>
               )}
             </button>
@@ -1419,7 +1913,7 @@ export const AssetUsage = () => {
         </form>
       </div>
 
-      {/* 5. Real User Usage Records Section (from PostgreSQL) */}
+      {/* 5. Recent Usages Recorded by Current Engineer */}
       <div
         style={{
           backgroundColor: '#FFFFFF',
@@ -1438,16 +1932,14 @@ export const AssetUsage = () => {
             alignItems: 'center',
             justifyContent: 'space-between',
             flexWrap: 'wrap',
-            gap: '0.5rem'
+            gap: '0.75rem'
           }}
         >
           <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+            <ClipboardList size={18} color="var(--iocl-navy)" />
             <h3 style={{ fontSize: '0.9375rem', fontWeight: '800', color: 'var(--iocl-navy)', margin: 0 }}>
-              Recent Usage Records
+              Recent Transactions Recorded by You
             </h3>
-            <span style={{ fontSize: '0.75rem', color: '#64748B', fontWeight: '600' }}>
-              ({recentUsages.length} {recentUsages.length === 1 ? 'record' : 'records'} logged)
-            </span>
           </div>
 
           <button
@@ -1455,17 +1947,17 @@ export const AssetUsage = () => {
             onClick={fetchUserUsageHistory}
             disabled={isLoadingHistory}
             style={{
-              padding: '0.3125rem 0.625rem',
+              display: 'inline-flex',
+              alignItems: 'center',
+              gap: '0.375rem',
+              padding: '0.375rem 0.75rem',
               backgroundColor: '#FFFFFF',
               border: '1px solid #CBD5E1',
               borderRadius: '6px',
               fontSize: '0.75rem',
               fontWeight: '600',
               color: '#475569',
-              cursor: 'pointer',
-              display: 'inline-flex',
-              alignItems: 'center',
-              gap: '0.25rem'
+              cursor: 'pointer'
             }}
           >
             <RefreshCw size={12} className={isLoadingHistory ? 'spinner' : ''} />
@@ -1473,68 +1965,74 @@ export const AssetUsage = () => {
           </button>
         </div>
 
+        {/* Usage Records Table or Empty State */}
         {isLoadingHistory ? (
           <div style={{ padding: '3rem 1.5rem', textAlign: 'center', color: '#64748B' }}>
             <Loader2 size={24} className="spinner text-navy" style={{ margin: '0 auto 0.5rem' }} />
-            <p style={{ fontSize: '0.875rem', fontWeight: 500, margin: 0 }}>Loading usage records from database...</p>
+            <p style={{ fontSize: '0.8125rem', fontWeight: 500 }}>Loading usage records from database...</p>
           </div>
         ) : recentUsages.length > 0 ? (
           <div style={{ overflowX: 'auto' }}>
             <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left', fontSize: '0.8125rem' }}>
               <thead>
                 <tr style={{ backgroundColor: '#F1F5F9', borderBottom: '1px solid #CBD5E1' }}>
-                  <th style={{ padding: '0.75rem 1rem', fontWeight: '700', color: 'var(--iocl-navy)' }}>DATE</th>
-                  <th style={{ padding: '0.75rem 1rem', fontWeight: '700', color: 'var(--iocl-navy)' }}>PRINTER</th>
+                  <th style={{ padding: '0.75rem 1rem', fontWeight: '700', color: 'var(--iocl-navy)' }}>ID</th>
+                  <th style={{ padding: '0.75rem 1rem', fontWeight: '700', color: 'var(--iocl-navy)' }}>USAGE DATE</th>
+                  <th style={{ padding: '0.75rem 1rem', fontWeight: '700', color: 'var(--iocl-navy)' }}>USAGE FOR (BENEFICIARY)</th>
+                  <th style={{ padding: '0.75rem 1rem', fontWeight: '700', color: 'var(--iocl-navy)' }}>CABIN / LOCATION</th>
                   <th style={{ padding: '0.75rem 1rem', fontWeight: '700', color: 'var(--iocl-navy)' }}>CARTRIDGE / PART NO.</th>
                   <th style={{ padding: '0.75rem 1rem', fontWeight: '700', color: 'var(--iocl-navy)' }}>COLOUR</th>
-                  <th style={{ padding: '0.75rem 1rem', fontWeight: '700', color: 'var(--iocl-navy)', textAlign: 'right' }}>QTY USED</th>
-                  <th style={{ padding: '0.75rem 1rem', fontWeight: '700', color: 'var(--iocl-navy)' }}>LOCATION</th>
-                  <th style={{ padding: '0.75rem 1rem', fontWeight: '700', color: 'var(--iocl-navy)' }}>REFERENCE</th>
-                  <th style={{ padding: '0.75rem 1rem', fontWeight: '700', color: 'var(--iocl-navy)' }}>REMARKS</th>
+                  <th style={{ padding: '0.75rem 1rem', fontWeight: '700', color: 'var(--iocl-navy)', textAlign: 'right' }}>QTY</th>
+                  <th style={{ padding: '0.75rem 1rem', fontWeight: '700', color: 'var(--iocl-navy)' }}>WORK ORDER</th>
                 </tr>
               </thead>
               <tbody>
-                {recentUsages.map((item) => (
-                  <tr key={item.id} style={{ borderBottom: '1px solid #E2E8F0' }}>
+                {recentUsages.slice(0, 10).map((u) => (
+                  <tr key={u.id} style={{ borderBottom: '1px solid #E2E8F0' }}>
+                    <td style={{ padding: '0.75rem 1rem', fontFamily: 'monospace', color: '#64748B' }}>
+                      #{u.id}
+                    </td>
                     <td style={{ padding: '0.75rem 1rem', fontWeight: '600', color: '#1E293B' }}>
-                      {item.usageDate}
+                      {u.usageDate}
+                    </td>
+                    <td style={{ padding: '0.75rem 1rem' }}>
+                      <div style={{ fontWeight: '700', color: '#1E293B' }}>
+                        {u.beneficiaryEmployeeName || u.employeeName}
+                      </div>
+                      <div style={{ fontSize: '0.6875rem', color: '#64748B' }}>
+                        Emp No: {u.beneficiaryEmployeeNo || u.employeeNo} ({u.beneficiaryDepartment || u.department})
+                      </div>
                     </td>
                     <td style={{ padding: '0.75rem 1rem', color: '#475569' }}>
-                      {item.printerModel || 'N/A'}
+                      {u.beneficiarySeatOrCabinNo || u.seatOrCabinNo} · {u.beneficiaryLocation || u.location}
+                    </td>
+                    <td style={{ padding: '0.75rem 1rem', fontWeight: '600', color: 'var(--iocl-navy)' }}>
+                      {u.partNumber || u.cartridgeName}
                     </td>
                     <td style={{ padding: '0.75rem 1rem' }}>
-                      <span className="font-semibold text-navy">{item.partNumber || item.cartridgeName}</span>
-                    </td>
-                    <td style={{ padding: '0.75rem 1rem' }}>
-                      {item.colour ? (
+                      {u.colour ? (
                         <span
                           style={{
                             padding: '0.15rem 0.45rem',
                             borderRadius: '4px',
                             fontSize: '0.6875rem',
                             fontWeight: '700',
-                            backgroundColor: item.colour === 'BLACK' ? '#F1F5F9' : item.colour === 'CYAN' ? '#ECFEFF' : item.colour === 'MAGENTA' ? '#FDF4FF' : '#FEFCE8',
-                            color: item.colour === 'BLACK' ? '#0F172A' : item.colour === 'CYAN' ? '#0891B2' : item.colour === 'MAGENTA' ? '#C026D3' : '#CA8A04',
+                            backgroundColor: u.colour === 'BLACK' ? '#F1F5F9' : u.colour === 'CYAN' ? '#ECFEFF' : u.colour === 'MAGENTA' ? '#FDF4FF' : '#FEFCE8',
+                            color: u.colour === 'BLACK' ? '#0F172A' : u.colour === 'CYAN' ? '#0891B2' : u.colour === 'MAGENTA' ? '#C026D3' : '#CA8A04',
                             border: '1px solid currentColor'
                           }}
                         >
-                          {item.colour}
+                          {u.colour}
                         </span>
                       ) : (
                         <span style={{ color: '#94A3B8' }}>—</span>
                       )}
                     </td>
-                    <td style={{ padding: '0.75rem 1rem', textAlign: 'right', fontWeight: '700', color: '#D4001F' }}>
-                      {item.quantityUsed}
+                    <td style={{ padding: '0.75rem 1rem', textAlign: 'right', fontWeight: '800', color: '#D4001F' }}>
+                      {u.quantityUsed}
                     </td>
-                    <td style={{ padding: '0.75rem 1rem', color: '#64748B', fontSize: '0.75rem' }}>
-                      {item.location} · {item.seatOrCabinNo}
-                    </td>
-                    <td style={{ padding: '0.75rem 1rem', fontFamily: 'monospace', fontSize: '0.75rem', color: '#475569' }}>
-                      {item.workOrderReference || '—'}
-                    </td>
-                    <td style={{ padding: '0.75rem 1rem', color: '#64748B', maxWidth: '200px', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }} title={item.remarks}>
-                      {item.remarks || '—'}
+                    <td style={{ padding: '0.75rem 1rem', fontFamily: 'monospace', fontSize: '0.75rem', color: '#64748B' }}>
+                      {u.workOrderReference || '—'}
                     </td>
                   </tr>
                 ))}
@@ -1542,36 +2040,27 @@ export const AssetUsage = () => {
             </table>
           </div>
         ) : (
-          <div
-            style={{
-              padding: '3rem 1.5rem',
-              display: 'flex',
-              flexDirection: 'column',
-              alignItems: 'center',
-              justifyContent: 'center',
-              textAlign: 'center'
-            }}
-          >
+          <div style={{ padding: '3.5rem 1.5rem', textAlign: 'center' }}>
             <div
               style={{
                 width: '48px',
                 height: '48px',
-                borderRadius: '12px',
+                borderRadius: '50%',
                 backgroundColor: '#F1F5F9',
                 color: '#94A3B8',
                 display: 'flex',
                 alignItems: 'center',
                 justifyContent: 'center',
-                marginBottom: '0.875rem'
+                margin: '0 auto 0.75rem'
               }}
             >
-              <Inbox size={24} />
+              <Inbox size={22} />
             </div>
             <h4 style={{ fontSize: '0.9375rem', fontWeight: '700', color: '#1E293B', margin: '0 0 0.25rem' }}>
-              No usage records recorded yet.
+              No Usage Records Recorded Yet
             </h4>
-            <p style={{ fontSize: '0.8125rem', color: '#64748B', margin: 0, maxWidth: '380px', lineHeight: 1.4 }}>
-              When you submit a consumable usage above, it will be persisted to PostgreSQL and displayed here.
+            <p style={{ fontSize: '0.8125rem', color: '#64748B', margin: 0 }}>
+              Transactions recorded by you for beneficiary employees will appear here in chronological order.
             </p>
           </div>
         )}

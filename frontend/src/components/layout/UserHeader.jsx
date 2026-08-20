@@ -36,7 +36,8 @@ export const UserHeader = ({ onToggleSidebar }) => {
     if (path.includes('/user/profile')) return 'My Profile';
     if (path.includes('/user/assets')) return 'My Assets';
     if (path.includes('/user/usage') || path.includes('/user/record-usage')) return 'Asset Usage';
-    if (path.includes('/user/activity') || path.includes('/user/usage-history')) return 'My Activity';
+    if (path.includes('/user/asset-history') || path.includes('/user/usage-history')) return 'Asset Usage History';
+    if (path.includes('/user/activity')) return 'My Activity';
     if (path.includes('/user/notifications')) return 'Notifications';
     return 'Dashboard';
   };

@@ -3,10 +3,12 @@ package com.iocl.procurement.service.impl;
 import com.iocl.procurement.dto.request.CallUpPORequest;
 import com.iocl.procurement.dto.response.CallUpPOResponse;
 import com.iocl.procurement.entity.CallUpPurchaseOrder;
+import com.iocl.procurement.entity.Cartridge;
 import com.iocl.procurement.entity.RateContract;
 import com.iocl.procurement.exception.AppException;
 import com.iocl.procurement.exception.ResourceNotFoundException;
 import com.iocl.procurement.repository.CallUpPurchaseOrderRepository;
+import com.iocl.procurement.repository.CartridgeRepository;
 import com.iocl.procurement.repository.RateContractRepository;
 import com.iocl.procurement.service.AlertEvaluationService;
 import com.iocl.procurement.service.CallUpPOService;
@@ -22,15 +24,18 @@ public class CallUpPOServiceImpl implements CallUpPOService {
 
     private final CallUpPurchaseOrderRepository callUpPORepository;
     private final RateContractRepository rateContractRepository;
+    private final CartridgeRepository cartridgeRepository;
     private final AlertEvaluationService alertEvaluationService;
 
     public CallUpPOServiceImpl(
             CallUpPurchaseOrderRepository callUpPORepository,
             RateContractRepository rateContractRepository,
+            CartridgeRepository cartridgeRepository,
             AlertEvaluationService alertEvaluationService
     ) {
         this.callUpPORepository = callUpPORepository;
         this.rateContractRepository = rateContractRepository;
+        this.cartridgeRepository = cartridgeRepository;
         this.alertEvaluationService = alertEvaluationService;
     }
 
@@ -62,7 +67,15 @@ public class CallUpPOServiceImpl implements CallUpPOService {
             );
         }
 
-        // 4. Save Call-Up Purchase Order
+        // 4. Fetch and lock associated Cartridge Store Inventory record
+        if (rateContract.getCartridge() == null || rateContract.getCartridge().getId() == null) {
+            throw new ResourceNotFoundException("No cartridge associated with rate contract id: " + request.getRateContractId());
+        }
+
+        Cartridge cartridge = cartridgeRepository.findWithLockById(rateContract.getCartridge().getId())
+                .orElseThrow(() -> new ResourceNotFoundException("Cartridge store inventory record not found for id: " + rateContract.getCartridge().getId()));
+
+        // 5. Save Call-Up Purchase Order
         CallUpPurchaseOrder po = new CallUpPurchaseOrder();
         po.setPoNumber(cleanPoNumber);
         po.setPoDate(request.getPoDate());
@@ -73,13 +86,18 @@ public class CallUpPOServiceImpl implements CallUpPOService {
 
         CallUpPurchaseOrder savedPO = callUpPORepository.save(po);
 
-        // 5. Update Rate Contract quantity taken through WO & recalculate available quantity
+        // 6. Update Rate Contract quantity taken through WO & recalculate available quantity
         rateContract.setQuantityTakenThroughWO(rateContract.getQuantityTakenThroughWO() + requestedQty);
         rateContract.recalculateNetAvailableQuantity();
         RateContract updatedRC = rateContractRepository.save(rateContract);
 
-        // 6. Evaluate procurement & tendering threshold alerts for the cartridge
-        alertEvaluationService.evaluateAllAlerts(updatedRC.getCartridge());
+        // 7. IMMEDIATELY increase Store Inventory quantity in the same transaction
+        int currentStoreQty = cartridge.getStoreQuantity() != null ? cartridge.getStoreQuantity() : 0;
+        cartridge.setStoreQuantity(currentStoreQty + requestedQty);
+        Cartridge updatedCartridge = cartridgeRepository.save(cartridge);
+
+        // 8. Evaluate procurement & tendering threshold alerts for the cartridge
+        alertEvaluationService.evaluateAllAlerts(updatedCartridge);
 
         return new CallUpPOResponse(savedPO);
     }

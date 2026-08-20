@@ -28,17 +28,20 @@ public class DailyPOThresholdReportServiceImpl implements DailyPOThresholdReport
     private final CartridgeThresholdRepository thresholdRepository;
     private final RateContractRepository rateContractRepository;
     private final EmailNotificationService emailNotificationService;
+    private final com.iocl.procurement.repository.AssetUsageRepository assetUsageRepository;
 
     public DailyPOThresholdReportServiceImpl(
             CartridgeRepository cartridgeRepository,
             CartridgeThresholdRepository thresholdRepository,
             RateContractRepository rateContractRepository,
-            EmailNotificationService emailNotificationService
+            EmailNotificationService emailNotificationService,
+            com.iocl.procurement.repository.AssetUsageRepository assetUsageRepository
     ) {
         this.cartridgeRepository = cartridgeRepository;
         this.thresholdRepository = thresholdRepository;
         this.rateContractRepository = rateContractRepository;
         this.emailNotificationService = emailNotificationService;
+        this.assetUsageRepository = assetUsageRepository;
     }
 
     @Override
@@ -68,16 +71,14 @@ public class DailyPOThresholdReportServiceImpl implements DailyPOThresholdReport
             int totalRCQuantity = rateContracts.stream()
                     .mapToInt(rc -> rc.getTotalContractQuantity() != null ? rc.getTotalContractQuantity() : 0)
                     .sum();
-            int executedQuantity = rateContracts.stream()
-                    .mapToInt(rc -> rc.getQuantityAlreadyExecuted() != null ? rc.getQuantityAlreadyExecuted() : 0)
-                    .sum();
+            int executedQuantity = (cartridge.getId() != null)
+                    ? assetUsageRepository.getTotalQuantityUsedByCartridgeId(cartridge.getId()).intValue()
+                    : 0;
             int callUpPOQuantity = rateContracts.stream()
                     .mapToInt(rc -> rc.getQuantityTakenThroughWO() != null ? rc.getQuantityTakenThroughWO() : 0)
                     .sum();
 
-            int netAvailable = rateContracts.stream()
-                    .mapToInt(rc -> rc.getNetAvailableQuantity() != null ? rc.getNetAvailableQuantity() : 0)
-                    .sum();
+            int netAvailable = Math.max(0, totalRCQuantity - callUpPOQuantity);
 
             int poThreshold = threshold.getPoThreshold();
 

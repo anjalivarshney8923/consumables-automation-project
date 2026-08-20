@@ -67,6 +67,12 @@ public class AlertServiceImpl implements AlertService {
             int storeQty = cartridge.getStoreQuantity() != null ? cartridge.getStoreQuantity() : 0;
 
             List<RateContract> rateContracts = rateContractRepository.findByCartridgeId(cartridge.getId());
+            int totalRCQty = rateContracts.stream()
+                    .mapToInt(rc -> rc.getTotalContractQuantity() != null ? rc.getTotalContractQuantity() : 0)
+                    .sum();
+            int totalTakenWO = rateContracts.stream()
+                    .mapToInt(rc -> rc.getQuantityTakenThroughWO() != null ? rc.getQuantityTakenThroughWO() : 0)
+                    .sum();
             int rcNetAvailable = rateContracts.stream()
                     .mapToInt(rc -> rc.getNetAvailableQuantity() != null ? rc.getNetAvailableQuantity() : 0)
                     .sum();
@@ -95,6 +101,8 @@ public class AlertServiceImpl implements AlertService {
                     cartridge.getCartridgeName(),
                     cartridge.getPrinterName(),
                     cartridge.getNumberOfPrinters(),
+                    totalRCQty,
+                    totalTakenWO,
                     storeQty,
                     rcNetAvailable,
                     combinedNetAvailable,

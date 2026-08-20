@@ -57,6 +57,12 @@ class FullViewControllerTest {
     private com.iocl.procurement.repository.ProcurementAlertRepository alertRepository;
 
     @Autowired
+    private com.iocl.procurement.repository.AssetUsageRepository assetUsageRepository;
+
+    @Autowired
+    private com.iocl.procurement.repository.UserRepository userRepository;
+
+    @Autowired
     private PasswordEncoder passwordEncoder;
 
     private static final String TEST_EMAIL = "admin@iocl.co.in";
@@ -67,6 +73,12 @@ class FullViewControllerTest {
     @BeforeEach
     void setUp() throws Exception {
         alertRepository.deleteAll();
+        if (assetUsageRepository != null) {
+            assetUsageRepository.deleteAll();
+        }
+        if (userRepository != null) {
+            userRepository.deleteAll();
+        }
         callUpPORepository.deleteAll();
         rateContractRepository.deleteAll();
         thresholdRepository.deleteAll();
@@ -85,7 +97,33 @@ class FullViewControllerTest {
         Cartridge cartridge = new Cartridge("Canon LBP246dw", 45, "Canon 070 Black", "070-BLK");
         cartridgeRepository.save(cartridge);
 
-        // 3. Create Rate Contract
+        // 3. Create Engineer User and Real Asset Usage of 10 units
+        com.iocl.procurement.entity.User testUser = new com.iocl.procurement.entity.User();
+        testUser.setUsername("rahul.engineer");
+        testUser.setEmail("rahul.engineer@iocl.co.in");
+        testUser.setPassword(passwordEncoder.encode(TEST_PASSWORD));
+        testUser.setFullName("Rahul Sharma");
+        testUser.setEmployeeId("EMP101");
+        testUser.setDepartment("Information Systems");
+        testUser.setLocation("Head Office");
+        testUser.setRole(Role.USER);
+        testUser = userRepository.save(testUser);
+
+        com.iocl.procurement.entity.AssetUsage usage = new com.iocl.procurement.entity.AssetUsage();
+        usage.setUser(testUser);
+        usage.setCartridge(cartridge);
+        usage.setQuantityUsed(10);
+        usage.setUsageDate(LocalDate.now());
+        usage.setRecordedByEmployeeName("Rahul Sharma");
+        usage.setRecordedByEmployeeNo("EMP101");
+        usage.setBeneficiaryEmployeeName("Anjali Varshney");
+        usage.setBeneficiaryEmployeeNo("EMP2001");
+        usage.setBeneficiaryDepartment("Finance");
+        usage.setBeneficiarySeatOrCabinNo("Cabin A-204");
+        usage.setBeneficiaryLocation("Head Office");
+        assetUsageRepository.save(usage);
+
+        // 4. Create Rate Contract
         RateContract rc = new RateContract();
         rc.setContractDate(LocalDate.of(2026, 8, 13));
         rc.setSupplierName("M/s Canon India Pvt Ltd");
@@ -93,13 +131,13 @@ class FullViewControllerTest {
         rc.setRatePerUnit(new BigDecimal("4500.00"));
         rc.setTaxPercentage(new BigDecimal("18.00"));
         rc.setTotalContractQuantity(100);
-        rc.setQuantityAlreadyExecuted(10);
+        rc.setQuantityAlreadyExecuted(0);
         rc.setQuantityTakenThroughWO(20);
         rc.recalculateNetAvailableQuantity();
         RateContract savedRc = rateContractRepository.save(rc);
         this.sampleContractId = savedRc.getId();
 
-        // 4. Obtain JWT token via login
+        // 5. Obtain JWT token via login
         LoginRequest loginRequest = new LoginRequest(TEST_EMAIL, TEST_PASSWORD);
         MvcResult loginResult = mockMvc.perform(post("/api/auth/login")
                         .contentType(MediaType.APPLICATION_JSON)
@@ -133,7 +171,7 @@ class FullViewControllerTest {
                 .andExpect(jsonPath("$.content[0].contractQuantity", is(100)))
                 .andExpect(jsonPath("$.content[0].executedQuantity", is(10)))
                 .andExpect(jsonPath("$.content[0].callUpPoQuantity", is(20)))
-                .andExpect(jsonPath("$.content[0].netAvailableQuantity", is(70)))
+                .andExpect(jsonPath("$.content[0].netAvailableQuantity", is(80)))
                 .andExpect(jsonPath("$.content[0].status", is("PARTIALLY_USED")))
                 .andExpect(jsonPath("$.totalElements", is(1)))
                 .andExpect(jsonPath("$.totalPages", is(1)));
@@ -165,7 +203,7 @@ class FullViewControllerTest {
                 .andExpect(jsonPath("$.id", is(sampleContractId.intValue())))
                 .andExpect(jsonPath("$.supplierName", is("M/s Canon India Pvt Ltd")))
                 .andExpect(jsonPath("$.cartridgePartNumber", is("070-BLK")))
-                .andExpect(jsonPath("$.netAvailableQuantity", is(70)));
+                .andExpect(jsonPath("$.netAvailableQuantity", is(80)));
     }
 
     @Test
@@ -176,5 +214,21 @@ class FullViewControllerTest {
                 .andExpect(status().isNotFound())
                 .andExpect(jsonPath("$.status", is(404)))
                 .andExpect(jsonPath("$.message", containsString("Procurement record not found")));
+    }
+
+    @org.junit.jupiter.api.AfterEach
+    void tearDown() {
+        alertRepository.deleteAll();
+        if (assetUsageRepository != null) {
+            assetUsageRepository.deleteAll();
+        }
+        callUpPORepository.deleteAll();
+        rateContractRepository.deleteAll();
+        thresholdRepository.deleteAll();
+        cartridgeRepository.deleteAll();
+        if (userRepository != null) {
+            userRepository.deleteAll();
+        }
+        adminRepository.deleteAll();
     }
 }

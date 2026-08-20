@@ -14,6 +14,7 @@ public class AssetResponse {
     private String cartridgePartNumber;
     private String cartridgeName;
     private String compatibleCartridge;
+    private Integer storeQuantity;
     private String printerType;
     private String colour;
     private String color;
@@ -35,6 +36,7 @@ public class AssetResponse {
                 this.cartridgePartNumber = asset.getCartridge().getPartNumber();
                 this.cartridgeName = asset.getCartridge().getCartridgeName();
                 this.compatibleCartridge = asset.getCartridge().getPartNumber();
+                this.storeQuantity = asset.getCartridge().getStoreQuantity() != null ? asset.getCartridge().getStoreQuantity() : 0;
             }
             this.printerType = asset.getPrinterType() != null ? asset.getPrinterType().name() : null;
             this.colour = asset.getColour() != null ? asset.getColour().name() : null;
@@ -109,6 +111,14 @@ public class AssetResponse {
 
     public void setCompatibleCartridge(String compatibleCartridge) {
         this.compatibleCartridge = compatibleCartridge;
+    }
+
+    public Integer getStoreQuantity() {
+        return storeQuantity != null ? storeQuantity : 0;
+    }
+
+    public void setStoreQuantity(Integer storeQuantity) {
+        this.storeQuantity = storeQuantity != null ? storeQuantity : 0;
     }
 
     public String getPrinterType() {

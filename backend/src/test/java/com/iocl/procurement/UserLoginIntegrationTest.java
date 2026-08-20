@@ -43,6 +43,9 @@ class UserLoginIntegrationTest {
     private UserRepository userRepository;
 
     @Autowired
+    private com.iocl.procurement.repository.AssetUsageRepository assetUsageRepository;
+
+    @Autowired
     private AdminRepository adminRepository;
 
     @Autowired
@@ -50,6 +53,9 @@ class UserLoginIntegrationTest {
 
     @BeforeEach
     void setUp() {
+        if (assetUsageRepository != null) {
+            assetUsageRepository.deleteAll();
+        }
         userRepository.deleteAll();
         adminRepository.deleteAll();
 

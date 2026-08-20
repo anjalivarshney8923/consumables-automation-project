@@ -31,6 +31,10 @@ public class RateContractDetailsResponse {
     }
 
     public RateContractDetailsResponse(RateContract rc, List<CallUpPurchaseOrder> poList) {
+        this(rc, poList, null);
+    }
+
+    public RateContractDetailsResponse(RateContract rc, List<CallUpPurchaseOrder> poList, Integer executedQuantity) {
         if (rc != null) {
             this.id = rc.getId();
             this.contractDate = rc.getContractDate();
@@ -41,9 +45,8 @@ public class RateContractDetailsResponse {
             this.ratePerUnit = rc.getRatePerUnit();
             this.taxPercentage = rc.getTaxPercentage();
             this.totalContractQuantity = rc.getTotalContractQuantity();
-            this.quantityAlreadyExecuted = rc.getQuantityAlreadyExecuted() != null ? rc.getQuantityAlreadyExecuted() : 0;
+            this.quantityAlreadyExecuted = (executedQuantity != null) ? executedQuantity : (rc.getQuantityAlreadyExecuted() != null ? rc.getQuantityAlreadyExecuted() : 0);
             this.quantityTakenThroughWO = rc.getQuantityTakenThroughWO() != null ? rc.getQuantityTakenThroughWO() : 0;
-            this.netAvailableQuantity = rc.getNetAvailableQuantity();
             this.createdAt = rc.getCreatedAt();
             this.updatedAt = rc.getUpdatedAt();
 
@@ -58,7 +61,8 @@ public class RateContractDetailsResponse {
             }
             this.totalWOQuantity = sumWO;
             int total = this.totalContractQuantity != null ? this.totalContractQuantity : 0;
-            this.remainingContractQuantity = Math.max(0, total - this.quantityAlreadyExecuted - this.totalWOQuantity);
+            this.remainingContractQuantity = Math.max(0, total - this.totalWOQuantity);
+            this.netAvailableQuantity = this.remainingContractQuantity;
         }
     }
 

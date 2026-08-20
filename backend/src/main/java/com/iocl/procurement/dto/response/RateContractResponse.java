@@ -15,6 +15,7 @@ public class RateContractResponse {
     private BigDecimal taxPercentage;
     private Integer totalContractQuantity;
     private Integer quantityAlreadyExecuted;
+    private Integer executedQuantity;
     private Integer quantityTakenThroughWO;
     private Integer netAvailableQuantity;
     private LocalDateTime createdAt;
@@ -24,6 +25,10 @@ public class RateContractResponse {
     }
 
     public RateContractResponse(RateContract rc) {
+        this(rc, null);
+    }
+
+    public RateContractResponse(RateContract rc, Integer executedQuantity) {
         if (rc != null) {
             this.id = rc.getId();
             this.contractDate = rc.getContractDate();
@@ -34,9 +39,11 @@ public class RateContractResponse {
             this.ratePerUnit = rc.getRatePerUnit();
             this.taxPercentage = rc.getTaxPercentage();
             this.totalContractQuantity = rc.getTotalContractQuantity();
-            this.quantityAlreadyExecuted = rc.getQuantityAlreadyExecuted();
-            this.quantityTakenThroughWO = rc.getQuantityTakenThroughWO();
-            this.netAvailableQuantity = rc.getNetAvailableQuantity();
+            this.executedQuantity = (executedQuantity != null) ? executedQuantity : (rc.getQuantityAlreadyExecuted() != null ? rc.getQuantityAlreadyExecuted() : 0);
+            this.quantityAlreadyExecuted = this.executedQuantity;
+            this.quantityTakenThroughWO = rc.getQuantityTakenThroughWO() != null ? rc.getQuantityTakenThroughWO() : 0;
+            int total = this.totalContractQuantity != null ? this.totalContractQuantity : 0;
+            this.netAvailableQuantity = Math.max(0, total - this.quantityTakenThroughWO);
             this.createdAt = rc.getCreatedAt();
             this.updatedAt = rc.getUpdatedAt();
         }
@@ -104,6 +111,16 @@ public class RateContractResponse {
 
     public void setQuantityAlreadyExecuted(Integer quantityAlreadyExecuted) {
         this.quantityAlreadyExecuted = quantityAlreadyExecuted;
+        this.executedQuantity = quantityAlreadyExecuted;
+    }
+
+    public Integer getExecutedQuantity() {
+        return executedQuantity != null ? executedQuantity : quantityAlreadyExecuted;
+    }
+
+    public void setExecutedQuantity(Integer executedQuantity) {
+        this.executedQuantity = executedQuantity;
+        this.quantityAlreadyExecuted = executedQuantity;
     }
 
     public Integer getQuantityTakenThroughWO() {

@@ -10,6 +10,7 @@ import com.iocl.procurement.entity.CallUpPurchaseOrder;
 import com.iocl.procurement.entity.Cartridge;
 import com.iocl.procurement.entity.RateContract;
 import com.iocl.procurement.exception.ResourceNotFoundException;
+import com.iocl.procurement.repository.AssetUsageRepository;
 import com.iocl.procurement.repository.CallUpPurchaseOrderRepository;
 import com.iocl.procurement.repository.CartridgeRepository;
 import com.iocl.procurement.repository.RateContractRepository;
@@ -30,17 +31,20 @@ public class RateContractServiceImpl implements RateContractService {
     private final CartridgeRepository cartridgeRepository;
     private final CallUpPurchaseOrderRepository callUpPORepository;
     private final AlertEvaluationService alertEvaluationService;
+    private final AssetUsageRepository assetUsageRepository;
 
     public RateContractServiceImpl(
             RateContractRepository rateContractRepository,
             CartridgeRepository cartridgeRepository,
             CallUpPurchaseOrderRepository callUpPORepository,
-            AlertEvaluationService alertEvaluationService
+            AlertEvaluationService alertEvaluationService,
+            AssetUsageRepository assetUsageRepository
     ) {
         this.rateContractRepository = rateContractRepository;
         this.cartridgeRepository = cartridgeRepository;
         this.callUpPORepository = callUpPORepository;
         this.alertEvaluationService = alertEvaluationService;
+        this.assetUsageRepository = assetUsageRepository;
     }
 
     @Override
@@ -67,14 +71,20 @@ public class RateContractServiceImpl implements RateContractService {
         // Evaluate procurement and tendering threshold alerts
         alertEvaluationService.evaluateAllAlerts(cartridge);
 
-        return new RateContractResponse(saved);
+        int executed = (cartridge.getId() != null) ? assetUsageRepository.getTotalQuantityUsedByCartridgeId(cartridge.getId()).intValue() : 0;
+        return new RateContractResponse(saved, executed);
     }
 
     @Override
     public List<RateContractResponse> getAllRateContracts() {
         return rateContractRepository.findAllByOrderByCreatedAtDesc()
                 .stream()
-                .map(RateContractResponse::new)
+                .map(rc -> {
+                    int executed = (rc.getCartridge() != null && rc.getCartridge().getId() != null)
+                            ? assetUsageRepository.getTotalQuantityUsedByCartridgeId(rc.getCartridge().getId()).intValue()
+                            : 0;
+                    return new RateContractResponse(rc, executed);
+                })
                 .toList();
     }
 
@@ -82,7 +92,10 @@ public class RateContractServiceImpl implements RateContractService {
     public RateContractResponse getRateContractById(Long id) {
         RateContract rateContract = rateContractRepository.findById(id)
                 .orElseThrow(() -> new ResourceNotFoundException("Rate Contract not found with id: " + id));
-        return new RateContractResponse(rateContract);
+        int executed = (rateContract.getCartridge() != null && rateContract.getCartridge().getId() != null)
+                ? assetUsageRepository.getTotalQuantityUsedByCartridgeId(rateContract.getCartridge().getId()).intValue()
+                : 0;
+        return new RateContractResponse(rateContract, executed);
     }
 
     @Override
@@ -91,7 +104,10 @@ public class RateContractServiceImpl implements RateContractService {
                 .orElseThrow(() -> new ResourceNotFoundException("Rate Contract not found with id: " + id));
 
         List<CallUpPurchaseOrder> poList = callUpPORepository.findByRateContractIdOrderByCreatedAtDesc(id);
-        return new RateContractDetailsResponse(rateContract, poList);
+        int executed = (rateContract.getCartridge() != null && rateContract.getCartridge().getId() != null)
+                ? assetUsageRepository.getTotalQuantityUsedByCartridgeId(rateContract.getCartridge().getId()).intValue()
+                : 0;
+        return new RateContractDetailsResponse(rateContract, poList, executed);
     }
 
     @Override
@@ -134,10 +150,12 @@ public class RateContractServiceImpl implements RateContractService {
         Cartridge cartridge = rc.getCartridge();
         List<CallUpPurchaseOrder> poList = callUpPORepository.findByRateContractIdOrderByCreatedAtDesc(rateContractId);
 
-        // 1. Initial starting balance from Rate Contract
+        // 1. Initial starting balance from Rate Contract (Original contract quantity entered by Admin)
         int contractQty = rc.getTotalContractQuantity() != null ? rc.getTotalContractQuantity() : 0;
-        int executedQty = rc.getQuantityAlreadyExecuted() != null ? rc.getQuantityAlreadyExecuted() : 0;
-        int runningBalance = contractQty - executedQty;
+        int executedQty = (cartridge != null && cartridge.getId() != null)
+                ? assetUsageRepository.getTotalQuantityUsedByCartridgeId(cartridge.getId()).intValue()
+                : 0;
+        int runningBalance = contractQty;
 
         // Master Rate Contract baseline item (starting balance)
         ProcurementHistoryItemResponse rcItem = new ProcurementHistoryItemResponse(rc);
@@ -201,6 +219,8 @@ public class RateContractServiceImpl implements RateContractService {
                 .max(LocalDate::compareTo)
                 .orElse(rc.getContractDate());
 
+        int netAvailable = Math.max(0, contractQty - totalTakenWO);
+
         return new CartridgeProcurementHistoryResponse(
                 cartridge != null ? cartridge.getId() : null,
                 rc.getId(),
@@ -208,7 +228,7 @@ public class RateContractServiceImpl implements RateContractService {
                 cartridge != null ? cartridge.getPartNumber() : null,
                 cartridge != null ? cartridge.getCartridgeName() : null,
                 cartridge != null ? cartridge.getPrinterName() : null,
-                rc.getNetAvailableQuantity(),
+                netAvailable,
                 contractQty,
                 totalTakenWO,
                 executedQty,
@@ -225,23 +245,25 @@ public class RateContractServiceImpl implements RateContractService {
         List<ProcurementHistoryItemResponse> historyItems = new ArrayList<>();
         int totalContractQty = 0;
         int totalTakenWO = 0;
-        int totalExecuted = 0;
+        int totalExecuted = (cartridge != null && cartridge.getId() != null)
+                ? assetUsageRepository.getTotalQuantityUsedByCartridgeId(cartridge.getId()).intValue()
+                : 0;
         int currentNetAvailable = 0;
         int totalPOs = 0;
 
         for (RateContract rc : rateContracts) {
             int cQty = rc.getTotalContractQuantity() != null ? rc.getTotalContractQuantity() : 0;
-            int eQty = rc.getQuantityAlreadyExecuted() != null ? rc.getQuantityAlreadyExecuted() : 0;
             totalContractQty += cQty;
-            totalExecuted += eQty;
-            currentNetAvailable += rc.getNetAvailableQuantity() != null ? rc.getNetAvailableQuantity() : 0;
+            int takenWO = rc.getQuantityTakenThroughWO() != null ? rc.getQuantityTakenThroughWO() : 0;
+            totalTakenWO += takenWO;
+            currentNetAvailable += Math.max(0, cQty - takenWO);
 
-            int rcRunningBalance = cQty - eQty;
+            int rcRunningBalance = cQty;
 
             // Add master Rate Contract item
             ProcurementHistoryItemResponse rcItem = new ProcurementHistoryItemResponse(rc);
             rcItem.setContractQuantity(cQty);
-            rcItem.setQuantityAlreadyExecuted(eQty);
+            rcItem.setQuantityAlreadyExecuted(totalExecuted);
             rcItem.setQuantityTakenThroughWO(0);
             rcItem.setNetAvailableQuantity(rcRunningBalance);
             historyItems.add(rcItem);
@@ -262,7 +284,6 @@ public class RateContractServiceImpl implements RateContractService {
 
                 for (CallUpPurchaseOrder po : chronologicalPOs) {
                     int taken = po.getQuantity() != null ? po.getQuantity() : 0;
-                    totalTakenWO += taken;
                     rcRunningBalance -= taken;
 
                     ProcurementHistoryItemResponse item = new ProcurementHistoryItemResponse(po);
@@ -270,7 +291,7 @@ public class RateContractServiceImpl implements RateContractService {
                         item.setSupplierName(rc.getSupplierName());
                     }
                     item.setContractQuantity(cQty);
-                    item.setQuantityAlreadyExecuted(eQty);
+                    item.setQuantityAlreadyExecuted(totalExecuted);
                     item.setQuantityTakenThroughWO(taken);
                     item.setNetAvailableQuantity(rcRunningBalance);
                     historyItems.add(item);

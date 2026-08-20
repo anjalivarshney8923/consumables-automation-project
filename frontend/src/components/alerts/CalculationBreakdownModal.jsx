@@ -189,7 +189,7 @@ export const CalculationBreakdownModal = ({ item, onClose }) => {
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                 <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
                   <Boxes size={16} color="var(--iocl-saffron)" />
-                  <span style={{ fontSize: '0.875rem', color: '#334155' }}>Store Net Available Quantity</span>
+                  <span style={{ fontSize: '0.875rem', color: '#334155' }}>Store Net Available Quantity (Store Net Qty)</span>
                 </div>
                 <span style={{ fontFamily: 'monospace', fontSize: '1rem', fontWeight: '700', color: '#1E293B' }}>
                   {storeQty} units
@@ -200,7 +200,14 @@ export const CalculationBreakdownModal = ({ item, onClose }) => {
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                 <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
                   <FileSpreadsheet size={16} color="var(--iocl-navy)" />
-                  <span style={{ fontSize: '0.875rem', color: '#334155' }}>Rate Contract Net Available Quantity</span>
+                  <div>
+                    <span style={{ fontSize: '0.875rem', color: '#334155' }}>Rate Contract Net Available (Net Available RC)</span>
+                    {item.totalRCQuantity !== undefined && item.totalRCQuantity !== null && (
+                      <div style={{ fontSize: '0.75rem', color: '#64748B', fontFamily: 'monospace' }}>
+                        Formula: Total RC ({item.totalRCQuantity}) - Qty Taken vide WO ({item.quantityTakenThroughWO || 0})
+                      </div>
+                    )}
+                  </div>
                 </div>
                 <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
                   <span style={{ fontSize: '0.875rem', color: '#64748B', fontWeight: '700' }}>+</span>

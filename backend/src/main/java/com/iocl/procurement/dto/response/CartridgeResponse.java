@@ -9,6 +9,7 @@ public class CartridgeResponse {
     private Integer numberOfPrinters;
     private String cartridgeName;
     private String partNumber;
+    private Integer storeQuantity;
     private Boolean active;
 
     public CartridgeResponse() {
@@ -21,6 +22,7 @@ public class CartridgeResponse {
             this.numberOfPrinters = cartridge.getNumberOfPrinters();
             this.cartridgeName = cartridge.getCartridgeName();
             this.partNumber = cartridge.getPartNumber();
+            this.storeQuantity = cartridge.getStoreQuantity();
             this.active = cartridge.getActive();
         }
     }
@@ -63,6 +65,14 @@ public class CartridgeResponse {
 
     public void setPartNumber(String partNumber) {
         this.partNumber = partNumber;
+    }
+
+    public Integer getStoreQuantity() {
+        return storeQuantity != null ? storeQuantity : 0;
+    }
+
+    public void setStoreQuantity(Integer storeQuantity) {
+        this.storeQuantity = storeQuantity != null ? storeQuantity : 0;
     }
 
     public Boolean getActive() {

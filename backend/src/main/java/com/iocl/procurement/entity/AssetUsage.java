@@ -17,25 +17,53 @@ public class AssetUsage {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
+    // Authoritative Engineer who recorded the transaction (from JWT)
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "user_id", nullable = false)
     private User user;
 
-    @Column(name = "employee_id", nullable = false, length = 50)
+    @Column(name = "recorded_by_employee_no", length = 50)
+    private String recordedByEmployeeNo;
+
+    @Column(name = "recorded_by_employee_name", length = 100)
+    private String recordedByEmployeeName;
+
+    // Beneficiary Employee & Cabin where consumption occurred
+    @Column(name = "beneficiary_employee_no", nullable = false, length = 50)
+    private String beneficiaryEmployeeNo;
+
+    @Column(name = "beneficiary_employee_name", nullable = false, length = 100)
+    private String beneficiaryEmployeeName;
+
+    @Column(name = "beneficiary_department", nullable = false, length = 100)
+    private String beneficiaryDepartment;
+
+    @Column(name = "beneficiary_seat_or_cabin_no", nullable = false, length = 100)
+    private String beneficiarySeatOrCabinNo;
+
+    @Column(name = "beneficiary_location", nullable = false, length = 100)
+    private String beneficiaryLocation;
+
+    @Column(name = "beneficiary_email", length = 255)
+    private String beneficiaryEmail;
+
+    // Legacy column mappings for backward compatibility
+    @Column(name = "employee_id", length = 50)
     private String employeeId;
 
-    @Column(name = "employee_name", nullable = false, length = 100)
+    @Column(name = "employee_name", length = 100)
     private String employeeName;
 
-    @Column(name = "department", nullable = false, length = 100)
+    @Column(name = "department", length = 100)
     private String department;
 
-    @Column(name = "seat_or_cabin_no", nullable = false, length = 100)
+    @Column(name = "seat_or_cabin_no", length = 100)
     private String seatOrCabinNo;
 
-    @Column(name = "location", nullable = false, length = 100)
+    @Column(name = "location", length = 100)
     private String location;
 
+    // Consumable & Asset relationships
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "asset_id")
     private Asset asset;
@@ -89,11 +117,55 @@ public class AssetUsage {
         if (this.printerType == null) {
             this.printerType = PrinterType.BLACK_AND_WHITE;
         }
+        syncLegacyFields();
     }
 
     @PreUpdate
     protected void onUpdate() {
         this.updatedAt = LocalDateTime.now();
+        syncLegacyFields();
+    }
+
+    private void syncLegacyFields() {
+        // Sync legacy columns with beneficiary / recorded by fields for safe backward compatibility
+        if (this.beneficiaryEmployeeNo != null) {
+            this.employeeId = this.beneficiaryEmployeeNo;
+        } else if (this.employeeId != null) {
+            this.beneficiaryEmployeeNo = this.employeeId;
+        }
+
+        if (this.beneficiaryEmployeeName != null) {
+            this.employeeName = this.beneficiaryEmployeeName;
+        } else if (this.employeeName != null) {
+            this.beneficiaryEmployeeName = this.employeeName;
+        }
+
+        if (this.beneficiaryDepartment != null) {
+            this.department = this.beneficiaryDepartment;
+        } else if (this.department != null) {
+            this.beneficiaryDepartment = this.department;
+        }
+
+        if (this.beneficiarySeatOrCabinNo != null) {
+            this.seatOrCabinNo = this.beneficiarySeatOrCabinNo;
+        } else if (this.seatOrCabinNo != null) {
+            this.beneficiarySeatOrCabinNo = this.seatOrCabinNo;
+        }
+
+        if (this.beneficiaryLocation != null) {
+            this.location = this.beneficiaryLocation;
+        } else if (this.location != null) {
+            this.beneficiaryLocation = this.location;
+        }
+
+        if (this.user != null) {
+            if (this.recordedByEmployeeNo == null) {
+                this.recordedByEmployeeNo = this.user.getEmployeeId();
+            }
+            if (this.recordedByEmployeeName == null) {
+                this.recordedByEmployeeName = this.user.getFullName();
+            }
+        }
     }
 
     // Getters and Setters
@@ -114,44 +186,114 @@ public class AssetUsage {
         this.user = user;
     }
 
+    public String getRecordedByEmployeeNo() {
+        return recordedByEmployeeNo;
+    }
+
+    public void setRecordedByEmployeeNo(String recordedByEmployeeNo) {
+        this.recordedByEmployeeNo = recordedByEmployeeNo;
+    }
+
+    public String getRecordedByEmployeeName() {
+        return recordedByEmployeeName;
+    }
+
+    public void setRecordedByEmployeeName(String recordedByEmployeeName) {
+        this.recordedByEmployeeName = recordedByEmployeeName;
+    }
+
+    public String getBeneficiaryEmployeeNo() {
+        return beneficiaryEmployeeNo != null ? beneficiaryEmployeeNo : employeeId;
+    }
+
+    public void setBeneficiaryEmployeeNo(String beneficiaryEmployeeNo) {
+        this.beneficiaryEmployeeNo = beneficiaryEmployeeNo;
+        this.employeeId = beneficiaryEmployeeNo;
+    }
+
+    public String getBeneficiaryEmployeeName() {
+        return beneficiaryEmployeeName != null ? beneficiaryEmployeeName : employeeName;
+    }
+
+    public void setBeneficiaryEmployeeName(String beneficiaryEmployeeName) {
+        this.beneficiaryEmployeeName = beneficiaryEmployeeName;
+        this.employeeName = beneficiaryEmployeeName;
+    }
+
+    public String getBeneficiaryDepartment() {
+        return beneficiaryDepartment != null ? beneficiaryDepartment : department;
+    }
+
+    public void setBeneficiaryDepartment(String beneficiaryDepartment) {
+        this.beneficiaryDepartment = beneficiaryDepartment;
+        this.department = beneficiaryDepartment;
+    }
+
+    public String getBeneficiarySeatOrCabinNo() {
+        return beneficiarySeatOrCabinNo != null ? beneficiarySeatOrCabinNo : seatOrCabinNo;
+    }
+
+    public void setBeneficiarySeatOrCabinNo(String beneficiarySeatOrCabinNo) {
+        this.beneficiarySeatOrCabinNo = beneficiarySeatOrCabinNo;
+        this.seatOrCabinNo = beneficiarySeatOrCabinNo;
+    }
+
+    public String getBeneficiaryLocation() {
+        return beneficiaryLocation != null ? beneficiaryLocation : location;
+    }
+
+    public void setBeneficiaryLocation(String beneficiaryLocation) {
+        this.beneficiaryLocation = beneficiaryLocation;
+        this.location = beneficiaryLocation;
+    }
+
+    public String getBeneficiaryEmail() {
+        return beneficiaryEmail;
+    }
+
+    public void setBeneficiaryEmail(String beneficiaryEmail) {
+        this.beneficiaryEmail = beneficiaryEmail;
+    }
+
+    // Legacy getters/setters for full compatibility with existing code
     public String getEmployeeId() {
-        return employeeId;
+        return getBeneficiaryEmployeeNo();
     }
 
     public void setEmployeeId(String employeeId) {
-        this.employeeId = employeeId;
+        setBeneficiaryEmployeeNo(employeeId);
     }
 
     public String getEmployeeName() {
-        return employeeName;
+        return getBeneficiaryEmployeeName();
     }
 
     public void setEmployeeName(String employeeName) {
-        this.employeeName = employeeName;
+        setBeneficiaryEmployeeName(employeeName);
     }
 
     public String getDepartment() {
-        return department;
+        return getBeneficiaryDepartment();
     }
 
     public void setDepartment(String department) {
-        this.department = department;
+        setBeneficiaryDepartment(department);
     }
 
     public String getSeatOrCabinNo() {
-        return seatOrCabinNo;
+        return getBeneficiarySeatOrCabinNo();
     }
 
     public void setSeatOrCabinNo(String seatOrCabinNo) {
-        this.seatOrCabinNo = seatOrCabinNo;
+        setBeneficiarySeatOrCabinNo(seatOrCabinNo);
     }
 
     public String getLocation() {
-        return location;
+        return getBeneficiaryLocation();
     }
 
     public void setLocation(String location) {
-        this.location = location;
+        setBeneficiaryLocation(location);
     }
 
     public Asset getAsset() {

@@ -32,6 +32,7 @@ public class EmailNotificationServiceImpl implements EmailNotificationService {
     private final RateContractRepository rateContractRepository;
     private final AdminRepository adminRepository;
     private final ProcurementAlertRepository alertRepository;
+    private final com.iocl.procurement.repository.AssetUsageRepository assetUsageRepository;
 
     @Value("${spring.mail.host:}")
     private String mailHost;
@@ -49,12 +50,14 @@ public class EmailNotificationServiceImpl implements EmailNotificationService {
             JavaMailSender mailSender,
             RateContractRepository rateContractRepository,
             AdminRepository adminRepository,
-            ProcurementAlertRepository alertRepository
+            ProcurementAlertRepository alertRepository,
+            com.iocl.procurement.repository.AssetUsageRepository assetUsageRepository
     ) {
         this.mailSender = mailSender;
         this.rateContractRepository = rateContractRepository;
         this.adminRepository = adminRepository;
         this.alertRepository = alertRepository;
+        this.assetUsageRepository = assetUsageRepository;
     }
 
     @Override
@@ -83,9 +86,9 @@ public class EmailNotificationServiceImpl implements EmailNotificationService {
         int totalRCQuantity = rateContracts.stream()
                 .mapToInt(rc -> rc.getTotalContractQuantity() != null ? rc.getTotalContractQuantity() : 0)
                 .sum();
-        int executedQuantity = rateContracts.stream()
-                .mapToInt(rc -> rc.getQuantityAlreadyExecuted() != null ? rc.getQuantityAlreadyExecuted() : 0)
-                .sum();
+        int executedQuantity = (cartridge.getId() != null)
+                ? assetUsageRepository.getTotalQuantityUsedByCartridgeId(cartridge.getId()).intValue()
+                : 0;
         int callUpPOQuantity = rateContracts.stream()
                 .mapToInt(rc -> rc.getQuantityTakenThroughWO() != null ? rc.getQuantityTakenThroughWO() : 0)
                 .sum();
@@ -99,7 +102,7 @@ public class EmailNotificationServiceImpl implements EmailNotificationService {
             supplierNames = "Rate Contract Supplier";
         }
 
-        int finalNetAvailable = (netAvailable != null) ? netAvailable : (totalRCQuantity - executedQuantity - callUpPOQuantity);
+        int finalNetAvailable = (netAvailable != null) ? netAvailable : Math.max(0, totalRCQuantity - callUpPOQuantity);
         int finalThreshold = (poThreshold != null) ? poThreshold : alert.getThreshold();
 
         String subject = String.format("IOCL Procurement Alert - Rate Contract Threshold Reached [%s]", cartridge.getPartNumber());
@@ -568,6 +571,141 @@ public class EmailNotificationServiceImpl implements EmailNotificationService {
         sb.append("This is an automatically generated report from the IOCL Consumables Management System.\n");
 
         return sb.toString();
+    }
+
+    @Override
+    public boolean sendBeneficiaryUsageNotificationEmail(com.iocl.procurement.entity.AssetUsage usage) {
+        if (usage == null) {
+            logger.warn("Cannot send beneficiary usage email: AssetUsage is null");
+            return false;
+        }
+
+        String recipientEmail = usage.getBeneficiaryEmail();
+        if (recipientEmail == null || recipientEmail.isBlank()) {
+            logger.warn("Cannot send beneficiary usage email: Beneficiary email is empty for usage ID: {}", usage.getId());
+            return false;
+        }
+
+        if (!mailEnabled) {
+            logger.info("Email notification is disabled via app.mail.enabled=false. Skipping beneficiary usage email for usage ID: {}, recipient: {}",
+                    usage.getId(), recipientEmail);
+            return true;
+        }
+
+        String beneficiaryName = usage.getBeneficiaryEmployeeName() != null ? usage.getBeneficiaryEmployeeName() : "Employee";
+        String beneficiaryEmpNo = usage.getBeneficiaryEmployeeNo() != null ? usage.getBeneficiaryEmployeeNo() : "N/A";
+        String beneficiaryDept = usage.getBeneficiaryDepartment() != null ? usage.getBeneficiaryDepartment() : "N/A";
+        String beneficiaryLocation = usage.getBeneficiaryLocation() != null ? usage.getBeneficiaryLocation() : "N/A";
+        String beneficiaryCabin = usage.getBeneficiarySeatOrCabinNo() != null ? usage.getBeneficiarySeatOrCabinNo() : "N/A";
+
+        String cartridgeName = usage.getPartNumber() != null ? usage.getPartNumber() : (usage.getCartridgeName() != null ? usage.getCartridgeName() : "N/A");
+        String colourStr = usage.getColour() != null ? usage.getColour().name() : "N/A";
+        int quantityUsed = usage.getQuantityUsed() != null ? usage.getQuantityUsed() : 1;
+        String usageDateStr = usage.getUsageDate() != null
+                ? usage.getUsageDate().format(DateTimeFormatter.ofPattern("dd-MMM-yyyy"))
+                : java.time.LocalDate.now().format(DateTimeFormatter.ofPattern("dd-MMM-yyyy"));
+
+        String engineerName = usage.getRecordedByEmployeeName() != null
+                ? usage.getRecordedByEmployeeName()
+                : (usage.getUser() != null ? usage.getUser().getFullName() : "Recording Engineer");
+        String engineerNo = usage.getRecordedByEmployeeNo() != null
+                ? usage.getRecordedByEmployeeNo()
+                : (usage.getUser() != null ? usage.getUser().getEmployeeId() : "N/A");
+
+        String subject = "Cartridge Usage Notification";
+
+        String plainText =
+                "Dear " + beneficiaryName + ",\n\n" +
+                "This is to inform you that a cartridge has been recorded as used for your workstation/cabin.\n\n" +
+                "Usage Details:\n\n" +
+                "Employee No: " + beneficiaryEmpNo + "\n" +
+                "Department: " + beneficiaryDept + "\n" +
+                "Location: " + beneficiaryLocation + "\n" +
+                "Seat/Cabin: " + beneficiaryCabin + "\n\n" +
+                "Cartridge: " + cartridgeName + "\n" +
+                "Colour: " + colourStr + "\n" +
+                "Quantity Used: " + quantityUsed + "\n" +
+                "Usage Date: " + usageDateStr + "\n\n" +
+                "Recorded By:\n" +
+                engineerName + "\n" +
+                "Engineer No: " + engineerNo + "\n\n" +
+                "This notification is for your information and record.\n\n" +
+                "Regards,\n" +
+                "IOCL Consumables Procurement System\n";
+
+        String htmlText =
+                "<!DOCTYPE html>" +
+                "<html>" +
+                "<head><meta charset='UTF-8'>" +
+                "<style>" +
+                "body { font-family: 'Segoe UI', Arial, sans-serif; background-color: #f8fafc; color: #1e293b; margin: 0; padding: 20px; }" +
+                ".container { max-width: 600px; margin: 0 auto; background: #ffffff; border-radius: 8px; border: 1px solid #e2e8f0; overflow: hidden; box-shadow: 0 4px 6px -1px rgba(0,0,0,0.05); }" +
+                ".header { background: #002D62; color: #ffffff; padding: 24px; text-align: center; border-bottom: 4px solid #FF6600; }" +
+                ".header h1 { margin: 0; font-size: 20px; font-weight: 700; letter-spacing: 0.5px; }" +
+                ".header p { margin: 4px 0 0 0; font-size: 13px; opacity: 0.9; color: #cbd5e1; }" +
+                ".content { padding: 24px; }" +
+                ".card { background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 6px; padding: 16px; margin: 16px 0; }" +
+                ".detail-row { display: flex; justify-content: space-between; padding: 6px 0; border-bottom: 1px solid #f1f5f9; font-size: 14px; }" +
+                ".detail-label { color: #64748B; font-weight: 500; }" +
+                ".detail-value { color: #0f172a; font-weight: 600; text-align: right; }" +
+                ".recorder-box { background: #eff6ff; border-left: 4px solid #002D62; padding: 12px 16px; border-radius: 4px; margin-top: 16px; font-size: 13px; }" +
+                ".footer { background: #f1f5f9; padding: 16px; text-align: center; font-size: 12px; color: #64748b; border-top: 1px solid #e2e8f0; }" +
+                "</style></head>" +
+                "<body>" +
+                "<div class='container'>" +
+                "  <div class='header'>" +
+                "    <h1>Indian Oil Corporation Limited</h1>" +
+                "    <p>Consumables & Procurement Management System</p>" +
+                "  </div>" +
+                "  <div class='content'>" +
+                "    <h2 style='font-size: 16px; color: #002D62; margin-top: 0;'>Cartridge Usage Notification</h2>" +
+                "    <p>Dear <strong>" + escapeHtml(beneficiaryName) + "</strong>,</p>" +
+                "    <p>This is to inform you that a cartridge has been recorded as used for your workstation/cabin.</p>" +
+                "    <div class='card'>" +
+                "      <div class='detail-row'><span class='detail-label'>Employee No:</span><span class='detail-value'>" + escapeHtml(beneficiaryEmpNo) + "</span></div>" +
+                "      <div class='detail-row'><span class='detail-label'>Department:</span><span class='detail-value'>" + escapeHtml(beneficiaryDept) + "</span></div>" +
+                "      <div class='detail-row'><span class='detail-label'>Location:</span><span class='detail-value'>" + escapeHtml(beneficiaryLocation) + "</span></div>" +
+                "      <div class='detail-row'><span class='detail-label'>Seat / Cabin:</span><span class='detail-value'>" + escapeHtml(beneficiaryCabin) + "</span></div>" +
+                "      <div class='detail-row'><span class='detail-label'>Cartridge:</span><span class='detail-value' style='color: #002D62; font-weight: 700;'>" + escapeHtml(cartridgeName) + "</span></div>" +
+                "      <div class='detail-row'><span class='detail-label'>Colour:</span><span class='detail-value'>" + escapeHtml(colourStr) + "</span></div>" +
+                "      <div class='detail-row'><span class='detail-label'>Quantity Used:</span><span class='detail-value' style='color: #d97706; font-weight: 700;'>" + quantityUsed + " unit(s)</span></div>" +
+                "      <div class='detail-row' style='border-bottom: none;'><span class='detail-label'>Usage Date:</span><span class='detail-value'>" + escapeHtml(usageDateStr) + "</span></div>" +
+                "    </div>" +
+                "    <div class='recorder-box'>" +
+                "      <strong>Recorded By:</strong> " + escapeHtml(engineerName) + " (Engineer No: " + escapeHtml(engineerNo) + ")" +
+                "    </div>" +
+                "    <p style='font-size: 12px; color: #64748B; margin-top: 20px;'>This notification is for your information and record.</p>" +
+                "  </div>" +
+                "  <div class='footer'>" +
+                "    <p><strong>IOCL Consumables Procurement System</strong></p>" +
+                "    <p style='color:#94A3B8; margin: 4px 0 0 0;'>Please do not reply directly to this automated notification.</p>" +
+                "  </div>" +
+                "</div>" +
+                "</body></html>";
+
+        try {
+            MimeMessage mimeMessage = mailSender.createMimeMessage();
+            MimeMessageHelper helper = new MimeMessageHelper(mimeMessage, true, "UTF-8");
+
+            helper.setFrom(mailFrom);
+            helper.setTo(recipientEmail.trim());
+            helper.setSubject(subject);
+            helper.setText(plainText, htmlText);
+
+            mailSender.send(mimeMessage);
+            logger.info("Beneficiary asset usage notification email sent successfully for usage ID: {} to recipient: {}",
+                    usage.getId(), recipientEmail.trim());
+            return true;
+
+        } catch (MessagingException | MailException e) {
+            logger.error("Failed to send beneficiary asset usage email for usage ID: {}, recipient: {}",
+                    usage.getId(), recipientEmail, e);
+            return false;
+        } catch (Exception e) {
+            logger.error("Unexpected error sending beneficiary asset usage email for usage ID: {}, recipient: {}",
+                    usage.getId(), recipientEmail, e);
+            return false;
+        }
     }
 
     private String escapeHtml(String text) {

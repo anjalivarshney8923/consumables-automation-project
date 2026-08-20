@@ -423,7 +423,7 @@ export const UserDashboard = () => {
                 </h2>
               </div>
               <Link
-                to="/user/usage-history"
+                to="/user/asset-history"
                 style={{
                   fontSize: '0.8125rem',
                   fontWeight: '700',
@@ -463,7 +463,7 @@ export const UserDashboard = () => {
                         {item.partNumber || item.cartridgeName}
                       </div>
                       <div style={{ fontSize: '0.75rem', color: '#64748B', marginTop: '0.15rem' }}>
-                        {item.printerModel} · {item.usageDate}
+                        For: <strong>{item.beneficiaryEmployeeName || item.employeeName || 'Beneficiary'}</strong> ({item.beneficiarySeatOrCabinNo || item.seatOrCabinNo || 'Cabin'}) · {item.usageDate}
                       </div>
                     </div>
                     <div style={{ textAlign: 'right' }}>

@@ -21,6 +21,7 @@ import { UserAssets } from '../pages/user/UserAssets';
 import { UserActivity } from '../pages/user/UserActivity';
 import { UserNotifications } from '../pages/user/UserNotifications';
 import { AssetUsage } from '../pages/user/AssetUsage';
+import { AssetHistory } from '../pages/user/AssetHistory';
 import { UsageHistory } from '../pages/user/UsageHistory';
 import { AssignedPOs } from '../pages/user/AssignedPOs';
 import { POUserDetails } from '../pages/user/POUserDetails';
@@ -72,6 +73,7 @@ export const AppRoutes = () => {
         <Route path="assets" element={<UserAssets />} />
         <Route path="usage" element={<AssetUsage />} />
         <Route path="record-usage" element={<AssetUsage />} />
+        <Route path="asset-history" element={<AssetHistory />} />
         <Route path="usage-history" element={<UsageHistory />} />
         <Route path="activity" element={<UserActivity />} />
         <Route path="notifications" element={<UserNotifications />} />

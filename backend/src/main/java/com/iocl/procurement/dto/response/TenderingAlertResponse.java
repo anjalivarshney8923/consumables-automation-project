@@ -9,6 +9,8 @@ public class TenderingAlertResponse {
     private String cartridgeName;
     private String printerModel;
     private Integer numberOfPrinters;
+    private Integer totalRCQuantity;
+    private Integer quantityTakenThroughWO;
     private Integer storeNetAvailableQuantity;
     private Integer rateContractNetAvailableQuantity;
     private Integer combinedNetAvailableQuantity;
@@ -38,11 +40,34 @@ public class TenderingAlertResponse {
             Boolean isUrgent,
             LocalDateTime updatedAt
     ) {
+        this(cartridgeId, partNumber, cartridgeName, printerModel, numberOfPrinters, null, null, storeNetAvailableQuantity, rateContractNetAvailableQuantity, combinedNetAvailableQuantity, tenderingThreshold, difference, status, priority, isUrgent, updatedAt);
+    }
+
+    public TenderingAlertResponse(
+            Long cartridgeId,
+            String partNumber,
+            String cartridgeName,
+            String printerModel,
+            Integer numberOfPrinters,
+            Integer totalRCQuantity,
+            Integer quantityTakenThroughWO,
+            Integer storeNetAvailableQuantity,
+            Integer rateContractNetAvailableQuantity,
+            Integer combinedNetAvailableQuantity,
+            Integer tenderingThreshold,
+            Integer difference,
+            String status,
+            String priority,
+            Boolean isUrgent,
+            LocalDateTime updatedAt
+    ) {
         this.cartridgeId = cartridgeId;
         this.partNumber = partNumber;
         this.cartridgeName = cartridgeName;
         this.printerModel = printerModel;
         this.numberOfPrinters = numberOfPrinters;
+        this.totalRCQuantity = totalRCQuantity;
+        this.quantityTakenThroughWO = quantityTakenThroughWO;
         this.storeNetAvailableQuantity = storeNetAvailableQuantity;
         this.rateContractNetAvailableQuantity = rateContractNetAvailableQuantity;
         this.combinedNetAvailableQuantity = combinedNetAvailableQuantity;
@@ -94,6 +119,22 @@ public class TenderingAlertResponse {
 
     public void setNumberOfPrinters(Integer numberOfPrinters) {
         this.numberOfPrinters = numberOfPrinters;
+    }
+
+    public Integer getTotalRCQuantity() {
+        return totalRCQuantity;
+    }
+
+    public void setTotalRCQuantity(Integer totalRCQuantity) {
+        this.totalRCQuantity = totalRCQuantity;
+    }
+
+    public Integer getQuantityTakenThroughWO() {
+        return quantityTakenThroughWO;
+    }
+
+    public void setQuantityTakenThroughWO(Integer quantityTakenThroughWO) {
+        this.quantityTakenThroughWO = quantityTakenThroughWO;
     }
 
     public Integer getStoreNetAvailableQuantity() {

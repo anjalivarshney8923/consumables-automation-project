@@ -43,8 +43,8 @@ export const UserSidebar = ({ isOpen, onClose, isCollapsed, onToggleCollapse }) 
       icon: ClipboardEdit
     },
     {
-      label: 'My Activity',
-      path: '/user/activity',
+      label: 'Asset History',
+      path: '/user/asset-history',
       icon: History
     },
     {

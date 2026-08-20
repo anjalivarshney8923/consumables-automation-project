@@ -152,8 +152,8 @@ public class DailyPOThresholdReportTest {
         rc.setRatePerUnit(new BigDecimal("3500.00"));
         rc.setTaxPercentage(new BigDecimal("18.00"));
         rc.setTotalContractQuantity(10);
-        rc.setQuantityAlreadyExecuted(5);
-        rc.setQuantityTakenThroughWO(5); // Net Available = 10 - 5 - 5 = 0
+        rc.setQuantityAlreadyExecuted(0);
+        rc.setQuantityTakenThroughWO(10); // Net Available = 10 - 10 = 0
         rateContractRepository.save(rc);
 
         List<DailyPOThresholdReportItem> reportItems = dailyReportService.generateAndSendDailyReport();
@@ -229,7 +229,7 @@ public class DailyPOThresholdReportTest {
         rc3.setRatePerUnit(new BigDecimal("5000"));
         rc3.setTaxPercentage(new BigDecimal("18"));
         rc3.setTotalContractQuantity(50);
-        rc3.setQuantityAlreadyExecuted(50); // Net = 0
+        rc3.setQuantityTakenThroughWO(50); // Net = 0
         rateContractRepository.save(rc3);
 
         // Item 4: HEALTHY (Net Available 500 >= Threshold 50) -> Must be excluded

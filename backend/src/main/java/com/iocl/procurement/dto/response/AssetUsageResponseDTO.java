@@ -7,12 +7,25 @@ import java.time.LocalDateTime;
 public class AssetUsageResponseDTO {
 
     private Long id;
-    private Long userId;
-    private String employeeNo;
-    private String employeeName;
-    private String department;
-    private String seatOrCabinNo;
-    private String location;
+
+    // Authoritative Engineer who recorded the usage (from JWT)
+    private Long recordedByUserId;
+    private String recordedByEmployeeNo;
+    private String recordedByEmployeeName;
+
+    // Beneficiary Employee & Cabin where consumption occurred
+    private String beneficiaryEmployeeNo;
+    private String beneficiaryEmployeeName;
+    private String beneficiaryDepartment;
+    private String beneficiarySeatOrCabinNo;
+    private String beneficiaryLocation;
+    private String beneficiaryEmail;
+
+    // Notification status
+    private Boolean emailNotificationSent;
+    private String message;
+
+    // Asset & Consumable details
     private Long assetId;
     private String printerModel;
     private String printerType;
@@ -26,18 +39,52 @@ public class AssetUsageResponseDTO {
     private String workOrderReference;
     private LocalDateTime createdAt;
 
+    // Legacy fields for backward compatibility
+    private Long userId;
+    private String employeeNo;
+    private String employeeName;
+    private String department;
+    private String seatOrCabinNo;
+    private String location;
+
     public AssetUsageResponseDTO() {
     }
 
     public AssetUsageResponseDTO(AssetUsage usage) {
         if (usage != null) {
             this.id = usage.getId();
-            this.userId = usage.getUser() != null ? usage.getUser().getId() : null;
-            this.employeeNo = usage.getEmployeeId();
-            this.employeeName = usage.getEmployeeName();
-            this.department = usage.getDepartment();
-            this.seatOrCabinNo = usage.getSeatOrCabinNo();
-            this.location = usage.getLocation();
+
+            // Authoritative Recorded By
+            if (usage.getUser() != null) {
+                this.recordedByUserId = usage.getUser().getId();
+                this.recordedByEmployeeNo = usage.getRecordedByEmployeeNo() != null
+                        ? usage.getRecordedByEmployeeNo()
+                        : usage.getUser().getEmployeeId();
+                this.recordedByEmployeeName = usage.getRecordedByEmployeeName() != null
+                        ? usage.getRecordedByEmployeeName()
+                        : usage.getUser().getFullName();
+            } else {
+                this.recordedByEmployeeNo = usage.getRecordedByEmployeeNo();
+                this.recordedByEmployeeName = usage.getRecordedByEmployeeName();
+            }
+
+            // Beneficiary details
+            this.beneficiaryEmployeeNo = usage.getBeneficiaryEmployeeNo();
+            this.beneficiaryEmployeeName = usage.getBeneficiaryEmployeeName();
+            this.beneficiaryDepartment = usage.getBeneficiaryDepartment();
+            this.beneficiarySeatOrCabinNo = usage.getBeneficiarySeatOrCabinNo();
+            this.beneficiaryLocation = usage.getBeneficiaryLocation();
+            this.beneficiaryEmail = usage.getBeneficiaryEmail();
+
+            // Legacy compatibility mapping
+            this.userId = this.recordedByUserId;
+            this.employeeNo = this.beneficiaryEmployeeNo;
+            this.employeeName = this.beneficiaryEmployeeName;
+            this.department = this.beneficiaryDepartment;
+            this.seatOrCabinNo = this.beneficiarySeatOrCabinNo;
+            this.location = this.beneficiaryLocation;
+
+            // Asset & Cartridge details
             this.assetId = usage.getAsset() != null ? usage.getAsset().getId() : null;
             this.printerModel = usage.getPrinterModel();
             this.printerType = usage.getPrinterType() != null ? usage.getPrinterType().name() : null;
@@ -63,8 +110,96 @@ public class AssetUsageResponseDTO {
         this.id = id;
     }
 
+    public Long getRecordedByUserId() {
+        return recordedByUserId;
+    }
+
+    public void setRecordedByUserId(Long recordedByUserId) {
+        this.recordedByUserId = recordedByUserId;
+    }
+
+    public String getRecordedByEmployeeNo() {
+        return recordedByEmployeeNo;
+    }
+
+    public void setRecordedByEmployeeNo(String recordedByEmployeeNo) {
+        this.recordedByEmployeeNo = recordedByEmployeeNo;
+    }
+
+    public String getRecordedByEmployeeName() {
+        return recordedByEmployeeName;
+    }
+
+    public void setRecordedByEmployeeName(String recordedByEmployeeName) {
+        this.recordedByEmployeeName = recordedByEmployeeName;
+    }
+
+    public String getBeneficiaryEmployeeNo() {
+        return beneficiaryEmployeeNo;
+    }
+
+    public void setBeneficiaryEmployeeNo(String beneficiaryEmployeeNo) {
+        this.beneficiaryEmployeeNo = beneficiaryEmployeeNo;
+    }
+
+    public String getBeneficiaryEmployeeName() {
+        return beneficiaryEmployeeName;
+    }
+
+    public void setBeneficiaryEmployeeName(String beneficiaryEmployeeName) {
+        this.beneficiaryEmployeeName = beneficiaryEmployeeName;
+    }
+
+    public String getBeneficiaryDepartment() {
+        return beneficiaryDepartment;
+    }
+
+    public void setBeneficiaryDepartment(String beneficiaryDepartment) {
+        this.beneficiaryDepartment = beneficiaryDepartment;
+    }
+
+    public String getBeneficiarySeatOrCabinNo() {
+        return beneficiarySeatOrCabinNo;
+    }
+
+    public void setBeneficiarySeatOrCabinNo(String beneficiarySeatOrCabinNo) {
+        this.beneficiarySeatOrCabinNo = beneficiarySeatOrCabinNo;
+    }
+
+    public String getBeneficiaryLocation() {
+        return beneficiaryLocation;
+    }
+
+    public void setBeneficiaryLocation(String beneficiaryLocation) {
+        this.beneficiaryLocation = beneficiaryLocation;
+    }
+
+    public String getBeneficiaryEmail() {
+        return beneficiaryEmail;
+    }
+
+    public void setBeneficiaryEmail(String beneficiaryEmail) {
+        this.beneficiaryEmail = beneficiaryEmail;
+    }
+
+    public Boolean getEmailNotificationSent() {
+        return emailNotificationSent;
+    }
+
+    public void setEmailNotificationSent(Boolean emailNotificationSent) {
+        this.emailNotificationSent = emailNotificationSent;
+    }
+
+    public String getMessage() {
+        return message;
+    }
+
+    public void setMessage(String message) {
+        this.message = message;
+    }
+
     public Long getUserId() {
-        return userId;
+        return userId != null ? userId : recordedByUserId;
     }
 
     public void setUserId(Long userId) {
@@ -72,7 +207,7 @@ public class AssetUsageResponseDTO {
     }
 
     public String getEmployeeNo() {
-        return employeeNo;
+        return employeeNo != null ? employeeNo : beneficiaryEmployeeNo;
     }
 
     public void setEmployeeNo(String employeeNo) {
@@ -80,7 +215,7 @@ public class AssetUsageResponseDTO {
     }
 
     public String getEmployeeName() {
-        return employeeName;
+        return employeeName != null ? employeeName : beneficiaryEmployeeName;
     }
 
     public void setEmployeeName(String employeeName) {
@@ -88,7 +223,7 @@ public class AssetUsageResponseDTO {
     }
 
     public String getDepartment() {
-        return department;
+        return department != null ? department : beneficiaryDepartment;
     }
 
     public void setDepartment(String department) {
@@ -96,7 +231,7 @@ public class AssetUsageResponseDTO {
     }
 
     public String getSeatOrCabinNo() {
-        return seatOrCabinNo;
+        return seatOrCabinNo != null ? seatOrCabinNo : beneficiarySeatOrCabinNo;
     }
 
     public void setSeatOrCabinNo(String seatOrCabinNo) {
@@ -104,7 +239,7 @@ public class AssetUsageResponseDTO {
     }
 
     public String getLocation() {
-        return location;
+        return location != null ? location : beneficiaryLocation;
     }
 
     public void setLocation(String location) {

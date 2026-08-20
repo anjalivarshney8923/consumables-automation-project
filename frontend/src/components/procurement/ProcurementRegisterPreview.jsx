@@ -69,7 +69,7 @@ export const ProcurementRegisterPreview = ({ rateContracts = [], loading = false
                 <th className="text-right">Contract Qty</th>
                 <th className="text-right">Qty Already Executed</th>
                 <th className="text-right">Qty Taken vide WO</th>
-                <th className="text-right">Net Available</th>
+                <th className="text-right">Net Available in RC</th>
                 <th className="text-right">Action</th>
               </tr>
             </thead>

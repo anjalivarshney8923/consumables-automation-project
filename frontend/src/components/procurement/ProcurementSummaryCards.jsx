@@ -9,7 +9,7 @@ export const ProcurementSummaryCards = ({ records = [] }) => {
   ).length;
 
   const totalContractQty = records.reduce(
-    (sum, r) => sum + (Number(r.totalContractQuantity) || 0),
+    (sum, r) => sum + (Number(r.totalContractQuantity ?? r.contractQuantity) || 0),
     0
   );
 

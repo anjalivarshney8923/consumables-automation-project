@@ -324,4 +324,27 @@ public class EmailNotificationServiceTest {
         assertNotNull(alert.getEmailFailureReason());
         assertTrue(alert.getEmailFailureReason().contains("SMTP connection refused"));
     }
+
+    @Test
+    @DisplayName("Beneficiary Email: Sends notification email with correct details to beneficiary")
+    void testSendBeneficiaryUsageNotificationEmail() {
+        AssetUsage usage = new AssetUsage();
+        usage.setRecordedByEmployeeNo("ENG101");
+        usage.setRecordedByEmployeeName("Rahul Sharma");
+        usage.setBeneficiaryEmployeeNo("EMP205");
+        usage.setBeneficiaryEmployeeName("Anjali Varshney");
+        usage.setBeneficiaryDepartment("IT");
+        usage.setBeneficiaryLocation("Head Office");
+        usage.setBeneficiarySeatOrCabinNo("A-204");
+        usage.setBeneficiaryEmail("anjali.varshney@iocl.co.in");
+        usage.setPartNumber("070-BLK");
+        usage.setCartridgeName("Canon 070 Black Toner");
+        usage.setColour(CartridgeColor.BLACK);
+        usage.setQuantityUsed(1);
+        usage.setUsageDate(LocalDate.of(2026, 8, 20));
+
+        boolean result = emailNotificationService.sendBeneficiaryUsageNotificationEmail(usage);
+        assertTrue(result);
+        verify(mailSender, times(1)).send(any(MimeMessage.class));
+    }
 }

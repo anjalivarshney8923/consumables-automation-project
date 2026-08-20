@@ -59,7 +59,7 @@ export const RateContractDetails = () => {
     : (contractDetails?.netAvailableQuantity || 0);
 
   const executionPercentage = totalContractQty > 0
-    ? Math.min(100, Math.round(((totalWOQty + qtyExecuted) / totalContractQty) * 100))
+    ? Math.min(100, Math.round((totalWOQty / totalContractQty) * 100))
     : 0;
 
   return (
@@ -445,7 +445,7 @@ export const RateContractDetails = () => {
                 </div>
               </div>
               <span style={{ fontSize: '0.6875rem', color: '#64748B', marginTop: '0.5rem', display: 'block' }}>
-                Historically executed before WO
+                Total units consumed by users through Asset Usage
               </span>
             </div>
 
@@ -503,7 +503,7 @@ export const RateContractDetails = () => {
                 Contract Allocation Progress
               </span>
               <span style={{ fontSize: '0.8125rem', fontWeight: '700', color: '#475569' }}>
-                {totalWOQty + qtyExecuted} / {totalContractQty} units ({executionPercentage}%)
+                {totalWOQty} / {totalContractQty} units ({executionPercentage}%)
               </span>
             </div>
             <div
