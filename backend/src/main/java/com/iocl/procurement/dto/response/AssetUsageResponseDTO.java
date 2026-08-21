@@ -39,6 +39,10 @@ public class AssetUsageResponseDTO {
     private String workOrderReference;
     private LocalDateTime createdAt;
 
+    private String usageId;
+    private String engineerEmail;
+    private String printerSerialNumber;
+
     // Legacy fields for backward compatibility
     private Long userId;
     private String employeeNo;
@@ -53,6 +57,7 @@ public class AssetUsageResponseDTO {
     public AssetUsageResponseDTO(AssetUsage usage) {
         if (usage != null) {
             this.id = usage.getId();
+            this.usageId = this.id != null ? String.format("USG-%04d", this.id) : null;
 
             // Authoritative Recorded By
             if (usage.getUser() != null) {
@@ -63,6 +68,7 @@ public class AssetUsageResponseDTO {
                 this.recordedByEmployeeName = usage.getRecordedByEmployeeName() != null
                         ? usage.getRecordedByEmployeeName()
                         : usage.getUser().getFullName();
+                this.engineerEmail = usage.getUser().getEmail();
             } else {
                 this.recordedByEmployeeNo = usage.getRecordedByEmployeeNo();
                 this.recordedByEmployeeName = usage.getRecordedByEmployeeName();
@@ -87,6 +93,7 @@ public class AssetUsageResponseDTO {
             // Asset & Cartridge details
             this.assetId = usage.getAsset() != null ? usage.getAsset().getId() : null;
             this.printerModel = usage.getPrinterModel();
+            this.printerSerialNumber = usage.getAsset() != null ? usage.getAsset().getSerialNumber() : null;
             this.printerType = usage.getPrinterType() != null ? usage.getPrinterType().name() : null;
             this.cartridgeId = usage.getCartridge() != null ? usage.getCartridge().getId() : null;
             this.cartridgeName = usage.getCartridgeName();
@@ -340,5 +347,69 @@ public class AssetUsageResponseDTO {
 
     public void setCreatedAt(LocalDateTime createdAt) {
         this.createdAt = createdAt;
+    }
+
+    public String getUsageId() {
+        return usageId;
+    }
+
+    public void setUsageId(String usageId) {
+        this.usageId = usageId;
+    }
+
+    public String getEngineerEmail() {
+        return engineerEmail;
+    }
+
+    public void setEngineerEmail(String engineerEmail) {
+        this.engineerEmail = engineerEmail;
+    }
+
+    public String getPrinterSerialNumber() {
+        return printerSerialNumber;
+    }
+
+    public void setPrinterSerialNumber(String printerSerialNumber) {
+        this.printerSerialNumber = printerSerialNumber;
+    }
+
+    public String getEngineerName() {
+        return recordedByEmployeeName;
+    }
+
+    public String getEngineerEmployeeNo() {
+        return recordedByEmployeeNo;
+    }
+
+    public String getEngineerEmployeeNumber() {
+        return recordedByEmployeeNo;
+    }
+
+    public String getBeneficiaryName() {
+        return beneficiaryEmployeeName;
+    }
+
+    public String getBeneficiaryEmployeeNumber() {
+        return beneficiaryEmployeeNo;
+    }
+
+    public String getAssetName() {
+        return cartridgeName;
+    }
+
+    public String getPrinterName() {
+        return printerModel;
+    }
+
+    public Integer getQuantity() {
+        return quantityUsed;
+    }
+
+    public String getSeatNumber() {
+        return beneficiarySeatOrCabinNo;
+    }
+
+    public String getCabinNumber() {
+        return beneficiarySeatOrCabinNo;
     }
 }

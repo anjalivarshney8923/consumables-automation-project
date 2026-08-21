@@ -173,31 +173,48 @@ public class AssetUsageController {
     }
 
     /**
-     * Admin endpoint for paginated enterprise-wide usage transactions.
-     * GET /api/user/asset-usage/admin/paged
+     * Admin endpoint for paginated and filtered enterprise-wide usage transactions.
+     * GET /api/user/asset-usage/admin/search
      */
-    @GetMapping("/admin/paged")
+    @GetMapping({"/admin/search", "/admin/paged"})
     @PreAuthorize("hasRole('ADMIN')")
-    public ResponseEntity<AssetUsagePageResponse> getAllUsageForAdminPaged(
+    public ResponseEntity<AssetUsagePageResponse> searchAllUsageForAdmin(
             @RequestParam(value = "search", required = false) String search,
             @RequestParam(value = "fromDate", required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate fromDate,
             @RequestParam(value = "toDate", required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate toDate,
             @RequestParam(value = "cartridgeId", required = false) Long cartridgeId,
+            @RequestParam(value = "partNumber", required = false) String partNumber,
+            @RequestParam(value = "engineer", required = false) String engineer,
+            @RequestParam(value = "beneficiary", required = false) String beneficiary,
+            @RequestParam(value = "department", required = false) String department,
+            @RequestParam(value = "location", required = false) String location,
             @RequestParam(value = "colour", required = false) String colour,
             @RequestParam(value = "printerId", required = false) String printerId,
             @RequestParam(value = "beneficiaryEmployeeNo", required = false) String beneficiaryEmployeeNo,
-            @RequestParam(value = "department", required = false) String department,
             @RequestParam(value = "status", required = false) String status,
             @RequestParam(value = "page", required = false, defaultValue = "0") int page,
             @RequestParam(value = "size", required = false, defaultValue = "10") int size,
             @RequestParam(value = "sortBy", required = false, defaultValue = "usageDate") String sortBy,
             @RequestParam(value = "sortDir", required = false, defaultValue = "desc") String sortDir
     ) {
+        String effectiveBeneficiary = beneficiary != null && !beneficiary.trim().isEmpty() ? beneficiary : beneficiaryEmployeeNo;
+
         AssetUsagePageResponse pageResponse = assetUsageService.searchAllUsageForAdmin(
-                search, fromDate, toDate, cartridgeId, colour, printerId,
-                beneficiaryEmployeeNo, department, status, page, size, sortBy, sortDir
+                search, fromDate, toDate, cartridgeId, partNumber, engineer, effectiveBeneficiary,
+                department, location, colour, printerId, status, page, size, sortBy, sortDir
         );
         return ResponseEntity.ok(pageResponse);
+    }
+
+    /**
+     * Admin endpoint to inspect single usage transaction audit details.
+     * GET /api/user/asset-usage/admin/{id}
+     */
+    @GetMapping("/admin/{id}")
+    @PreAuthorize("hasRole('ADMIN')")
+    public ResponseEntity<AssetUsageResponseDTO> getAdminUsageById(@PathVariable("id") Long id) {
+        AssetUsageResponseDTO dto = assetUsageService.getAdminUsageById(id);
+        return ResponseEntity.ok(dto);
     }
 
     /**
@@ -209,5 +226,32 @@ public class AssetUsageController {
     public ResponseEntity<AssetUsageSummaryDTO> getAdminUsageSummary() {
         AssetUsageSummaryDTO summary = assetUsageService.getAdminUsageSummary();
         return ResponseEntity.ok(summary);
+    }
+
+    /**
+     * Admin endpoint for exporting usage records as CSV.
+     * GET /api/user/asset-usage/admin/export
+     */
+    @GetMapping("/admin/export")
+    @PreAuthorize("hasRole('ADMIN')")
+    public ResponseEntity<byte[]> exportAdminUsageToCsv(
+            @RequestParam(value = "search", required = false) String search,
+            @RequestParam(value = "fromDate", required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate fromDate,
+            @RequestParam(value = "toDate", required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate toDate,
+            @RequestParam(value = "cartridgeId", required = false) Long cartridgeId,
+            @RequestParam(value = "partNumber", required = false) String partNumber,
+            @RequestParam(value = "engineer", required = false) String engineer,
+            @RequestParam(value = "beneficiary", required = false) String beneficiary,
+            @RequestParam(value = "department", required = false) String department,
+            @RequestParam(value = "location", required = false) String location
+    ) {
+        byte[] csvBytes = assetUsageService.exportAdminUsageToCsv(
+                search, fromDate, toDate, cartridgeId, partNumber, engineer, beneficiary, department, location
+        );
+
+        return ResponseEntity.ok()
+                .header(org.springframework.http.HttpHeaders.CONTENT_DISPOSITION, "attachment; filename=\"asset_usage_history.csv\"")
+                .contentType(org.springframework.http.MediaType.parseMediaType("text/csv"))
+                .body(csvBytes);
     }
 }

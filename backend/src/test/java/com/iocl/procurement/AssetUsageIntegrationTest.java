@@ -66,6 +66,9 @@ public class AssetUsageIntegrationTest {
     private AssetUsageRepository assetUsageRepository;
 
     @Autowired
+    private com.iocl.procurement.repository.EmployeeRepository employeeRepository;
+
+    @Autowired
     private PasswordEncoder passwordEncoder;
 
     private String userToken;
@@ -89,6 +92,7 @@ public class AssetUsageIntegrationTest {
         thresholdRepository.deleteAll();
         assetRepository.deleteAll();
         cartridgeRepository.deleteAll();
+        employeeRepository.deleteAll();
         userRepository.deleteAll();
         adminRepository.deleteAll();
 

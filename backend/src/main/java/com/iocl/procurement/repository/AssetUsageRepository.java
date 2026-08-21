@@ -62,4 +62,10 @@ public interface AssetUsageRepository extends JpaRepository<AssetUsage, Long>, J
 
     @Query("SELECT COALESCE(SUM(u.quantityUsed), 0) FROM AssetUsage u")
     Long getTotalQuantityUsedAll();
+
+    @Query("SELECT COUNT(DISTINCT u.user.id) FROM AssetUsage u")
+    Long countDistinctEngineers();
+
+    @Query("SELECT COUNT(DISTINCT u.beneficiaryEmployeeNo) FROM AssetUsage u")
+    Long countDistinctBeneficiaries();
 }

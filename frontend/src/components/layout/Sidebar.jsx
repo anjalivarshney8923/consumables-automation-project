@@ -8,6 +8,10 @@ import {
   AlertOctagon,
   Package,
   Boxes,
+  History,
+  ClipboardList,
+  Users,
+  FileBarChart2,
   X
 } from 'lucide-react';
 import { IoclBrand } from '../branding/IoclBrand';
@@ -30,18 +34,18 @@ export const Sidebar = ({ isOpen, onClose }) => {
             const combinedQty = item.combinedNetAvailableQuantity !== undefined 
               ? Number(item.combinedNetAvailableQuantity) 
               : storeQty + rcQty;
-            const threshold = Number(item.tenderingThreshold) || 0;
-            return item.isUrgent !== undefined ? Boolean(item.isUrgent) : combinedQty < threshold;
+            const threshold = Number(item.thresholdLimit ?? item.tenderingThreshold) || 0;
+            return combinedQty <= threshold;
           }).length;
           setTenderingUrgentCount(count);
         }
-      } catch (err) {
-        // Keep previous or default if fetch fails
+      } catch {
+        // Silently preserve dashboard resilience if server is restarting
       }
     };
 
     fetchTenderingCount();
-    const interval = setInterval(fetchTenderingCount, 20000);
+    const interval = setInterval(fetchTenderingCount, 30000);
     return () => {
       isMounted = false;
       clearInterval(interval);
@@ -53,6 +57,11 @@ export const Sidebar = ({ isOpen, onClose }) => {
       label: 'Dashboard',
       path: '/admin/dashboard',
       icon: LayoutDashboard
+    },
+    {
+      label: 'Reports & Export',
+      path: '/admin/reports',
+      icon: FileBarChart2
     },
     {
       label: 'Tendering Alerts',
@@ -74,6 +83,16 @@ export const Sidebar = ({ isOpen, onClose }) => {
       label: 'Procurement Register Entry',
       path: '/admin/procurement',
       icon: ShoppingBag
+    },
+    {
+      label: 'Asset Usage History',
+      path: '/admin/asset-usage-history',
+      icon: ClipboardList
+    },
+    {
+      label: 'Employee Master',
+      path: '/admin/employees',
+      icon: Users
     },
     {
       label: 'New Asset Addition',
@@ -128,10 +147,13 @@ export const Sidebar = ({ isOpen, onClose }) => {
             const Icon = item.icon;
             const isImplemented =
               item.path === '/admin/dashboard' ||
+              item.path === '/admin/reports' ||
               item.path === '/admin/tendering-alerts' ||
               item.path === '/admin/procurement' ||
               item.path === '/admin/full-view' ||
               item.path === '/admin/thresholds' ||
+              item.path === '/admin/asset-usage-history' ||
+              item.path === '/admin/employees' ||
               item.path === '/admin/assets/new' ||
               item.path === '/admin/assets/update';
             const isActive = isImplemented && (

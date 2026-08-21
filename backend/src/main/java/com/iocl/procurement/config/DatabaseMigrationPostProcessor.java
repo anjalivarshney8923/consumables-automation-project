@@ -225,6 +225,63 @@ public class DatabaseMigrationPostProcessor implements BeanPostProcessor, Priori
                 logger.warn("Notice during asset_usages migration: {}", e.getMessage());
             }
 
+            // ===================================================================
+            // 5. EMPLOYEES TABLE: Employee Master Canonical Store
+            // ===================================================================
+            logger.info(">>> Step 5: Migrating 'employees' table for Employee Master...");
+            try {
+                st.execute(
+                        "CREATE TABLE IF NOT EXISTS employees (" +
+                        "  id BIGSERIAL PRIMARY KEY," +
+                        "  employee_number VARCHAR(50) NOT NULL," +
+                        "  full_name VARCHAR(100) NOT NULL," +
+                        "  email VARCHAR(150)," +
+                        "  department VARCHAR(100) NOT NULL," +
+                        "  designation VARCHAR(100)," +
+                        "  gd VARCHAR(50)," +
+                        "  cabin_number VARCHAR(100)," +
+                        "  seat_number VARCHAR(50)," +
+                        "  location VARCHAR(100)," +
+                        "  printer_name VARCHAR(150)," +
+                        "  printer_serial_number VARCHAR(100)," +
+                        "  printer_type VARCHAR(50)," +
+                        "  status VARCHAR(30) NOT NULL DEFAULT 'ACTIVE'," +
+                        "  remarks VARCHAR(1000)," +
+                        "  created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP," +
+                        "  updated_at TIMESTAMP" +
+                        ");"
+                );
+
+                st.execute("CREATE UNIQUE INDEX IF NOT EXISTS uk_employees_employee_number ON employees(employee_number);");
+                st.execute("CREATE INDEX IF NOT EXISTS idx_employee_name ON employees(full_name);");
+                st.execute("CREATE INDEX IF NOT EXISTS idx_employee_department ON employees(department);");
+                st.execute("CREATE INDEX IF NOT EXISTS idx_employee_status ON employees(status);");
+                st.execute("CREATE INDEX IF NOT EXISTS idx_employee_location ON employees(location);");
+
+                // If employees table is empty, safely populate from existing users directory to preserve all existing data
+                boolean hasEmployees = false;
+                try (ResultSet countRs = st.executeQuery("SELECT COUNT(*) FROM employees;")) {
+                    if (countRs.next() && countRs.getLong(1) > 0) {
+                        hasEmployees = true;
+                    }
+                }
+
+                if (!hasEmployees) {
+                    logger.info(">>> Initializing Employee Master from existing enterprise directory...");
+                    if (dbProductName != null && dbProductName.toLowerCase().contains("postgres")) {
+                        st.execute(
+                                "INSERT INTO employees (employee_number, full_name, email, department, location, status, created_at, updated_at) " +
+                                "SELECT DISTINCT ON (employee_id) employee_id, full_name, email, COALESCE(department, 'Operations'), location, 'ACTIVE', CURRENT_TIMESTAMP, CURRENT_TIMESTAMP " +
+                                "FROM users " +
+                                "WHERE employee_id IS NOT NULL AND TRIM(employee_id) <> '' " +
+                                "ON CONFLICT (employee_number) DO NOTHING;"
+                        );
+                    }
+                }
+            } catch (Exception e) {
+                logger.warn("Notice during employees table migration: {}", e.getMessage());
+            }
+
             logger.info(">>> Safe database schema migration completed successfully! <<<");
 
         } catch (Exception e) {

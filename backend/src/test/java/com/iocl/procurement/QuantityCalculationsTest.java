@@ -52,6 +52,9 @@ class QuantityCalculationsTest {
     private UserRepository userRepository;
 
     @Autowired
+    private AssetRepository assetRepository;
+
+    @Autowired
     private RateContractService rateContractService;
 
     @Autowired
@@ -81,6 +84,9 @@ class QuantityCalculationsTest {
         callUpPORepository.deleteAll();
         rateContractRepository.deleteAll();
         thresholdRepository.deleteAll();
+        if (assetRepository != null) {
+            assetRepository.deleteAll();
+        }
         cartridgeRepository.deleteAll();
         if (userRepository != null) {
             userRepository.deleteAll();

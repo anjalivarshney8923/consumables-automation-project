@@ -40,6 +40,7 @@ public class AssetUsageServiceImpl implements AssetUsageService {
 
     private final AssetUsageRepository assetUsageRepository;
     private final UserRepository userRepository;
+    private final com.iocl.procurement.repository.EmployeeRepository employeeRepository;
     private final AssetRepository assetRepository;
     private final CartridgeRepository cartridgeRepository;
     private final RateContractRepository rateContractRepository;
@@ -49,6 +50,7 @@ public class AssetUsageServiceImpl implements AssetUsageService {
     public AssetUsageServiceImpl(
             AssetUsageRepository assetUsageRepository,
             UserRepository userRepository,
+            com.iocl.procurement.repository.EmployeeRepository employeeRepository,
             AssetRepository assetRepository,
             CartridgeRepository cartridgeRepository,
             RateContractRepository rateContractRepository,
@@ -57,6 +59,7 @@ public class AssetUsageServiceImpl implements AssetUsageService {
     ) {
         this.assetUsageRepository = assetUsageRepository;
         this.userRepository = userRepository;
+        this.employeeRepository = employeeRepository;
         this.assetRepository = assetRepository;
         this.cartridgeRepository = cartridgeRepository;
         this.rateContractRepository = rateContractRepository;
@@ -337,6 +340,17 @@ public class AssetUsageServiceImpl implements AssetUsageService {
 
     @Override
     @Transactional(readOnly = true)
+    public AssetUsageResponseDTO getAdminUsageById(Long id) {
+        if (id == null) {
+            throw new AppException("Usage ID cannot be null.", HttpStatus.BAD_REQUEST);
+        }
+        AssetUsage usage = assetUsageRepository.findById(id)
+                .orElseThrow(() -> new AppException("Asset usage record not found with ID: " + id, HttpStatus.NOT_FOUND));
+        return new AssetUsageResponseDTO(usage);
+    }
+
+    @Override
+    @Transactional(readOnly = true)
     public AssetUsagePageResponse searchAllUsageForAdmin(
             String search,
             LocalDate fromDate,
@@ -352,14 +366,41 @@ public class AssetUsageServiceImpl implements AssetUsageService {
             String sortBy,
             String sortDir
     ) {
+        return searchAllUsageForAdmin(
+                search, fromDate, toDate, cartridgeId, null, null, beneficiaryEmployeeNo,
+                department, null, colour, printerId, status, page, size, sortBy, sortDir
+        );
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public AssetUsagePageResponse searchAllUsageForAdmin(
+            String search,
+            LocalDate fromDate,
+            LocalDate toDate,
+            Long cartridgeId,
+            String partNumber,
+            String engineer,
+            String beneficiary,
+            String department,
+            String location,
+            String colour,
+            String printerId,
+            String status,
+            int page,
+            int size,
+            String sortBy,
+            String sortDir
+    ) {
         validateDateRange(fromDate, toDate);
         validatePagination(page, size);
 
         Sort sort = buildSort(sortBy, sortDir);
         Pageable pageable = PageRequest.of(page, size, sort);
 
-        Specification<AssetUsage> spec = buildUsageSpecification(
-                null, search, fromDate, toDate, cartridgeId, colour, printerId, beneficiaryEmployeeNo, department
+        Specification<AssetUsage> spec = buildAdminUsageSpecification(
+                search, fromDate, toDate, cartridgeId, partNumber, engineer, beneficiary,
+                department, location, colour, printerId
         );
 
         Page<AssetUsage> usagePage = assetUsageRepository.findAll(spec, pageable);
@@ -368,6 +409,10 @@ public class AssetUsageServiceImpl implements AssetUsageService {
                 .map(AssetUsageResponseDTO::new)
                 .collect(Collectors.toList());
 
+        Long totalQuantity = assetUsageRepository.getTotalQuantityUsedAll();
+        Long totalEngineers = assetUsageRepository.countDistinctEngineers();
+        Long totalBeneficiaries = assetUsageRepository.countDistinctBeneficiaries();
+
         return new AssetUsagePageResponse(
                 content,
                 usagePage.getNumber(),
@@ -375,7 +420,11 @@ public class AssetUsageServiceImpl implements AssetUsageService {
                 usagePage.getTotalElements(),
                 usagePage.getTotalPages(),
                 usagePage.isFirst(),
-                usagePage.isLast()
+                usagePage.isLast(),
+                usagePage.getTotalElements(),
+                totalQuantity != null ? totalQuantity : 0L,
+                totalEngineers != null ? totalEngineers : 0L,
+                totalBeneficiaries != null ? totalBeneficiaries : 0L
         );
     }
 
@@ -405,6 +454,8 @@ public class AssetUsageServiceImpl implements AssetUsageService {
         long totalRecords = assetUsageRepository.count();
         Long totalQuantity = assetUsageRepository.getTotalQuantityUsedAll();
         long totalQuantityUsed = totalQuantity != null ? totalQuantity : 0L;
+        Long totalEngineers = assetUsageRepository.countDistinctEngineers();
+        Long totalBeneficiaries = assetUsageRepository.countDistinctBeneficiaries();
 
         LocalDate now = LocalDate.now();
         LocalDate startOfMonth = now.withDayOfMonth(1);
@@ -420,12 +471,90 @@ public class AssetUsageServiceImpl implements AssetUsageService {
 
         LocalDate lastUsageDate = assetUsageRepository.findLatestUsageDate();
 
-        return new AssetUsageSummaryDTO(totalRecords, totalQuantityUsed, thisMonthCount, lastUsageDate);
+        return new AssetUsageSummaryDTO(
+                totalRecords,
+                totalQuantityUsed,
+                totalEngineers != null ? totalEngineers : 0L,
+                totalBeneficiaries != null ? totalBeneficiaries : 0L,
+                thisMonthCount,
+                lastUsageDate
+        );
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public byte[] exportAdminUsageToCsv(
+            String search,
+            LocalDate fromDate,
+            LocalDate toDate,
+            Long cartridgeId,
+            String partNumber,
+            String engineer,
+            String beneficiary,
+            String department,
+            String location
+    ) {
+        validateDateRange(fromDate, toDate);
+        Specification<AssetUsage> spec = buildAdminUsageSpecification(
+                search, fromDate, toDate, cartridgeId, partNumber, engineer, beneficiary, department, location, null, null
+        );
+
+        List<AssetUsage> records = assetUsageRepository.findAll(spec, Sort.by(Sort.Direction.DESC, "usageDate").and(Sort.by(Sort.Direction.DESC, "id")));
+
+        StringBuilder csv = new StringBuilder();
+        csv.append("Usage ID,Usage Date,Recorded By Name,Recorded By Emp No,Beneficiary Name,Beneficiary Emp No,Beneficiary Department,Seat/Cabin,Location,Part Number,Cartridge Name,Printer Model,Quantity Used,Work Order,Remarks\n");
+
+        for (AssetUsage item : records) {
+            String usageId = item.getId() != null ? String.format("USG-%04d", item.getId()) : "";
+            String usageDate = item.getUsageDate() != null ? item.getUsageDate().toString() : "";
+            String engName = escapeCsv(item.getRecordedByEmployeeName() != null ? item.getRecordedByEmployeeName() : (item.getUser() != null ? item.getUser().getFullName() : ""));
+            String engEmpNo = escapeCsv(item.getRecordedByEmployeeNo() != null ? item.getRecordedByEmployeeNo() : (item.getUser() != null ? item.getUser().getEmployeeId() : ""));
+            String benName = escapeCsv(item.getBeneficiaryEmployeeName());
+            String benEmpNo = escapeCsv(item.getBeneficiaryEmployeeNo());
+            String benDept = escapeCsv(item.getBeneficiaryDepartment());
+            String seatCabin = escapeCsv(item.getBeneficiarySeatOrCabinNo());
+            String loc = escapeCsv(item.getBeneficiaryLocation());
+            String partNo = escapeCsv(item.getPartNumber());
+            String cartName = escapeCsv(item.getCartridgeName());
+            String printer = escapeCsv(item.getPrinterModel());
+            int qty = item.getQuantityUsed() != null ? item.getQuantityUsed() : 0;
+            String wo = escapeCsv(item.getWorkOrderReference());
+            String remarks = escapeCsv(item.getRemarks());
+
+            csv.append(String.join(",",
+                    usageId, usageDate, engName, engEmpNo, benName, benEmpNo, benDept, seatCabin, loc, partNo, cartName, printer, String.valueOf(qty), wo, remarks
+            )).append("\n");
+        }
+
+        return csv.toString().getBytes(java.nio.charset.StandardCharsets.UTF_8);
+    }
+
+    private String escapeCsv(String val) {
+        if (val == null) return "";
+        String cleaned = val.replace("\"", "\"\"");
+        if (cleaned.contains(",") || cleaned.contains("\n") || cleaned.contains("\"")) {
+            return "\"" + cleaned + "\"";
+        }
+        return cleaned;
     }
 
     @Override
     @Transactional(readOnly = true)
     public List<UserDirectoryDTO> searchBeneficiaries(String query) {
+        if (employeeRepository != null && employeeRepository.count() > 0) {
+            if (query == null || query.trim().isEmpty()) {
+                return employeeRepository.findByStatusOrderByFullNameAsc(com.iocl.procurement.entity.EmployeeStatus.ACTIVE)
+                        .stream()
+                        .map(UserDirectoryDTO::new)
+                        .collect(Collectors.toList());
+            }
+            String trimmed = query.trim();
+            return employeeRepository.searchActiveEmployees(trimmed, com.iocl.procurement.entity.EmployeeStatus.ACTIVE)
+                    .stream()
+                    .map(UserDirectoryDTO::new)
+                    .collect(Collectors.toList());
+        }
+
         if (query == null || query.trim().isEmpty()) {
             return userRepository.findAllByOrderByFullNameAsc()
                     .stream()
@@ -465,15 +594,136 @@ public class AssetUsageServiceImpl implements AssetUsageService {
             String candidate = sortBy.trim();
             if (candidate.equalsIgnoreCase("usageDate") || candidate.equalsIgnoreCase("createdAt")
                     || candidate.equalsIgnoreCase("quantityUsed") || candidate.equalsIgnoreCase("beneficiaryEmployeeName")
+                    || candidate.equalsIgnoreCase("recordedByEmployeeName") || candidate.equalsIgnoreCase("recordedByEmployeeNo")
+                    || candidate.equalsIgnoreCase("beneficiaryDepartment") || candidate.equalsIgnoreCase("beneficiaryLocation")
                     || candidate.equalsIgnoreCase("partNumber") || candidate.equalsIgnoreCase("id")) {
                 field = candidate;
             } else {
-                throw new AppException("Invalid sort field: '" + sortBy + "'. Allowed: usageDate, createdAt, quantityUsed, beneficiaryEmployeeName, partNumber, id", HttpStatus.BAD_REQUEST);
+                throw new AppException("Invalid sort field: '" + sortBy + "'. Allowed: usageDate, createdAt, quantityUsed, beneficiaryEmployeeName, recordedByEmployeeName, recordedByEmployeeNo, beneficiaryDepartment, beneficiaryLocation, partNumber, id", HttpStatus.BAD_REQUEST);
             }
         }
 
         Sort.Direction direction = "asc".equalsIgnoreCase(sortDir) ? Sort.Direction.ASC : Sort.Direction.DESC;
         return Sort.by(direction, field).and(Sort.by(Sort.Direction.DESC, "id"));
+    }
+
+    private Specification<AssetUsage> buildAdminUsageSpecification(
+            String search,
+            LocalDate fromDate,
+            LocalDate toDate,
+            Long cartridgeId,
+            String partNumber,
+            String engineer,
+            String beneficiary,
+            String department,
+            String location,
+            String colour,
+            String printerId
+    ) {
+        return (root, query, criteriaBuilder) -> {
+            List<Predicate> predicates = new ArrayList<>();
+
+            // 1. General Search query across all text fields
+            if (search != null && !search.trim().isEmpty()) {
+                String pattern = "%" + search.trim().toLowerCase() + "%";
+                Predicate searchPred = criteriaBuilder.or(
+                        criteriaBuilder.like(criteriaBuilder.lower(root.get("beneficiaryEmployeeNo")), pattern),
+                        criteriaBuilder.like(criteriaBuilder.lower(root.get("beneficiaryEmployeeName")), pattern),
+                        criteriaBuilder.like(criteriaBuilder.lower(root.get("beneficiaryDepartment")), pattern),
+                        criteriaBuilder.like(criteriaBuilder.lower(root.get("beneficiarySeatOrCabinNo")), pattern),
+                        criteriaBuilder.like(criteriaBuilder.lower(root.get("beneficiaryLocation")), pattern),
+                        criteriaBuilder.like(criteriaBuilder.lower(root.get("beneficiaryEmail")), pattern),
+                        criteriaBuilder.like(criteriaBuilder.lower(root.get("partNumber")), pattern),
+                        criteriaBuilder.like(criteriaBuilder.lower(root.get("cartridgeName")), pattern),
+                        criteriaBuilder.like(criteriaBuilder.lower(root.get("printerModel")), pattern),
+                        criteriaBuilder.like(criteriaBuilder.lower(root.get("recordedByEmployeeName")), pattern),
+                        criteriaBuilder.like(criteriaBuilder.lower(root.get("recordedByEmployeeNo")), pattern),
+                        criteriaBuilder.like(criteriaBuilder.lower(root.get("workOrderReference")), pattern),
+                        criteriaBuilder.like(criteriaBuilder.lower(root.get("remarks")), pattern)
+                );
+                predicates.add(searchPred);
+            }
+
+            // 2. Date Range
+            if (fromDate != null) {
+                predicates.add(criteriaBuilder.greaterThanOrEqualTo(root.get("usageDate"), fromDate));
+            }
+            if (toDate != null) {
+                predicates.add(criteriaBuilder.lessThanOrEqualTo(root.get("usageDate"), toDate));
+            }
+
+            // 3. Cartridge ID
+            if (cartridgeId != null) {
+                predicates.add(criteriaBuilder.equal(root.get("cartridge").get("id"), cartridgeId));
+            }
+
+            // 4. Part Number
+            if (partNumber != null && !partNumber.trim().isEmpty() && !"ALL".equalsIgnoreCase(partNumber.trim()) && !"All Parts".equalsIgnoreCase(partNumber.trim())) {
+                predicates.add(criteriaBuilder.equal(
+                        criteriaBuilder.upper(root.get("partNumber")),
+                        partNumber.trim().toUpperCase()
+                ));
+            }
+
+            // 5. Engineer Filter
+            if (engineer != null && !engineer.trim().isEmpty() && !"ALL".equalsIgnoreCase(engineer.trim())) {
+                String engPattern = "%" + engineer.trim().toLowerCase() + "%";
+                predicates.add(criteriaBuilder.or(
+                        criteriaBuilder.like(criteriaBuilder.lower(root.get("recordedByEmployeeName")), engPattern),
+                        criteriaBuilder.like(criteriaBuilder.lower(root.get("recordedByEmployeeNo")), engPattern),
+                        criteriaBuilder.like(criteriaBuilder.lower(root.get("user").get("username")), engPattern),
+                        criteriaBuilder.like(criteriaBuilder.lower(root.get("user").get("fullName")), engPattern)
+                ));
+            }
+
+            // 6. Beneficiary Filter
+            if (beneficiary != null && !beneficiary.trim().isEmpty() && !"ALL".equalsIgnoreCase(beneficiary.trim())) {
+                String benPattern = "%" + beneficiary.trim().toLowerCase() + "%";
+                predicates.add(criteriaBuilder.or(
+                        criteriaBuilder.like(criteriaBuilder.lower(root.get("beneficiaryEmployeeName")), benPattern),
+                        criteriaBuilder.like(criteriaBuilder.lower(root.get("beneficiaryEmployeeNo")), benPattern)
+                ));
+            }
+
+            // 7. Department Filter
+            if (department != null && !department.trim().isEmpty() && !"ALL".equalsIgnoreCase(department.trim()) && !"All Departments".equalsIgnoreCase(department.trim())) {
+                predicates.add(criteriaBuilder.equal(
+                        criteriaBuilder.upper(root.get("beneficiaryDepartment")),
+                        department.trim().toUpperCase()
+                ));
+            }
+
+            // 8. Location Filter
+            if (location != null && !location.trim().isEmpty() && !"ALL".equalsIgnoreCase(location.trim()) && !"All Locations".equalsIgnoreCase(location.trim())) {
+                predicates.add(criteriaBuilder.like(
+                        criteriaBuilder.lower(root.get("beneficiaryLocation")),
+                        "%" + location.trim().toLowerCase() + "%"
+                ));
+            }
+
+            // 9. Colour Filter
+            if (colour != null && !colour.trim().isEmpty() && !"All Colours".equalsIgnoreCase(colour.trim())) {
+                CartridgeColor parsed = CartridgeColor.fromString(colour.trim());
+                if (parsed != null) {
+                    predicates.add(criteriaBuilder.equal(root.get("colour"), parsed));
+                }
+            }
+
+            // 10. Printer ID Filter
+            if (printerId != null && !printerId.trim().isEmpty() && !"All Printers".equalsIgnoreCase(printerId.trim())) {
+                try {
+                    Long pId = Long.parseLong(printerId.trim());
+                    predicates.add(criteriaBuilder.or(
+                            criteriaBuilder.equal(root.get("asset").get("id"), pId),
+                            criteriaBuilder.like(criteriaBuilder.lower(root.get("printerModel")), "%" + printerId.trim().toLowerCase() + "%")
+                    ));
+                } catch (NumberFormatException e) {
+                    predicates.add(criteriaBuilder.like(criteriaBuilder.lower(root.get("printerModel")), "%" + printerId.trim().toLowerCase() + "%"));
+                }
+            }
+
+            return criteriaBuilder.and(predicates.toArray(new Predicate[0]));
+        };
     }
 
     private Specification<AssetUsage> buildUsageSpecification(

@@ -38,6 +38,8 @@ public interface AssetUsageService {
             String sortDir
     );
 
+    AssetUsageResponseDTO getAdminUsageById(Long id);
+
     AssetUsagePageResponse searchAllUsageForAdmin(
             String search,
             LocalDate fromDate,
@@ -54,7 +56,38 @@ public interface AssetUsageService {
             String sortDir
     );
 
+    AssetUsagePageResponse searchAllUsageForAdmin(
+            String search,
+            LocalDate fromDate,
+            LocalDate toDate,
+            Long cartridgeId,
+            String partNumber,
+            String engineer,
+            String beneficiary,
+            String department,
+            String location,
+            String colour,
+            String printerId,
+            String status,
+            int page,
+            int size,
+            String sortBy,
+            String sortDir
+    );
+
     AssetUsageSummaryDTO getUsageSummary(String authenticatedUsername);
 
     AssetUsageSummaryDTO getAdminUsageSummary();
+
+    byte[] exportAdminUsageToCsv(
+            String search,
+            LocalDate fromDate,
+            LocalDate toDate,
+            Long cartridgeId,
+            String partNumber,
+            String engineer,
+            String beneficiary,
+            String department,
+            String location
+    );
 }

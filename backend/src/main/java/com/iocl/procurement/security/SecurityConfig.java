@@ -79,10 +79,10 @@ public class SecurityConfig {
                         // Read-only cartridge and asset reference data for normal users & admins
                         .requestMatchers(HttpMethod.GET, "/api/procurement/cartridges", "/api/procurement/cartridges/**").hasAnyRole("USER", "ADMIN")
                         .requestMatchers(HttpMethod.GET, "/api/assets", "/api/assets/**").hasAnyRole("USER", "ADMIN")
+                        // Admin-only management endpoints
+                        .requestMatchers("/api/procurement/**", "/api/thresholds/**", "/api/alerts/**", "/api/assets/**", "/api/full-view/**", "/api/admin/**", "/api/user/asset-usage/admin/**").hasRole("ADMIN")
                         // User portal asset usage endpoints
                         .requestMatchers("/api/user/**").hasAnyRole("USER", "ADMIN")
-                        // Admin-only management endpoints
-                        .requestMatchers("/api/procurement/**", "/api/thresholds/**", "/api/alerts/**", "/api/assets/**", "/api/full-view/**", "/api/admin/**").hasRole("ADMIN")
                         // All other API endpoints require authentication
                         .requestMatchers("/api/**").authenticated()
                         .anyRequest().authenticated()

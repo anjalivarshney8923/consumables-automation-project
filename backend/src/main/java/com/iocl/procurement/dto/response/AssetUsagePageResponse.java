@@ -12,6 +12,11 @@ public class AssetUsagePageResponse {
     private boolean first;
     private boolean last;
 
+    private Long totalRecords;
+    private Long totalQuantityUsed;
+    private Long totalEngineers;
+    private Long totalBeneficiaries;
+
     public AssetUsagePageResponse() {
     }
 
@@ -31,6 +36,33 @@ public class AssetUsagePageResponse {
         this.totalPages = totalPages;
         this.first = first;
         this.last = last;
+        this.totalRecords = totalElements;
+    }
+
+    public AssetUsagePageResponse(
+            List<AssetUsageResponseDTO> content,
+            int page,
+            int size,
+            long totalElements,
+            int totalPages,
+            boolean first,
+            boolean last,
+            Long totalRecords,
+            Long totalQuantityUsed,
+            Long totalEngineers,
+            Long totalBeneficiaries
+    ) {
+        this.content = content;
+        this.page = page;
+        this.size = size;
+        this.totalElements = totalElements;
+        this.totalPages = totalPages;
+        this.first = first;
+        this.last = last;
+        this.totalRecords = totalRecords != null ? totalRecords : totalElements;
+        this.totalQuantityUsed = totalQuantityUsed;
+        this.totalEngineers = totalEngineers;
+        this.totalBeneficiaries = totalBeneficiaries;
     }
 
     public List<AssetUsageResponseDTO> getContent() {
@@ -87,5 +119,37 @@ public class AssetUsagePageResponse {
 
     public void setLast(boolean last) {
         this.last = last;
+    }
+
+    public Long getTotalRecords() {
+        return totalRecords;
+    }
+
+    public void setTotalRecords(Long totalRecords) {
+        this.totalRecords = totalRecords;
+    }
+
+    public Long getTotalQuantityUsed() {
+        return totalQuantityUsed;
+    }
+
+    public void setTotalQuantityUsed(Long totalQuantityUsed) {
+        this.totalQuantityUsed = totalQuantityUsed;
+    }
+
+    public Long getTotalEngineers() {
+        return totalEngineers;
+    }
+
+    public void setTotalEngineers(Long totalEngineers) {
+        this.totalEngineers = totalEngineers;
+    }
+
+    public Long getTotalBeneficiaries() {
+        return totalBeneficiaries;
+    }
+
+    public void setTotalBeneficiaries(Long totalBeneficiaries) {
+        this.totalBeneficiaries = totalBeneficiaries;
     }
 }

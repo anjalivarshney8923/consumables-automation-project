@@ -2,12 +2,13 @@ package com.iocl.procurement.repository;
 
 import com.iocl.procurement.entity.CallUpPurchaseOrder;
 import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.jpa.repository.JpaSpecificationExecutor;
 import org.springframework.stereotype.Repository;
 
 import java.util.List;
 
 @Repository
-public interface CallUpPurchaseOrderRepository extends JpaRepository<CallUpPurchaseOrder, Long> {
+public interface CallUpPurchaseOrderRepository extends JpaRepository<CallUpPurchaseOrder, Long>, JpaSpecificationExecutor<CallUpPurchaseOrder> {
 
     boolean existsByPoNumberIgnoreCase(String poNumber);
 

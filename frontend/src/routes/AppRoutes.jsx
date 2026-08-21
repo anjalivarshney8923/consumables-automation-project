@@ -11,6 +11,9 @@ import { ThresholdSettings } from '../pages/thresholds/ThresholdSettings';
 import { TenderingAlerts } from '../pages/alerts/TenderingAlerts';
 import { NewAssetAddition } from '../pages/assets/NewAssetAddition';
 import { UpdateAsset } from '../pages/assets/UpdateAsset';
+import { AdminAssetUsageHistory } from '../pages/admin/AdminAssetUsageHistory';
+import { AdminEmployeeMaster } from '../pages/admin/AdminEmployeeMaster';
+import { AdminReports } from '../pages/admin/AdminReports';
 import { DashboardLayout } from '../components/layout/DashboardLayout';
 import { UserLayout } from '../components/layout/UserLayout';
 import { UserLogin } from '../pages/user/UserLogin';
@@ -95,6 +98,12 @@ export const AppRoutes = () => {
         <Route path="full-view" element={<FullViewRecords />} />
         <Route path="thresholds" element={<ThresholdSettings />} />
         <Route path="tendering-alerts" element={<TenderingAlerts />} />
+        <Route path="asset-usage-history" element={<AdminAssetUsageHistory />} />
+        <Route path="usage-history" element={<AdminAssetUsageHistory />} />
+        <Route path="employees" element={<AdminEmployeeMaster />} />
+        <Route path="employee-master" element={<AdminEmployeeMaster />} />
+        <Route path="reports" element={<AdminReports />} />
+        <Route path="reports-export" element={<AdminReports />} />
         <Route path="assets/new" element={<NewAssetAddition />} />
         <Route path="assets/update" element={<UpdateAsset />} />
 
