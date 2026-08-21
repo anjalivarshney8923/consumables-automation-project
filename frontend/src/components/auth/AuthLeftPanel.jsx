@@ -1,4 +1,5 @@
 import React from 'react';
+import { IndianOilLogo } from '../branding/IndianOilLogo';
 
 /**
  * Enterprise IOCL Left Branding Panel
@@ -49,62 +50,14 @@ export const AuthLeftPanel = ({ systemDescription }) => {
             borderRadius: '28px',
             boxShadow: '0 12px 30px rgba(0, 0, 0, 0.18)',
             display: 'flex',
-            flexDirection: 'column',
             alignItems: 'center',
             justifyContent: 'center',
             marginBottom: '2rem',
-            padding: '12px'
+            padding: '14px',
+            boxSizing: 'border-box'
           }}
         >
-          {/* Authentic IndianOil Corporate Emblem SVG */}
-          <svg viewBox="0 0 120 120" width="76" height="76" fill="none" xmlns="http://www.w3.org/2000/svg">
-            {/* Outer Saffron / Orange Circle */}
-            <circle cx="60" cy="54" r="38" fill="#F58220" />
-            
-            {/* Center Deep Navy Horizontal Bar */}
-            <rect x="22" y="44" width="76" height="20" rx="3" fill="#002D62" />
-            
-            {/* IndianOil Emblem Text Inside Navy Bar */}
-            <text
-              x="60"
-              y="54"
-              fontFamily="-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif"
-              fontWeight="800"
-              fontSize="8.5"
-              letterSpacing="0.5"
-              textAnchor="middle"
-              dominantBaseline="central"
-              fill="#FFFFFF"
-            >
-              इंडियनऑयल
-            </text>
-            <text
-              x="60"
-              y="60.5"
-              fontFamily="-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif"
-              fontWeight="700"
-              fontSize="6.5"
-              letterSpacing="0.3"
-              textAnchor="middle"
-              fill="#FFFFFF"
-            >
-              IndianOil
-            </text>
-
-            {/* IndianOil Wordmark at Bottom */}
-            <text
-              x="60"
-              y="108"
-              fontFamily="-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif"
-              fontWeight="800"
-              fontSize="12"
-              letterSpacing="0.2"
-              textAnchor="middle"
-              fill="#002D62"
-            >
-              IndianOil
-            </text>
-          </svg>
+          <IndianOilLogo size={108} alt="Indian Oil Corporation Limited" />
         </div>
 
         {/* Corporate Title */}

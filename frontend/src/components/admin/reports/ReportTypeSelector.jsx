@@ -16,8 +16,8 @@ export const REPORT_TYPES = [
     shortTitle: 'Asset Usage',
     description: 'Track cartridge consumption by engineers & beneficiaries',
     icon: ClipboardList,
-    color: '#002D62', // Navy
-    accentBg: 'rgba(0, 45, 98, 0.08)'
+    color: 'var(--iocl-red, #B71C1C)',
+    accentBg: 'rgba(183, 28, 28, 0.08)'
   },
   {
     id: 'STORE_INVENTORY',
@@ -25,7 +25,7 @@ export const REPORT_TYPES = [
     shortTitle: 'Store Stock',
     description: 'Current warehouse stock position & availability',
     icon: Boxes,
-    color: '#059669', // Green
+    color: '#059669',
     accentBg: 'rgba(5, 150, 105, 0.08)'
   },
   {
@@ -34,8 +34,8 @@ export const REPORT_TYPES = [
     shortTitle: 'Procurement',
     description: 'Rate contracts, WO allocations & contract balances',
     icon: ShoppingBag,
-    color: '#FF6600', // Saffron
-    accentBg: 'rgba(255, 102, 0, 0.08)'
+    color: 'var(--iocl-saffron, #F58220)',
+    accentBg: 'rgba(245, 130, 32, 0.08)'
   },
   {
     id: 'CALL_UP_PO',
@@ -43,7 +43,7 @@ export const REPORT_TYPES = [
     shortTitle: 'Call-Up PO',
     description: 'PO execution tracking against active rate contracts',
     icon: FileSpreadsheet,
-    color: '#2563EB', // Blue
+    color: '#2563EB',
     accentBg: 'rgba(37, 99, 235, 0.08)'
   },
   {
@@ -52,7 +52,7 @@ export const REPORT_TYPES = [
     shortTitle: 'Directory',
     description: 'Employee master directory, cabins & assigned printers',
     icon: Users,
-    color: '#7C3AED', // Purple
+    color: '#7C3AED',
     accentBg: 'rgba(124, 58, 237, 0.08)'
   },
   {
@@ -61,7 +61,7 @@ export const REPORT_TYPES = [
     shortTitle: 'Stock Audit',
     description: 'Complete stock inflow, outflow & adjustment ledger',
     icon: History,
-    color: '#D97706', // Amber
+    color: '#D97706',
     accentBg: 'rgba(217, 119, 6, 0.08)'
   }
 ];
@@ -70,7 +70,7 @@ export const ReportTypeSelector = ({ selectedReportType, onSelectReportType }) =
   return (
     <div className="report-type-selector-container mb-6">
       <div className="section-subtitle-bar mb-3" style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-        <span style={{ fontSize: '0.8125rem', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.05em', color: 'var(--text-secondary)' }}>
+        <span style={{ fontSize: '0.75rem', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.06em', color: 'var(--text-secondary)' }}>
           SELECT REPORT MODULE
         </span>
         <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>
@@ -82,7 +82,7 @@ export const ReportTypeSelector = ({ selectedReportType, onSelectReportType }) =
         className="report-type-cards-grid"
         style={{
           display: 'grid',
-          gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))',
+          gridTemplateColumns: 'repeat(auto-fit, minmax(170px, 1fr))',
           gap: '12px'
         }}
       >
@@ -101,19 +101,20 @@ export const ReportTypeSelector = ({ selectedReportType, onSelectReportType }) =
                 flexDirection: 'column',
                 alignItems: 'flex-start',
                 textAlign: 'left',
-                padding: '14px 16px',
+                padding: '12px 14px',
                 borderRadius: '8px',
                 background: isSelected ? '#FFFFFF' : 'var(--bg-surface, #FFFFFF)',
                 border: isSelected
-                  ? `2px solid ${type.color}`
-                  : '1px solid var(--border-color, #E2E8F0)',
+                  ? '2px solid var(--iocl-red, #B71C1C)'
+                  : '1px solid var(--border-medium, #CBD5E1)',
                 boxShadow: isSelected
-                  ? '0 4px 14px rgba(0, 45, 98, 0.12)'
-                  : '0 1px 3px rgba(0, 0, 0, 0.04)',
+                  ? '0 4px 12px rgba(183, 28, 28, 0.12)'
+                  : 'var(--shadow-card, 0 1px 3px rgba(0,0,0,0.05))',
                 cursor: 'pointer',
-                transition: 'all 0.2s ease-in-out',
+                transition: 'all var(--transition-fast)',
                 position: 'relative',
-                overflow: 'hidden'
+                overflow: 'hidden',
+                minHeight: '108px'
               }}
             >
               {/* Top Accent Stripe when active */}
@@ -125,7 +126,7 @@ export const ReportTypeSelector = ({ selectedReportType, onSelectReportType }) =
                     left: 0,
                     right: 0,
                     height: '3px',
-                    background: type.color
+                    background: 'var(--iocl-red, #B71C1C)'
                   }}
                 />
               )}
@@ -136,43 +137,45 @@ export const ReportTypeSelector = ({ selectedReportType, onSelectReportType }) =
                   alignItems: 'center',
                   justifyContent: 'space-between',
                   width: '100%',
-                  marginBottom: '10px'
+                  marginBottom: '8px'
                 }}
               >
                 <div
                   style={{
-                    width: '36px',
-                    height: '36px',
-                    borderRadius: '8px',
+                    width: '32px',
+                    height: '32px',
+                    borderRadius: '6px',
                     background: type.accentBg,
                     color: type.color,
                     display: 'flex',
                     alignItems: 'center',
-                    justifyContent: 'center'
+                    justifyContent: 'center',
+                    flexShrink: 0
                   }}
                 >
-                  <Icon size={18} />
+                  <Icon size={16} />
                 </div>
 
                 {isSelected && (
-                  <CheckCircle2 size={16} color={type.color} />
+                  <CheckCircle2 size={15} color="var(--iocl-red, #B71C1C)" />
                 )}
               </div>
 
               <div style={{ width: '100%' }}>
                 <h4
                   style={{
-                    fontSize: '0.875rem',
+                    fontSize: '0.8125rem',
                     fontWeight: 700,
-                    color: isSelected ? 'var(--iocl-navy, #002D62)' : 'var(--text-primary)',
-                    margin: '0 0 4px 0'
+                    color: isSelected ? 'var(--iocl-red, #B71C1C)' : 'var(--text-primary)',
+                    margin: '0 0 2px 0',
+                    lineHeight: '1.2'
                   }}
                 >
                   {type.title}
                 </h4>
                 <p
                   style={{
-                    fontSize: '0.75rem',
+                    fontSize: '0.6875rem',
                     color: 'var(--text-muted)',
                     margin: 0,
                     lineHeight: '1.3',

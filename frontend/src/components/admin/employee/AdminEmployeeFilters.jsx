@@ -58,7 +58,7 @@ export const AdminEmployeeFilters = ({
   onResetFilters,
   totalResults = 0
 }) => {
-  const [showAdvancedFilters, setShowAdvancedFilters] = useState(false);
+  const [showAdvanced, setShowAdvanced] = useState(false);
 
   const hasActiveFilters = Boolean(
     searchTerm ||
@@ -72,16 +72,15 @@ export const AdminEmployeeFilters = ({
   );
 
   return (
-    <div className="filter-card mb-6">
-      {/* Primary Toolbar */}
-      <div className="filter-primary-row">
-        {/* Search Bar */}
-        <div className="filter-search-box" style={{ flex: '1 1 340px' }}>
-          <Search size={18} className="filter-search-icon" />
+    <div className="procurement-filters-card mb-6">
+      {/* Search Bar Row */}
+      <div className="filters-top-row">
+        <div className="search-input-wrapper">
+          <Search size={18} className="search-icon" />
           <input
             type="text"
-            className="filter-search-input"
-            placeholder="Search employee no, name, email, designation, room/cabin..."
+            className="search-field"
+            placeholder="Search by employee number, name, email or department..."
             value={searchTerm}
             onChange={(e) => onSearchChange(e.target.value)}
             aria-label="Search Employees"
@@ -89,22 +88,63 @@ export const AdminEmployeeFilters = ({
           {searchTerm && (
             <button
               type="button"
-              className="filter-clear-icon-btn"
+              className="clear-search-btn"
               onClick={() => onSearchChange('')}
-              aria-label="Clear Search"
+              title="Clear search"
             >
-              <X size={14} />
+              <X size={16} />
             </button>
           )}
         </div>
 
+        <div className="filter-actions-group">
+          <button
+            type="button"
+            className="btn-refresh"
+            onClick={() => setShowAdvanced((prev) => !prev)}
+            style={{
+              display: 'inline-flex',
+              alignItems: 'center',
+              gap: '6px',
+              backgroundColor: showAdvanced ? 'var(--bg-surface-alt)' : '#FFFFFF'
+            }}
+          >
+            <SlidersHorizontal size={14} />
+            <span>{showAdvanced ? 'Fewer Filters' : 'More Filters'}</span>
+          </button>
+
+          {hasActiveFilters && (
+            <button
+              type="button"
+              className="btn-clear-all"
+              onClick={onResetFilters}
+              title="Reset all search filters"
+            >
+              <RotateCcw size={14} />
+              <span>Reset</span>
+            </button>
+          )}
+        </div>
+      </div>
+
+      {/* Main Filter Grid Row */}
+      <div
+        className="filters-bottom-row"
+        style={{
+          display: 'grid',
+          gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))',
+          gap: '12px',
+          paddingTop: '0.875rem'
+        }}
+      >
         {/* Department Filter */}
-        <div className="filter-select-group" style={{ minWidth: '190px' }}>
+        <div className="filter-select-group" style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-start', gap: '4px' }}>
+          <label className="filter-label">Department</label>
           <select
             className="filter-select"
+            style={{ width: '100%', height: '38px' }}
             value={selectedDepartment}
             onChange={(e) => onDepartmentChange(e.target.value)}
-            aria-label="Filter by Department"
           >
             {DEPARTMENT_OPTIONS.map((dept) => (
               <option key={dept} value={dept === 'All Departments' ? 'ALL' : dept}>
@@ -115,12 +155,13 @@ export const AdminEmployeeFilters = ({
         </div>
 
         {/* Status Filter */}
-        <div className="filter-select-group" style={{ minWidth: '140px' }}>
+        <div className="filter-select-group" style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-start', gap: '4px' }}>
+          <label className="filter-label">Status</label>
           <select
             className="filter-select"
+            style={{ width: '100%', height: '38px' }}
             value={selectedStatus}
             onChange={(e) => onStatusChange(e.target.value)}
-            aria-label="Filter by Status"
           >
             <option value="ALL">All Statuses</option>
             <option value="ACTIVE">Active Only</option>
@@ -129,12 +170,13 @@ export const AdminEmployeeFilters = ({
         </div>
 
         {/* Sort Order Dropdown */}
-        <div className="filter-select-group" style={{ minWidth: '170px' }}>
+        <div className="filter-select-group" style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-start', gap: '4px' }}>
+          <label className="filter-label">Sort Order</label>
           <select
             className="filter-select"
+            style={{ width: '100%', height: '38px' }}
             value={sortBy}
             onChange={(e) => onSortByChange(e.target.value)}
-            aria-label="Sort Order"
           >
             <option value="EMP_NO_ASC">Emp No. (Ascending)</option>
             <option value="EMP_NO_DESC">Emp No. (Descending)</option>
@@ -145,52 +187,26 @@ export const AdminEmployeeFilters = ({
             <option value="STATUS">Status</option>
           </select>
         </div>
-
-        {/* Toggle Advanced Filters */}
-        <button
-          type="button"
-          className={`btn-filter-toggle ${showAdvancedFilters ? 'active' : ''}`}
-          onClick={() => setShowAdvancedFilters((prev) => !prev)}
-          aria-expanded={showAdvancedFilters}
-        >
-          <SlidersHorizontal size={16} />
-          <span>Filters</span>
-          {hasActiveFilters && <span className="filter-active-dot" />}
-        </button>
-
-        {/* Reset Filters Button */}
-        {hasActiveFilters && (
-          <button
-            type="button"
-            className="btn-filter-reset"
-            onClick={onResetFilters}
-            title="Reset all filters"
-          >
-            <RotateCcw size={14} />
-            <span>Reset</span>
-          </button>
-        )}
       </div>
 
-      {/* Advanced Filter Drawer */}
-      {showAdvancedFilters && (
+      {/* Advanced Expandable Filter Row */}
+      {showAdvanced && (
         <div
-          className="filter-advanced-panel mt-4 pt-4"
           style={{
-            borderTop: '1px solid var(--border-color, #E2E8F0)',
             display: 'grid',
-            gridTemplateColumns: 'repeat(auto-fit, minmax(210px, 1fr))',
-            gap: '1rem'
+            gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))',
+            gap: '12px',
+            paddingTop: '0.875rem',
+            borderTop: '1px dashed var(--border-subtle)'
           }}
         >
           {/* Designation Filter */}
-          <div className="filter-field-group">
-            <label className="filter-field-label">
-              <Briefcase size={13} style={{ marginRight: '4px' }} /> Designation
-            </label>
+          <div className="filter-select-group" style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-start', gap: '4px' }}>
+            <label className="filter-label">Designation</label>
             <input
               type="text"
-              className="filter-search-input"
+              className="search-field"
+              style={{ height: '38px', padding: '0.5rem 0.75rem' }}
               placeholder="e.g. Chief Manager, Engineer..."
               value={designationSearch}
               onChange={(e) => onDesignationChange(e.target.value)}
@@ -198,12 +214,11 @@ export const AdminEmployeeFilters = ({
           </div>
 
           {/* Location Filter */}
-          <div className="filter-field-group">
-            <label className="filter-field-label">
-              <MapPin size={13} style={{ marginRight: '4px' }} /> Location / Office
-            </label>
+          <div className="filter-select-group" style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-start', gap: '4px' }}>
+            <label className="filter-label">Location / Office</label>
             <select
               className="filter-select"
+              style={{ width: '100%', height: '38px' }}
               value={selectedLocation}
               onChange={(e) => onLocationChange(e.target.value)}
             >
@@ -216,13 +231,12 @@ export const AdminEmployeeFilters = ({
           </div>
 
           {/* Grade / GD Filter */}
-          <div className="filter-field-group">
-            <label className="filter-field-label">
-              <Tag size={13} style={{ marginRight: '4px' }} /> Grade / GD
-            </label>
+          <div className="filter-select-group" style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-start', gap: '4px' }}>
+            <label className="filter-label">Grade / GD</label>
             <input
               type="text"
-              className="filter-search-input"
+              className="search-field"
+              style={{ height: '38px', padding: '0.5rem 0.75rem' }}
               placeholder="e.g. Grade A, E, F..."
               value={gdSearch}
               onChange={(e) => onGdChange(e.target.value)}
@@ -230,13 +244,12 @@ export const AdminEmployeeFilters = ({
           </div>
 
           {/* Printer Model / Serial Filter */}
-          <div className="filter-field-group">
-            <label className="filter-field-label">
-              <Printer size={13} style={{ marginRight: '4px' }} /> Printer / Serial No.
-            </label>
+          <div className="filter-select-group" style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-start', gap: '4px' }}>
+            <label className="filter-label">Printer / Serial No.</label>
             <input
               type="text"
-              className="filter-search-input"
+              className="search-field"
+              style={{ height: '38px', padding: '0.5rem 0.75rem' }}
               placeholder="Printer model or serial..."
               value={printerSearch}
               onChange={(e) => onPrinterSearchChange(e.target.value)}

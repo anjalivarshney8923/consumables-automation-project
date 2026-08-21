@@ -20,9 +20,7 @@ import { UserLogin } from '../pages/user/UserLogin';
 import { UserRegistration } from '../pages/auth/UserRegistration';
 import { UserDashboard } from '../pages/user/UserDashboard';
 import { UserProfile } from '../pages/user/UserProfile';
-import { UserAssets } from '../pages/user/UserAssets';
 import { UserActivity } from '../pages/user/UserActivity';
-import { UserNotifications } from '../pages/user/UserNotifications';
 import { AssetUsage } from '../pages/user/AssetUsage';
 import { AssetHistory } from '../pages/user/AssetHistory';
 import { UsageHistory } from '../pages/user/UsageHistory';
@@ -73,13 +71,11 @@ export const AppRoutes = () => {
         <Route index element={<Navigate to="dashboard" replace />} />
         <Route path="dashboard" element={<UserDashboard />} />
         <Route path="profile" element={<UserProfile />} />
-        <Route path="assets" element={<UserAssets />} />
         <Route path="usage" element={<AssetUsage />} />
         <Route path="record-usage" element={<AssetUsage />} />
         <Route path="asset-history" element={<AssetHistory />} />
         <Route path="usage-history" element={<UsageHistory />} />
         <Route path="activity" element={<UserActivity />} />
-        <Route path="notifications" element={<UserNotifications />} />
         <Route path="assigned-pos" element={<AssignedPOs />} />
         <Route path="assigned-pos/:id" element={<POUserDetails />} />
       </Route>
@@ -150,3 +146,5 @@ export const AppRoutes = () => {
     </Routes>
   );
 };
+
+export default AppRoutes;

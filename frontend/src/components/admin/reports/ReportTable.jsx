@@ -56,9 +56,9 @@ export const ReportTable = ({
   );
 
   return (
-    <div className="table-card">
-      <div className="table-responsive" style={{ overflowX: 'auto', minHeight: '320px' }}>
-        <table className="data-table" style={{ width: '100%', minWidth: '960px' }}>
+    <div className="procurement-table-card">
+      <div className="table-responsive-wrapper" style={{ minHeight: '320px' }}>
+        <table className="procurement-table" style={{ width: '100%', minWidth: '960px' }}>
           <thead>
             {/* 1. ASSET USAGE REPORT HEADERS */}
             {reportType === 'ASSET_USAGE' && (
@@ -369,7 +369,7 @@ export const ReportTable = ({
       </div>
 
       {/* PAGINATION FOOTER */}
-      <div className="table-pagination">
+      <div className="table-card-footer">
         <div className="pagination-info">
           <span>Showing</span>
           <select

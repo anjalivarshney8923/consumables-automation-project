@@ -3,8 +3,6 @@ import { useSearchParams } from 'react-router-dom';
 import {
   Users,
   UserPlus,
-  Download,
-  Upload,
   RefreshCw,
   AlertCircle,
   CheckCircle2,
@@ -305,15 +303,28 @@ export const AdminEmployeeMaster = () => {
       {/* ================================================================= */}
       {/* 1. PAGE HEADER                                                    */}
       {/* ================================================================= */}
-      <div className="page-header-card mb-6">
-        <div className="page-header-title-area">
-          <div className="page-header-icon-box">
-            <Users size={24} className="text-navy" />
+      <header className="page-header-block mb-6" style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '1rem' }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '14px' }}>
+          <div
+            style={{
+              width: '44px',
+              height: '44px',
+              borderRadius: '10px',
+              background: 'linear-gradient(135deg, var(--iocl-red, #B71C1C) 0%, #D32F2F 100%)',
+              color: '#FFFFFF',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              boxShadow: '0 4px 14px rgba(183, 28, 28, 0.25)',
+              flexShrink: 0
+            }}
+          >
+            <Users size={22} />
           </div>
-          <div>
-            <h1 className="page-main-title">EMPLOYEE MASTER</h1>
-            <p className="page-main-subtitle">
-              Manage employee, beneficiary, department and workplace information.
+          <div className="page-title-group">
+            <h1 className="page-title-text" style={{ fontSize: '1.25rem' }}>EMPLOYEE MASTER</h1>
+            <p className="page-subtitle-text">
+              Manage employee information and workplace details
             </p>
           </div>
         </div>
@@ -333,61 +344,20 @@ export const AdminEmployeeMaster = () => {
               fontSize: '0.8125rem',
               fontWeight: 700,
               cursor: 'pointer',
-              background: 'var(--iocl-navy, #002D62)',
+              background: 'var(--iocl-red, #B71C1C)',
               color: '#FFFFFF',
-              border: 'none'
+              border: 'none',
+              boxShadow: '0 2px 6px rgba(183, 28, 28, 0.25)'
             }}
           >
             <UserPlus size={16} />
             <span>+ ADD EMPLOYEE</span>
           </button>
 
-          {/* Import Employees Preparation Button */}
-          <button
-            type="button"
-            className="btn-header-secondary"
-            onClick={() => setFeedbackToast({ type: 'info', message: 'Bulk Excel / CSV Import feature is prepared for future backend integration.' })}
-            title="Import employee directory from Excel/CSV"
-            style={{
-              display: 'inline-flex',
-              alignItems: 'center',
-              gap: '6px',
-              padding: '8px 14px',
-              borderRadius: '6px',
-              fontSize: '0.8125rem',
-              fontWeight: 600,
-              cursor: 'pointer'
-            }}
-          >
-            <Upload size={15} />
-            <span>Import</span>
-          </button>
-
-          {/* Export Button (Prepared) */}
-          <button
-            type="button"
-            className="btn-header-secondary"
-            onClick={() => setFeedbackToast({ type: 'info', message: 'Export feature is prepared for future integration.' })}
-            title="Export employee records"
-            style={{
-              display: 'inline-flex',
-              alignItems: 'center',
-              gap: '6px',
-              padding: '8px 14px',
-              borderRadius: '6px',
-              fontSize: '0.8125rem',
-              fontWeight: 600,
-              cursor: 'pointer'
-            }}
-          >
-            <Download size={15} />
-            <span>Export</span>
-          </button>
-
           {/* Refresh Button */}
           <button
             type="button"
-            className="btn-header-secondary"
+            className="btn-refresh"
             onClick={() => fetchData(true)}
             disabled={isRefreshing || loading}
             title="Refresh employee directory"
@@ -402,11 +372,11 @@ export const AdminEmployeeMaster = () => {
               cursor: 'pointer'
             }}
           >
-            <RefreshCw size={15} className={isRefreshing ? 'animate-spin' : ''} />
+            <RefreshCw size={15} className={isRefreshing ? 'spin-icon' : ''} />
             <span>Refresh</span>
           </button>
         </div>
-      </div>
+      </header>
 
       {/* ================================================================= */}
       {/* 2. SUMMARY KPI CARDS                                              */}

@@ -1,48 +1,56 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { Link } from 'react-router-dom';
 import {
-  Package,
-  AlertCircle,
   Activity,
+  AlertCircle,
   Clock,
   ClipboardEdit,
   History,
-  Bell,
   ArrowRight,
   ShieldCheck,
-  Building,
-  User,
-  Inbox,
-  Info,
-  Loader2
+  RefreshCw,
+  AlertTriangle,
+  Zap,
+  Clock3
 } from 'lucide-react';
 import { useAuth } from '../../context/AuthContext';
-import { getUserUsageHistory } from '../../services/assetUsageService';
+import { getUserDashboardData } from '../../services/userService';
 
 export const UserDashboard = () => {
   const { user } = useAuth();
-  const [recentUsages, setRecentUsages] = useState([]);
-  const [loadingUsage, setLoadingUsage] = useState(true);
+  const [dashboardData, setDashboardData] = useState(null);
+  const [loading, setLoading] = useState(true);
+  const [isRefreshing, setIsRefreshing] = useState(false);
+  const [error, setError] = useState(null);
 
-  useEffect(() => {
-    const loadUsage = async () => {
-      try {
-        const res = await getUserUsageHistory();
-        if (res.success && Array.isArray(res.data)) {
-          setRecentUsages(res.data);
-        }
-      } catch {
-        setRecentUsages([]);
-      } finally {
-        setLoadingUsage(false);
+  const fetchDashboard = useCallback(async (isUserRefresh = false) => {
+    if (isUserRefresh) {
+      setIsRefreshing(true);
+    } else {
+      setLoading(true);
+    }
+    setError(null);
+
+    try {
+      const res = await getUserDashboardData();
+      if (res.success && res.data) {
+        setDashboardData(res.data);
+      } else {
+        setError(res.message || 'Unable to load dashboard data from server.');
       }
-    };
-    loadUsage();
+    } catch {
+      setError('Unable to connect to backend server. Please verify Spring Boot is running.');
+    } finally {
+      setLoading(false);
+      setIsRefreshing(false);
+    }
   }, []);
 
-  const totalQuantityRecorded = recentUsages.reduce((sum, item) => sum + (item.quantityUsed || 0), 0);
+  useEffect(() => {
+    fetchDashboard();
+  }, [fetchDashboard]);
 
-  // Dynamic greeting based on current time
+  // Dynamic greeting based on current hour
   const getGreeting = () => {
     const hour = new Date().getHours();
     if (hour < 12) return 'Good Morning';
@@ -50,439 +58,282 @@ export const UserDashboard = () => {
     return 'Good Evening';
   };
 
-  const displayName = user?.fullName || user?.name || user?.username || 'User';
+  // Resolved user display name from real backend dashboard response or auth context
+  const resolvedName = dashboardData?.userName || user?.fullName || user?.name || user?.username || 'User';
+
+  // Format date helper
+  const formatDate = (val) => {
+    if (!val) return '—';
+    try {
+      if (typeof val === 'string' && /^\d{4}-\d{2}-\d{2}$/.test(val)) {
+        const [year, month, day] = val.split('-');
+        const months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+        return `${day} ${months[parseInt(month, 10) - 1]} ${year}`;
+      }
+      const d = new Date(val);
+      if (isNaN(d.getTime())) return String(val);
+      return d.toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric' });
+    } catch {
+      return String(val);
+    }
+  };
+
+  // Get colour badge class helper
+  const getColourBadgeClass = (colour) => {
+    if (!colour) return 'colour-badge colour-badge-black';
+    const c = colour.toUpperCase();
+    if (c === 'CYAN') return 'colour-badge colour-badge-cyan';
+    if (c === 'MAGENTA') return 'colour-badge colour-badge-magenta';
+    if (c === 'YELLOW') return 'colour-badge colour-badge-yellow';
+    return 'colour-badge colour-badge-black';
+  };
 
   return (
-    <div className="dashboard-container">
-      {/* 1. Welcome Banner Header */}
-      <header
-        style={{
-          backgroundColor: '#FFFFFF',
-          borderRadius: '12px',
-          border: '1px solid #E2E8F0',
-          padding: '1.5rem 1.75rem',
-          marginBottom: '1.75rem',
-          boxShadow: '0 2px 6px rgba(0,0,0,0.03)',
-          display: 'flex',
-          justifyContent: 'space-between',
-          alignItems: 'center',
-          flexWrap: 'wrap',
-          gap: '1.25rem'
-        }}
-      >
+    <div className="procurement-page-container">
+      {/* ================================================================= */}
+      {/* 1. HERO / WELCOME CARD                                            */}
+      {/* ================================================================= */}
+      <div className="user-hero-card">
         <div>
           <div style={{ display: 'flex', alignItems: 'center', gap: '0.625rem', marginBottom: '0.35rem' }}>
-            <h1 style={{ fontSize: '1.5rem', fontWeight: '800', color: '#1E293B', margin: 0, letterSpacing: '-0.02em' }}>
-              {getGreeting()}, {displayName} 👋
+            <h1 className="user-hero-title">
+              {getGreeting()}, {resolvedName} 👋
             </h1>
             <span
               style={{
                 fontSize: '0.6875rem',
-                backgroundColor: '#EFF6FF',
-                color: '#1E40AF',
-                fontWeight: '800',
+                backgroundColor: 'var(--iocl-red-light, #FFEBEE)',
+                color: 'var(--iocl-red, #B71C1C)',
+                fontWeight: 800,
                 padding: '0.15rem 0.5rem',
                 borderRadius: '4px',
-                border: '1px solid #BFDBFE'
+                border: '1px solid rgba(183, 28, 28, 0.2)',
+                letterSpacing: '0.04em'
               }}
             >
               USER PORTAL
             </span>
           </div>
-          <p style={{ fontSize: '0.875rem', color: '#64748B', margin: 0, fontWeight: '500' }}>
-            Welcome to the IOCL Consumables & Procurement Management System. Here's an overview of your assigned assets and recent activity.
+          <p className="user-hero-subtitle">
+            Welcome to the IOCL Consumables & Procurement Management System. Here is an overview of your recent activity and recorded usage.
           </p>
         </div>
 
-        <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', flexWrap: 'wrap' }}>
+          {/* Refresh Button */}
+          <button
+            type="button"
+            className="btn-refresh"
+            onClick={() => fetchDashboard(true)}
+            disabled={isRefreshing || loading}
+            title="Refresh dashboard data from server"
+            style={{
+              display: 'inline-flex',
+              alignItems: 'center',
+              gap: '6px',
+              padding: '8px 14px',
+              borderRadius: '6px',
+              fontSize: '0.8125rem',
+              fontWeight: 600,
+              cursor: 'pointer',
+              height: '38px'
+            }}
+          >
+            <RefreshCw size={15} className={isRefreshing ? 'spin-icon' : ''} />
+            <span>Refresh</span>
+          </button>
+
+          {/* Record Asset Usage Button */}
           <Link
             to="/user/usage"
             style={{
               display: 'inline-flex',
               alignItems: 'center',
               gap: '0.5rem',
-              padding: '0.625rem 1.125rem',
-              backgroundColor: '#D4001F',
+              padding: '0 16px',
+              backgroundColor: 'var(--iocl-red, #B71C1C)',
               color: '#FFFFFF',
-              borderRadius: '8px',
-              fontWeight: '700',
-              fontSize: '0.875rem',
+              borderRadius: '6px',
+              fontWeight: 700,
+              fontSize: '0.8125rem',
               textDecoration: 'none',
-              boxShadow: '0 2px 8px rgba(212,0,31,0.25)',
-              transition: 'background-color 0.15s ease'
+              height: '38px',
+              boxShadow: '0 2px 6px rgba(183, 28, 28, 0.25)',
+              transition: 'all 0.15s ease'
             }}
-            onMouseEnter={(e) => e.currentTarget.style.backgroundColor = '#BA001A'}
-            onMouseLeave={(e) => e.currentTarget.style.backgroundColor = '#D4001F'}
+            onMouseEnter={(e) => e.currentTarget.style.backgroundColor = 'var(--iocl-red-hover, #D32F2F)'}
+            onMouseLeave={(e) => e.currentTarget.style.backgroundColor = 'var(--iocl-red, #B71C1C)'}
           >
             <ClipboardEdit size={16} />
             <span>Record Asset Usage</span>
           </Link>
-
-          <Link
-            to="/user/assets"
-            style={{
-              display: 'inline-flex',
-              alignItems: 'center',
-              gap: '0.5rem',
-              padding: '0.625rem 1rem',
-              backgroundColor: '#F8FAFC',
-              color: '#334155',
-              border: '1px solid #CBD5E1',
-              borderRadius: '8px',
-              fontWeight: '600',
-              fontSize: '0.875rem',
-              textDecoration: 'none',
-              transition: 'all 0.15s ease'
-            }}
-            onMouseEnter={(e) => e.currentTarget.style.backgroundColor = '#F1F5F9'}
-            onMouseLeave={(e) => e.currentTarget.style.backgroundColor = '#F8FAFC'}
-          >
-            <Package size={16} color="var(--iocl-navy)" />
-            <span>View My Assets</span>
-          </Link>
-        </div>
-      </header>
-
-      {/* 2. Four Summary Metric Cards (Clean neutral placeholders with no fake numbers) */}
-      <div
-        style={{
-          display: 'grid',
-          gridTemplateColumns: 'repeat(auto-fit, minmax(240px, 1fr))',
-          gap: '1.25rem',
-          marginBottom: '1.75rem'
-        }}
-      >
-        {/* Card 1: My Assets */}
-        <div
-          style={{
-            backgroundColor: '#FFFFFF',
-            borderRadius: '10px',
-            border: '1px solid #E2E8F0',
-            padding: '1.25rem',
-            boxShadow: '0 2px 4px rgba(0,0,0,0.03)'
-          }}
-        >
-          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
-            <div>
-              <span style={{ fontSize: '0.75rem', fontWeight: '700', color: '#64748B', textTransform: 'uppercase' }}>
-                My Assets
-              </span>
-              <div style={{ fontSize: '1.75rem', fontWeight: '800', color: 'var(--iocl-navy)', marginTop: '0.25rem' }}>
-                --
-              </div>
-            </div>
-            <div
-              style={{
-                width: '38px',
-                height: '38px',
-                borderRadius: '8px',
-                backgroundColor: '#EFF6FF',
-                color: '#1E40AF',
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center'
-              }}
-            >
-              <Package size={20} />
-            </div>
-          </div>
-          <div style={{ fontSize: '0.75rem', color: '#94A3B8', marginTop: '0.5rem' }}>
-            Assigned consumables & devices
-          </div>
-        </div>
-
-        {/* Card 2: Assets Requiring Attention */}
-        <div
-          style={{
-            backgroundColor: '#FFFFFF',
-            borderRadius: '10px',
-            border: '1px solid #E2E8F0',
-            padding: '1.25rem',
-            boxShadow: '0 2px 4px rgba(0,0,0,0.03)'
-          }}
-        >
-          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
-            <div>
-              <span style={{ fontSize: '0.75rem', fontWeight: '700', color: '#64748B', textTransform: 'uppercase' }}>
-                Assets Requiring Attention
-              </span>
-              <div style={{ fontSize: '1.75rem', fontWeight: '800', color: 'var(--iocl-navy)', marginTop: '0.25rem' }}>
-                --
-              </div>
-            </div>
-            <div
-              style={{
-                width: '38px',
-                height: '38px',
-                borderRadius: '8px',
-                backgroundColor: '#FEF2F2',
-                color: '#DC2626',
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center'
-              }}
-            >
-              <AlertCircle size={20} />
-            </div>
-          </div>
-          <div style={{ fontSize: '0.75rem', color: '#94A3B8', marginTop: '0.5rem' }}>
-            Low cartridge / maintenance required
-          </div>
-        </div>
-
-        {/* Card 3: Usage This Month */}
-        <div
-          style={{
-            backgroundColor: '#FFFFFF',
-            borderRadius: '10px',
-            border: '1px solid #E2E8F0',
-            padding: '1.25rem',
-            boxShadow: '0 2px 4px rgba(0,0,0,0.03)'
-          }}
-        >
-          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
-            <div>
-              <span style={{ fontSize: '0.75rem', fontWeight: '700', color: '#64748B', textTransform: 'uppercase' }}>
-                Usage Total
-              </span>
-              <div style={{ fontSize: '1.75rem', fontWeight: '800', color: 'var(--iocl-navy)', marginTop: '0.25rem' }}>
-                {loadingUsage ? '--' : `${totalQuantityRecorded}`}
-              </div>
-            </div>
-            <div
-              style={{
-                width: '38px',
-                height: '38px',
-                borderRadius: '8px',
-                backgroundColor: '#ECFDF5',
-                color: '#059669',
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center'
-              }}
-            >
-              <Activity size={20} />
-            </div>
-          </div>
-          <div style={{ fontSize: '0.75rem', color: '#94A3B8', marginTop: '0.5rem' }}>
-            Units recorded this billing cycle
-          </div>
-        </div>
-
-        {/* Card 4: Pending Actions */}
-        <div
-          style={{
-            backgroundColor: '#FFFFFF',
-            borderRadius: '10px',
-            border: '1px solid #E2E8F0',
-            padding: '1.25rem',
-            boxShadow: '0 2px 4px rgba(0,0,0,0.03)'
-          }}
-        >
-          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
-            <div>
-              <span style={{ fontSize: '0.75rem', fontWeight: '700', color: '#64748B', textTransform: 'uppercase' }}>
-                Pending Actions
-              </span>
-              <div style={{ fontSize: '1.75rem', fontWeight: '800', color: 'var(--iocl-navy)', marginTop: '0.25rem' }}>
-                --
-              </div>
-            </div>
-            <div
-              style={{
-                width: '38px',
-                height: '38px',
-                borderRadius: '8px',
-                backgroundColor: '#FFF7ED',
-                color: '#EA580C',
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center'
-              }}
-            >
-              <Clock size={20} />
-            </div>
-          </div>
-          <div style={{ fontSize: '0.75rem', color: '#94A3B8', marginTop: '0.5rem' }}>
-            Awaiting execution / confirmation
-          </div>
         </div>
       </div>
 
-      {/* 3. Main Two-Column Layout */}
-      <div
-        style={{
-          display: 'grid',
-          gridTemplateColumns: 'repeat(auto-fit, minmax(380px, 1fr))',
-          gap: '1.5rem',
-          marginBottom: '1.75rem'
-        }}
-      >
-        {/* Left Column: MY ASSETS & ASSET USAGE */}
-        <div style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem' }}>
-          {/* Section: MY ASSETS */}
-          <div
+      {/* Error State Banner */}
+      {error && (
+        <div
+          className="mb-6"
+          style={{
+            padding: '1rem 1.25rem',
+            borderRadius: '8px',
+            backgroundColor: '#FEF2F2',
+            border: '1px solid #FCA5A5',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'space-between',
+            gap: '1rem'
+          }}
+        >
+          <div style={{ display: 'flex', alignItems: 'center', gap: '0.625rem' }}>
+            <AlertTriangle size={18} color="#DC2626" />
+            <span style={{ fontSize: '0.875rem', color: '#991B1B', fontWeight: 600 }}>
+              {error}
+            </span>
+          </div>
+          <button
+            type="button"
+            onClick={() => fetchDashboard(true)}
             style={{
-              backgroundColor: '#FFFFFF',
-              borderRadius: '12px',
-              border: '1px solid #E2E8F0',
-              boxShadow: '0 2px 6px rgba(0,0,0,0.03)',
-              overflow: 'hidden'
+              padding: '5px 14px',
+              borderRadius: '6px',
+              backgroundColor: '#DC2626',
+              color: '#FFFFFF',
+              border: 'none',
+              fontSize: '0.75rem',
+              fontWeight: 700,
+              cursor: 'pointer'
             }}
           >
-            <div
-              style={{
-                padding: '1.25rem 1.5rem',
-                borderBottom: '1px solid #E2E8F0',
-                display: 'flex',
-                justifyContent: 'space-between',
-                alignItems: 'center'
-              }}
-            >
-              <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-                <Package size={18} color="var(--iocl-navy)" />
-                <h2 style={{ fontSize: '1rem', fontWeight: '800', color: '#1E293B', margin: 0 }}>
-                  MY ASSETS
-                </h2>
-              </div>
-              <Link
-                to="/user/assets"
-                style={{
-                  fontSize: '0.8125rem',
-                  fontWeight: '700',
-                  color: 'var(--iocl-navy)',
-                  textDecoration: 'none',
-                  display: 'inline-flex',
-                  alignItems: 'center',
-                  gap: '0.25rem'
-                }}
-              >
-                <span>View All</span>
-                <ArrowRight size={14} />
-              </Link>
-            </div>
+            Retry
+          </button>
+        </div>
+      )}
 
-            {/* Empty State */}
+      {/* ================================================================= */}
+      {/* 2. THREE SUMMARY METRIC CARDS (REAL DATABASE DATA)                */}
+      {/* ================================================================= */}
+      <div className="user-kpi-grid">
+        {/* Card 1: Usage Total */}
+        <div className="user-kpi-card">
+          <div className="user-kpi-top">
+            <span className="user-kpi-label">USAGE TOTAL</span>
             <div
-              style={{
-                padding: '3rem 1.5rem',
-                display: 'flex',
-                flexDirection: 'column',
-                alignItems: 'center',
-                justifyContent: 'center',
-                textAlign: 'center'
-              }}
+              className="user-kpi-icon-box"
+              style={{ backgroundColor: '#ECFDF5', color: '#059669' }}
             >
-              <div
-                style={{
-                  width: '52px',
-                  height: '52px',
-                  borderRadius: '12px',
-                  backgroundColor: '#F1F5F9',
-                  color: '#64748B',
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                  marginBottom: '1rem'
-                }}
-              >
-                <Package size={26} />
-              </div>
-              <h3 style={{ fontSize: '1rem', fontWeight: '700', color: '#1E293B', margin: '0 0 0.25rem' }}>
-                No assets assigned yet.
-              </h3>
-              <p style={{ fontSize: '0.8125rem', color: '#64748B', margin: 0, maxWidth: '320px', lineHeight: 1.4 }}>
-                Your assigned printer consumables and hardware devices will appear here once allocated.
-              </p>
+              <Activity size={18} />
             </div>
           </div>
+          <div className="user-kpi-number" style={{ color: 'var(--text-primary)' }}>
+            {loading ? '...' : (dashboardData?.usageTotal ?? 0).toLocaleString()}
+          </div>
+          <p className="user-kpi-subtext">Total consumable units recorded</p>
+        </div>
 
-          {/* Section: ASSET USAGE */}
-          <div
-            style={{
-              backgroundColor: '#FFFFFF',
-              borderRadius: '12px',
-              border: '1px solid #E2E8F0',
-              boxShadow: '0 2px 6px rgba(0,0,0,0.03)',
-              overflow: 'hidden'
-            }}
-          >
+        {/* Card 2: Assets Requiring Attention */}
+        <div className="user-kpi-card">
+          <div className="user-kpi-top">
+            <span className="user-kpi-label">ASSETS REQUIRING ATTENTION</span>
             <div
+              className="user-kpi-icon-box"
               style={{
-                padding: '1.25rem 1.5rem',
-                borderBottom: '1px solid #E2E8F0',
-                display: 'flex',
-                justifyContent: 'space-between',
-                alignItems: 'center'
+                backgroundColor: (dashboardData?.assetsRequiringAttention ?? 0) > 0 ? '#FEF2F2' : '#F1F5F9',
+                color: (dashboardData?.assetsRequiringAttention ?? 0) > 0 ? '#DC2626' : '#64748B'
               }}
             >
-              <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-                <Activity size={18} color="var(--iocl-navy)" />
-                <h2 style={{ fontSize: '1rem', fontWeight: '800', color: '#1E293B', margin: 0 }}>
-                  ASSET USAGE
-                </h2>
-              </div>
-              <Link
-                to="/user/asset-history"
-                style={{
-                  fontSize: '0.8125rem',
-                  fontWeight: '700',
-                  color: 'var(--iocl-navy)',
-                  textDecoration: 'none',
-                  display: 'inline-flex',
-                  alignItems: 'center',
-                  gap: '0.25rem'
-                }}
-              >
-                <span>View Usage History</span>
-                <ArrowRight size={14} />
-              </Link>
+              <AlertCircle size={18} />
             </div>
+          </div>
+          <div
+            className="user-kpi-number"
+            style={{ color: (dashboardData?.assetsRequiringAttention ?? 0) > 0 ? '#DC2626' : 'var(--text-primary)' }}
+          >
+            {loading ? '...' : (dashboardData?.assetsRequiringAttention ?? 0)}
+          </div>
+          <p className="user-kpi-subtext">Threshold alerts & low stock items</p>
+        </div>
 
-            {/* Render real recent usage items or clean empty state */}
-            {loadingUsage ? (
-              <div style={{ padding: '2.5rem 1.5rem', textAlign: 'center', color: '#64748B' }}>
-                <Loader2 size={20} className="spinner text-navy" style={{ margin: '0 auto 0.5rem' }} />
+        {/* Card 3: Pending Actions */}
+        <div className="user-kpi-card">
+          <div className="user-kpi-top">
+            <span className="user-kpi-label">PENDING ACTIONS</span>
+            <div
+              className="user-kpi-icon-box"
+              style={{ backgroundColor: '#FFF7ED', color: '#EA580C' }}
+            >
+              <Clock size={18} />
+            </div>
+          </div>
+          <div className="user-kpi-number" style={{ color: 'var(--text-primary)' }}>
+            {loading ? '...' : (dashboardData?.pendingActions ?? 0)}
+          </div>
+          <p className="user-kpi-subtext">Awaiting execution / confirmation</p>
+        </div>
+      </div>
+
+      {/* ================================================================= */}
+      {/* 3. TWO-COLUMN SECTION: ASSET USAGE (50%) & RECENT ACTIVITY (50%)   */}
+      {/* ================================================================= */}
+      <div className="user-dashboard-columns">
+        {/* Left Column: ASSET USAGE */}
+        <div className="user-panel-card">
+          <div className="user-panel-header">
+            <div className="user-panel-title-group">
+              <Zap size={16} color="var(--iocl-red, #B71C1C)" />
+              <h2 className="user-panel-title">
+                ASSET USAGE
+              </h2>
+            </div>
+            <Link
+              to="/user/asset-history"
+              className="user-panel-link"
+            >
+              <span>View History</span>
+              <ArrowRight size={13} />
+            </Link>
+          </div>
+
+          {/* List of Real Usage Transactions */}
+          <div style={{ flex: 1 }}>
+            {loading ? (
+              <div style={{ padding: '3rem 1.5rem', textAlign: 'center', color: 'var(--text-muted)' }}>
+                <RefreshCw size={20} className="spin-icon" style={{ margin: '0 auto 0.5rem' }} />
                 <p style={{ fontSize: '0.8125rem', fontWeight: 500, margin: 0 }}>Loading usage records...</p>
               </div>
-            ) : recentUsages.length > 0 ? (
-              <div style={{ padding: '0.5rem 1rem' }}>
-                {recentUsages.slice(0, 4).map((item) => (
-                  <div
-                    key={item.id}
-                    style={{
-                      display: 'flex',
-                      alignItems: 'center',
-                      justifyContent: 'space-between',
-                      padding: '0.75rem 0.5rem',
-                      borderBottom: '1px solid #F1F5F9'
-                    }}
-                  >
-                    <div>
-                      <div style={{ fontSize: '0.875rem', fontWeight: '700', color: 'var(--iocl-navy)' }}>
+            ) : dashboardData?.recentUsages && dashboardData.recentUsages.length > 0 ? (
+              dashboardData.recentUsages.map((item) => (
+                <div
+                  key={item.id}
+                  className="user-record-row"
+                >
+                  <div style={{ minWidth: 0 }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap' }}>
+                      <span className="part-number-chip" style={{ fontSize: '0.8125rem' }}>
                         {item.partNumber || item.cartridgeName}
-                      </div>
-                      <div style={{ fontSize: '0.75rem', color: '#64748B', marginTop: '0.15rem' }}>
-                        For: <strong>{item.beneficiaryEmployeeName || item.employeeName || 'Beneficiary'}</strong> ({item.beneficiarySeatOrCabinNo || item.seatOrCabinNo || 'Cabin'}) · {item.usageDate}
-                      </div>
-                    </div>
-                    <div style={{ textAlign: 'right' }}>
-                      <span style={{ fontSize: '0.875rem', fontWeight: '800', color: '#D4001F' }}>
-                        {item.quantityUsed} unit{item.quantityUsed > 1 ? 's' : ''}
                       </span>
                       {item.colour && (
-                        <div style={{ fontSize: '0.6875rem', fontWeight: '700', color: '#0891B2' }}>
+                        <span className={getColourBadgeClass(item.colour)}>
                           {item.colour}
-                        </div>
+                        </span>
                       )}
                     </div>
+                    <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)', marginTop: '0.35rem' }}>
+                      For: <strong style={{ color: 'var(--text-secondary)' }}>{item.beneficiaryEmployeeName || item.employeeName || 'Beneficiary'}</strong>
+                      {item.beneficiaryEmployeeNo ? ` (${item.beneficiaryEmployeeNo})` : ''} · {formatDate(item.usageDate)}
+                    </div>
                   </div>
-                ))}
-              </div>
+                  <div style={{ textAlign: 'right', flexShrink: 0, marginLeft: '12px' }}>
+                    <span style={{ fontSize: '0.9375rem', fontWeight: 800, color: 'var(--iocl-red, #B71C1C)' }}>
+                      {item.quantityUsed} unit{item.quantityUsed > 1 ? 's' : ''}
+                    </span>
+                  </div>
+                </div>
+              ))
             ) : (
               <div
                 style={{
-                  padding: '3rem 1.5rem',
+                  padding: '3.5rem 1.5rem',
                   display: 'flex',
                   flexDirection: 'column',
                   alignItems: 'center',
@@ -492,31 +343,31 @@ export const UserDashboard = () => {
               >
                 <div
                   style={{
-                    width: '52px',
-                    height: '52px',
-                    borderRadius: '12px',
+                    width: '44px',
+                    height: '44px',
+                    borderRadius: '10px',
                     backgroundColor: '#F1F5F9',
-                    color: '#64748B',
+                    color: 'var(--text-muted)',
                     display: 'flex',
                     alignItems: 'center',
                     justifyContent: 'center',
-                    marginBottom: '1rem'
+                    marginBottom: '0.75rem'
                   }}
                 >
-                  <ClipboardEdit size={26} />
+                  <ClipboardEdit size={22} />
                 </div>
-                <h3 style={{ fontSize: '1rem', fontWeight: '700', color: '#1E293B', margin: '0 0 0.25rem' }}>
-                  No recent usage records.
+                <h3 style={{ fontSize: '0.9375rem', fontWeight: 700, color: 'var(--text-primary)', margin: '0 0 0.25rem' }}>
+                  No recent usage records
                 </h3>
-                <p style={{ fontSize: '0.8125rem', color: '#64748B', margin: '0 0 1.25rem', maxWidth: '320px', lineHeight: 1.4 }}>
-                  When you record consumable cartridge usage, your execution logs will be displayed here.
+                <p style={{ fontSize: '0.75rem', color: 'var(--text-muted)', margin: '0 0 1rem', maxWidth: '280px', lineHeight: 1.4 }}>
+                  When you record consumable cartridge usage, your execution logs will appear here.
                 </p>
                 <Link
                   to="/user/usage"
                   style={{
-                    fontSize: '0.8125rem',
-                    fontWeight: '700',
-                    color: '#D4001F',
+                    fontSize: '0.75rem',
+                    fontWeight: 700,
+                    color: 'var(--iocl-red, #B71C1C)',
                     textDecoration: 'none',
                     display: 'inline-flex',
                     alignItems: 'center',
@@ -524,195 +375,142 @@ export const UserDashboard = () => {
                   }}
                 >
                   <span>Record Cartridge Usage</span>
-                  <ArrowRight size={13} />
+                  <ArrowRight size={12} />
                 </Link>
               </div>
             )}
           </div>
         </div>
 
-        {/* Right Column: NOTIFICATIONS & RECENT ACTIVITY */}
-        <div style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem' }}>
-          {/* Section: NOTIFICATIONS PREVIEW */}
-          <div
-            style={{
-              backgroundColor: '#FFFFFF',
-              borderRadius: '12px',
-              border: '1px solid #E2E8F0',
-              boxShadow: '0 2px 6px rgba(0,0,0,0.03)',
-              overflow: 'hidden'
-            }}
-          >
-            <div
-              style={{
-                padding: '1.25rem 1.5rem',
-                borderBottom: '1px solid #E2E8F0',
-                display: 'flex',
-                justifyContent: 'space-between',
-                alignItems: 'center'
-              }}
-            >
-              <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-                <Bell size={18} color="var(--iocl-navy)" />
-                <h2 style={{ fontSize: '1rem', fontWeight: '800', color: '#1E293B', margin: 0 }}>
-                  NOTIFICATIONS
-                </h2>
-              </div>
-              <Link
-                to="/user/notifications"
-                style={{
-                  fontSize: '0.8125rem',
-                  fontWeight: '700',
-                  color: 'var(--iocl-navy)',
-                  textDecoration: 'none',
-                  display: 'inline-flex',
-                  alignItems: 'center',
-                  gap: '0.25rem'
-                }}
-              >
-                <span>View All</span>
-                <ArrowRight size={14} />
-              </Link>
+        {/* Right Column: RECENT ACTIVITY */}
+        <div className="user-panel-card">
+          <div className="user-panel-header">
+            <div className="user-panel-title-group">
+              <Clock3 size={16} color="var(--iocl-red, #B71C1C)" />
+              <h2 className="user-panel-title">
+                RECENT ACTIVITY
+              </h2>
             </div>
-
-            {/* Empty State */}
-            <div
-              style={{
-                padding: '3rem 1.5rem',
-                display: 'flex',
-                flexDirection: 'column',
-                alignItems: 'center',
-                justifyContent: 'center',
-                textAlign: 'center'
-              }}
+            <Link
+              to="/user/activity"
+              className="user-panel-link"
             >
-              <div
-                style={{
-                  width: '52px',
-                  height: '52px',
-                  borderRadius: '12px',
-                  backgroundColor: '#F1F5F9',
-                  color: '#64748B',
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                  marginBottom: '1rem'
-                }}
-              >
-                <Bell size={26} />
-              </div>
-              <h3 style={{ fontSize: '1rem', fontWeight: '700', color: '#1E293B', margin: '0 0 0.25rem' }}>
-                No new notifications
-              </h3>
-              <p style={{ fontSize: '0.8125rem', color: '#64748B', margin: 0, maxWidth: '320px', lineHeight: 1.4 }}>
-                You are all caught up! System alerts and allocation notices will show up here.
-              </p>
-            </div>
+              <span>View All Activity</span>
+              <ArrowRight size={13} />
+            </Link>
           </div>
 
-          {/* Section: RECENT ACTIVITY */}
-          <div
-            style={{
-              backgroundColor: '#FFFFFF',
-              borderRadius: '12px',
-              border: '1px solid #E2E8F0',
-              boxShadow: '0 2px 6px rgba(0,0,0,0.03)',
-              overflow: 'hidden'
-            }}
-          >
-            <div
-              style={{
-                padding: '1.25rem 1.5rem',
-                borderBottom: '1px solid #E2E8F0',
-                display: 'flex',
-                justifyContent: 'space-between',
-                alignItems: 'center'
-              }}
-            >
-              <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-                <Clock size={18} color="var(--iocl-navy)" />
-                <h2 style={{ fontSize: '1rem', fontWeight: '800', color: '#1E293B', margin: 0 }}>
-                  RECENT ACTIVITY
-                </h2>
+          {/* List of Real Activities */}
+          <div style={{ flex: 1 }}>
+            {loading ? (
+              <div style={{ padding: '3rem 1.5rem', textAlign: 'center', color: 'var(--text-muted)' }}>
+                <RefreshCw size={20} className="spin-icon" style={{ margin: '0 auto 0.5rem' }} />
+                <p style={{ fontSize: '0.8125rem', fontWeight: 500, margin: 0 }}>Loading activity logs...</p>
               </div>
-              <Link
-                to="/user/activity"
-                style={{
-                  fontSize: '0.8125rem',
-                  fontWeight: '700',
-                  color: 'var(--iocl-navy)',
-                  textDecoration: 'none',
-                  display: 'inline-flex',
-                  alignItems: 'center',
-                  gap: '0.25rem'
-                }}
-              >
-                <span>View All Activity</span>
-                <ArrowRight size={14} />
-              </Link>
-            </div>
-
-            {/* Empty State */}
-            <div
-              style={{
-                padding: '3rem 1.5rem',
-                display: 'flex',
-                flexDirection: 'column',
-                alignItems: 'center',
-                justifyContent: 'center',
-                textAlign: 'center'
-              }}
-            >
+            ) : dashboardData?.recentActivities && dashboardData.recentActivities.length > 0 ? (
+              dashboardData.recentActivities.map((act) => (
+                <div
+                  key={act.id}
+                  className="user-activity-row"
+                >
+                  <div style={{ display: 'flex', alignItems: 'flex-start', gap: '10px', minWidth: 0, flex: 1 }}>
+                    <div
+                      style={{
+                        width: '28px',
+                        height: '28px',
+                        borderRadius: '6px',
+                        backgroundColor: 'var(--iocl-red-light, #FFEBEE)',
+                        color: 'var(--iocl-red, #B71C1C)',
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        flexShrink: 0,
+                        marginTop: '1px'
+                      }}
+                    >
+                      <Activity size={14} />
+                    </div>
+                    <div style={{ minWidth: 0, flex: 1 }}>
+                      <div style={{ fontSize: '0.8125rem', fontWeight: 700, color: 'var(--text-primary)' }}>
+                        {act.title}
+                      </div>
+                      <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)', marginTop: '2px' }}>
+                        {act.description}
+                      </div>
+                    </div>
+                  </div>
+                  <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)', fontWeight: 600, flexShrink: 0, marginLeft: '8px' }}>
+                    {formatDate(act.timestamp)}
+                  </span>
+                </div>
+              ))
+            ) : (
               <div
                 style={{
-                  width: '52px',
-                  height: '52px',
-                  borderRadius: '12px',
-                  backgroundColor: '#F1F5F9',
-                  color: '#64748B',
+                  padding: '3.5rem 1.5rem',
                   display: 'flex',
+                  flexDirection: 'column',
                   alignItems: 'center',
                   justifyContent: 'center',
-                  marginBottom: '1rem'
+                  textAlign: 'center'
                 }}
               >
-                <History size={26} />
+                <div
+                  style={{
+                    width: '44px',
+                    height: '44px',
+                    borderRadius: '10px',
+                    backgroundColor: '#F1F5F9',
+                    color: 'var(--text-muted)',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    marginBottom: '0.75rem'
+                  }}
+                >
+                  <History size={22} />
+                </div>
+                <h3 style={{ fontSize: '0.9375rem', fontWeight: 700, color: 'var(--text-primary)', margin: '0 0 0.25rem' }}>
+                  No recent activity
+                </h3>
+                <p style={{ fontSize: '0.75rem', color: 'var(--text-muted)', margin: 0, maxWidth: '280px', lineHeight: 1.4 }}>
+                  Recent usage submissions, assignments, and profile updates will be logged here.
+                </p>
               </div>
-              <h3 style={{ fontSize: '1rem', fontWeight: '700', color: '#1E293B', margin: '0 0 0.25rem' }}>
-                No recent activity.
-              </h3>
-              <p style={{ fontSize: '0.8125rem', color: '#64748B', margin: 0, maxWidth: '320px', lineHeight: 1.4 }}>
-                Recent usage submissions, assignments, and profile updates will be logged here.
-              </p>
-            </div>
+            )}
           </div>
         </div>
       </div>
 
-      {/* 4. Support & Compliance Footer Card */}
+      {/* ================================================================= */}
+      {/* 4. SUPPORT & COMPLIANCE FOOTER CARD                               */}
+      {/* ================================================================= */}
       <div
         style={{
-          backgroundColor: '#F8FAFC',
+          backgroundColor: '#FFFFFF',
           borderRadius: '10px',
-          border: '1px solid #E2E8F0',
-          padding: '1rem 1.25rem',
+          border: '1px solid var(--border-subtle, #E2E8F0)',
+          padding: '0.875rem 1.25rem',
           display: 'flex',
           alignItems: 'center',
           justifyContent: 'space-between',
           flexWrap: 'wrap',
-          gap: '0.75rem'
+          gap: '0.75rem',
+          boxShadow: '0 1px 3px rgba(0, 0, 0, 0.04)'
         }}
       >
-        <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
-          <ShieldCheck size={20} color="var(--iocl-navy)" />
-          <span style={{ fontSize: '0.8125rem', color: '#475569', fontWeight: '500' }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '0.625rem' }}>
+          <ShieldCheck size={18} color="var(--iocl-red, #B71C1C)" />
+          <span style={{ fontSize: '0.8125rem', color: 'var(--text-secondary)', fontWeight: 600 }}>
             IOCL Consumables & Store Management · Departmental Usage Tracking Unit
           </span>
         </div>
-        <span style={{ fontSize: '0.75rem', color: '#94A3B8' }}>
-          Authenticated as <strong>{user?.email || 'User'}</strong>
+        <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>
+          Authenticated as <strong>{dashboardData?.userEmail || user?.email || 'User'}</strong>
         </span>
       </div>
     </div>
   );
 };
+
+export default UserDashboard;

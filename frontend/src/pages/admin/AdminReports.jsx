@@ -232,7 +232,7 @@ export const AdminReports = () => {
   };
 
   return (
-    <div className="admin-reports-page page-container" style={{ padding: '24px', maxWidth: '1440px', margin: '0 auto' }}>
+    <div className="procurement-page-container">
       {/* Toast Notification Banner */}
       {toast && (
         <div
@@ -247,7 +247,7 @@ export const AdminReports = () => {
             gap: '10px',
             padding: '12px 18px',
             borderRadius: '8px',
-            background: toast.type === 'success' ? '#059669' : toast.type === 'error' ? '#DC2626' : '#002D62',
+            background: toast.type === 'success' ? '#059669' : toast.type === 'error' ? '#DC2626' : 'var(--iocl-navy)',
             color: '#FFFFFF',
             boxShadow: '0 8px 24px rgba(0, 0, 0, 0.18)',
             fontSize: '0.875rem',
@@ -269,34 +269,32 @@ export const AdminReports = () => {
       )}
 
       {/* Page Header */}
-      <div className="page-header-container mb-6">
-        <div className="page-header-title-wrapper" style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+      <header className="page-header-block mb-6">
+        <div style={{ display: 'flex', alignItems: 'center', gap: '14px' }}>
           <div
             style={{
               width: '44px',
               height: '44px',
               borderRadius: '10px',
-              background: 'linear-gradient(135deg, var(--iocl-navy, #002D62) 0%, #0A4283 100%)',
+              background: 'linear-gradient(135deg, var(--iocl-red, #B71C1C) 0%, #D32F2F 100%)',
               color: '#FFFFFF',
               display: 'flex',
               alignItems: 'center',
               justifyContent: 'center',
-              boxShadow: '0 4px 12px rgba(0, 45, 98, 0.2)'
+              boxShadow: '0 4px 14px rgba(183, 28, 28, 0.25)',
+              flexShrink: 0
             }}
           >
-            <FileBarChart2 size={24} />
+            <FileBarChart2 size={22} />
           </div>
-
-          <div>
-            <h1 className="page-header-title" style={{ margin: 0, fontSize: '1.5rem', fontWeight: 800, color: 'var(--iocl-navy)' }}>
-              REPORTS & EXCEL EXPORT
-            </h1>
-            <p className="page-header-subtitle" style={{ margin: 0, fontSize: '0.875rem', color: 'var(--text-muted)' }}>
-              Generate, review and export operational reports across consumables, inventory, rate contracts and employees.
+          <div className="page-title-group">
+            <h1 className="page-title-text" style={{ fontSize: '1.25rem' }}>REPORTS & EXPORT</h1>
+            <p className="page-subtitle-text">
+              Generate, review and export operational reports across consumables, inventory, rate contracts and employees
             </p>
           </div>
         </div>
-      </div>
+      </header>
 
       {/* 1. Report Type Selector Cards */}
       <ReportTypeSelector

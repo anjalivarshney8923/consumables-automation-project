@@ -14,6 +14,7 @@ import {
 import { useAuth } from '../../context/AuthContext';
 import { useNavigate, Link } from 'react-router-dom';
 import { getUnreadAlerts, getAlertCounts, markAlertAsRead, markAllAlertsAsRead } from '../../services/alertService';
+import { IndianOilLogo } from '../branding/IndianOilLogo';
 
 /**
  * Top Header Navigation Bar with Interactive Procurement Alert Notification Center
@@ -118,10 +119,13 @@ export const Header = ({ onToggleSidebar }) => {
           <Menu size={20} />
         </button>
 
-        <div className="header-title-block">
-          <span className="header-portal-title">
-            Admin Portal
-          </span>
+        <div className="header-title-block" style={{ display: 'flex', flexDirection: 'column' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+            <IndianOilLogo size={18} alt="Indian Oil Corporation Limited" />
+            <span className="header-portal-title">
+              Admin Portal
+            </span>
+          </div>
           <span className="header-portal-subtitle">
             Consumables & Procurement Management System
           </span>

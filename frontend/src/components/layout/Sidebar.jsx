@@ -17,7 +17,7 @@ import {
 import { IoclBrand } from '../branding/IoclBrand';
 import { getTenderingAlerts } from '../../services/alertService';
 
-export const Sidebar = ({ isOpen, onClose }) => {
+export const Sidebar = ({ isOpen, onClose, isCollapsed = false, onToggleCollapse }) => {
   const location = useLocation();
   const [tenderingUrgentCount, setTenderingUrgentCount] = useState(null);
 
@@ -31,8 +31,8 @@ export const Sidebar = ({ isOpen, onClose }) => {
           const count = res.data.filter((item) => {
             const storeQty = Number(item.storeNetAvailableQuantity) || 0;
             const rcQty = Number(item.rateContractNetAvailableQuantity) || 0;
-            const combinedQty = item.combinedNetAvailableQuantity !== undefined 
-              ? Number(item.combinedNetAvailableQuantity) 
+            const combinedQty = item.combinedNetAvailableQuantity !== undefined
+              ? Number(item.combinedNetAvailableQuantity)
               : storeQty + rcQty;
             const threshold = Number(item.thresholdLimit ?? item.tenderingThreshold) || 0;
             return combinedQty <= threshold;
@@ -116,10 +116,17 @@ export const Sidebar = ({ isOpen, onClose }) => {
       />
 
       {/* Main Sidebar */}
-      <aside className={`app-sidebar ${isOpen ? 'open' : ''}`}>
+      <aside
+        className={`app-sidebar ${isOpen ? 'open' : ''} ${isCollapsed ? 'collapsed' : ''}`}
+        aria-label="Admin Navigation"
+      >
         {/* Sidebar Header with IOCL Branding */}
         <div className="sidebar-header">
-          <IoclBrand theme="light" />
+          <IoclBrand
+            theme="light"
+            size={isCollapsed ? 'sm' : 'md'}
+            subtitle={isCollapsed ? '' : 'Consumables & Procurement'}
+          />
           {/* Close button for mobile screen drawer */}
           <button
             type="button"
@@ -130,7 +137,7 @@ export const Sidebar = ({ isOpen, onClose }) => {
               display: isOpen ? 'inline-flex' : 'none',
               background: 'transparent',
               border: 'none',
-              color: '#FFFFFF',
+              color: '#B71C1C',
               cursor: 'pointer',
               padding: '4px'
             }}
@@ -141,7 +148,7 @@ export const Sidebar = ({ isOpen, onClose }) => {
 
         {/* Navigation Item List */}
         <nav className="sidebar-nav" aria-label="Main Navigation">
-          <div className="nav-section-title">MAIN MENU</div>
+          {!isCollapsed && <div className="nav-section-title">MAIN MENU</div>}
 
           {navItems.map((item) => {
             const Icon = item.icon;
@@ -157,7 +164,7 @@ export const Sidebar = ({ isOpen, onClose }) => {
               item.path === '/admin/assets/new' ||
               item.path === '/admin/assets/update';
             const isActive = isImplemented && (
-              location.pathname === item.path || 
+              location.pathname === item.path ||
               (item.path !== '/admin/dashboard' && location.pathname.startsWith(item.path))
             );
 
@@ -167,14 +174,16 @@ export const Sidebar = ({ isOpen, onClose }) => {
                 to={item.path}
                 className={`nav-item ${isActive ? 'active' : ''}`}
                 onClick={onClose}
+                title={item.label}
+                aria-label={item.label}
               >
                 <span className="nav-item-icon">
                   <Icon size={18} />
                 </span>
-                <span className="nav-item-text">{item.label}</span>
+                {!isCollapsed && <span className="nav-item-text">{item.label}</span>}
                 {item.alertBadge && (
-                  <span className="nav-alert-badge">
-                    {item.alertBadge}
+                  <span className="nav-alert-badge" title={item.alertBadge}>
+                    {isCollapsed ? '' : item.alertBadge}
                   </span>
                 )}
               </NavLink>
@@ -183,12 +192,14 @@ export const Sidebar = ({ isOpen, onClose }) => {
         </nav>
 
         {/* Sidebar Footer */}
-        <div className="sidebar-footer">
-          <span>IOCL Internal Portal</span>
-          <span style={{ color: 'var(--iocl-saffron)', fontWeight: '700' }}>v1.0.0</span>
-        </div>
+        {!isCollapsed && (
+          <div className="sidebar-footer">
+            <span>IOCL Internal Portal</span>
+          </div>
+        )}
       </aside>
     </>
   );
 };
 
+export default Sidebar;

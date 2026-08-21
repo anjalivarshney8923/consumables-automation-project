@@ -1,21 +1,9 @@
-import React, { useState } from 'react';
+import React from 'react';
 import {
   Calendar,
-  Search,
-  RotateCcw,
-  SlidersHorizontal,
   Filter,
   Check,
-  Building,
-  MapPin,
-  Briefcase,
-  Printer,
-  Tag,
-  Package,
-  Layers,
-  ShoppingBag,
-  FileSpreadsheet,
-  X
+  RotateCcw
 } from 'lucide-react';
 
 const DEPARTMENT_OPTIONS = [
@@ -59,8 +47,6 @@ export const ReportFilters = ({
   onApplyFilters,
   onResetFilters
 }) => {
-  const [showAdvanced, setShowAdvanced] = useState(true);
-
   const handleChange = (field, value) => {
     onFilterChange({ ...filters, [field]: value });
   };
@@ -97,61 +83,52 @@ export const ReportFilters = ({
     (val) => val !== undefined && val !== null && val !== '' && val !== 'ALL' && val !== 'All Departments' && val !== 'All Locations' && val !== 'All Colours'
   );
 
+  const isDateEnabledReport =
+    reportType === 'ASSET_USAGE' ||
+    reportType === 'PROCUREMENT' ||
+    reportType === 'CALL_UP_PO' ||
+    reportType === 'STOCK_HISTORY';
+
   return (
-    <div className="filter-card mb-6">
-      {/* Header & Preset Bar */}
-      <div
-        style={{
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'space-between',
-          flexWrap: 'wrap',
-          gap: '10px',
-          marginBottom: '1rem',
-          borderBottom: '1px solid var(--border-color, #E2E8F0)',
-          paddingBottom: '0.75rem'
-        }}
-      >
-        <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-          <Filter size={16} color="var(--iocl-navy, #002D62)" />
-          <h3 style={{ fontSize: '0.9375rem', fontWeight: 700, color: 'var(--iocl-navy)', margin: 0 }}>
+    <div className="report-filters-card mb-6">
+      {/* Header & Presets Bar */}
+      <div className="report-filters-header">
+        <div className="report-filters-title-group">
+          <Filter size={15} color="var(--iocl-red, #B71C1C)" />
+          <h3 className="report-filters-title">
             REPORT FILTERS & PARAMETERS
           </h3>
         </div>
 
-        {/* Date Presets (relevant for date-filtered reports) */}
-        {(reportType === 'ASSET_USAGE' || reportType === 'PROCUREMENT' || reportType === 'CALL_UP_PO' || reportType === 'STOCK_HISTORY') && (
-          <div style={{ display: 'flex', gap: '6px', alignItems: 'center', flexWrap: 'wrap' }}>
-            <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)', fontWeight: 600 }}>Presets:</span>
+        {/* Date Presets */}
+        {isDateEnabledReport && (
+          <div className="report-presets-bar">
+            <span className="report-presets-label">Presets:</span>
             <button
               type="button"
-              className="btn-preset"
+              className="report-preset-btn"
               onClick={() => applyDatePreset('THIS_MONTH')}
-              style={{ padding: '3px 8px', fontSize: '0.6875rem', borderRadius: '4px', border: '1px solid var(--border-color, #CBD5E1)', background: '#FFFFFF', cursor: 'pointer' }}
             >
               This Month
             </button>
             <button
               type="button"
-              className="btn-preset"
+              className="report-preset-btn"
               onClick={() => applyDatePreset('LAST_30_DAYS')}
-              style={{ padding: '3px 8px', fontSize: '0.6875rem', borderRadius: '4px', border: '1px solid var(--border-color, #CBD5E1)', background: '#FFFFFF', cursor: 'pointer' }}
             >
               Last 30 Days
             </button>
             <button
               type="button"
-              className="btn-preset"
+              className="report-preset-btn"
               onClick={() => applyDatePreset('YTD')}
-              style={{ padding: '3px 8px', fontSize: '0.6875rem', borderRadius: '4px', border: '1px solid var(--border-color, #CBD5E1)', background: '#FFFFFF', cursor: 'pointer' }}
             >
               Year-to-Date
             </button>
             <button
               type="button"
-              className="btn-preset"
+              className="report-preset-btn"
               onClick={() => applyDatePreset('ALL')}
-              style={{ padding: '3px 8px', fontSize: '0.6875rem', borderRadius: '4px', border: '1px solid var(--border-color, #CBD5E1)', background: '#FFFFFF', cursor: 'pointer' }}
             >
               All Dates
             </button>
@@ -159,38 +136,34 @@ export const ReportFilters = ({
         )}
       </div>
 
-      {/* Grid of Dynamic Form Inputs */}
-      <div
-        className="filter-fields-grid"
-        style={{
-          display: 'grid',
-          gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))',
-          gap: '12px',
-          alignItems: 'flex-end'
-        }}
-      >
-        {/* COMMON DATE PICKERS */}
-        {(reportType === 'ASSET_USAGE' || reportType === 'PROCUREMENT' || reportType === 'CALL_UP_PO' || reportType === 'STOCK_HISTORY') && (
+      {/* Grid of Clean, Independent Filter Fields */}
+      <div className="report-filters-grid">
+        {/* COMMON DATE PICKERS FOR DATE-CAPABLE REPORTS */}
+        {isDateEnabledReport && (
           <>
-            <div className="filter-field-group">
-              <label className="filter-field-label">
-                <Calendar size={13} style={{ marginRight: '4px' }} /> From Date
+            {/* Field 1: From Date */}
+            <div className="report-filter-field">
+              <label className="report-filter-label" htmlFor="report-filter-from-date">
+                <Calendar size={13} /> From Date
               </label>
               <input
+                id="report-filter-from-date"
                 type="date"
-                className="filter-search-input"
+                className="report-filter-input"
                 value={filters.fromDate || ''}
                 onChange={(e) => handleChange('fromDate', e.target.value)}
               />
             </div>
 
-            <div className="filter-field-group">
-              <label className="filter-field-label">
-                <Calendar size={13} style={{ marginRight: '4px' }} /> To Date
+            {/* Field 2: To Date */}
+            <div className="report-filter-field">
+              <label className="report-filter-label" htmlFor="report-filter-to-date">
+                <Calendar size={13} /> To Date
               </label>
               <input
+                id="report-filter-to-date"
                 type="date"
-                className="filter-search-input"
+                className="report-filter-input"
                 value={filters.toDate || ''}
                 onChange={(e) => handleChange('toDate', e.target.value)}
               />
@@ -198,46 +171,50 @@ export const ReportFilters = ({
           </>
         )}
 
-        {/* 1. ASSET USAGE SPECIFIC FILTERS */}
+        {/* 1. ASSET USAGE REPORT FILTERS */}
         {reportType === 'ASSET_USAGE' && (
           <>
-            <div className="filter-field-group">
-              <label className="filter-field-label">Part Number / Cartridge</label>
+            {/* Field 3: Part Number / Cartridge */}
+            <div className="report-filter-field">
+              <label className="report-filter-label">Part Number / Cartridge</label>
               <input
                 type="text"
-                className="filter-search-input"
+                className="report-filter-input"
                 placeholder="e.g. 070-BLK, W2041X..."
                 value={filters.partNumber || ''}
                 onChange={(e) => handleChange('partNumber', e.target.value)}
               />
             </div>
 
-            <div className="filter-field-group">
-              <label className="filter-field-label">Engineer Name / No.</label>
+            {/* Field 4: Engineer Name / No. */}
+            <div className="report-filter-field">
+              <label className="report-filter-label">Engineer Name / No.</label>
               <input
                 type="text"
-                className="filter-search-input"
-                placeholder="e.g. Sagar Varshney, ENG1001..."
+                className="report-filter-input"
+                placeholder="e.g. Sagar Varshney, ENG..."
                 value={filters.engineer || ''}
                 onChange={(e) => handleChange('engineer', e.target.value)}
               />
             </div>
 
-            <div className="filter-field-group">
-              <label className="filter-field-label">Beneficiary / Emp No.</label>
+            {/* Field 5: Beneficiary / Emp No. */}
+            <div className="report-filter-field">
+              <label className="report-filter-label">Beneficiary / Emp No.</label>
               <input
                 type="text"
-                className="filter-search-input"
+                className="report-filter-input"
                 placeholder="e.g. Anjali, 93917..."
                 value={filters.beneficiary || ''}
                 onChange={(e) => handleChange('beneficiary', e.target.value)}
               />
             </div>
 
-            <div className="filter-field-group">
-              <label className="filter-field-label">Department</label>
+            {/* Field 6 (Row 2, Col 1): Department */}
+            <div className="report-filter-field">
+              <label className="report-filter-label">Department</label>
               <select
-                className="filter-select"
+                className="report-filter-select"
                 value={filters.department || 'ALL'}
                 onChange={(e) => handleChange('department', e.target.value)}
               >
@@ -249,10 +226,11 @@ export const ReportFilters = ({
               </select>
             </div>
 
-            <div className="filter-field-group">
-              <label className="filter-field-label">Location / Complex</label>
+            {/* Field 7 (Row 2, Col 2): Location / Complex */}
+            <div className="report-filter-field">
+              <label className="report-filter-label">Location / Complex</label>
               <select
-                className="filter-select"
+                className="report-filter-select"
                 value={filters.location || 'ALL'}
                 onChange={(e) => handleChange('location', e.target.value)}
               >
@@ -264,10 +242,11 @@ export const ReportFilters = ({
               </select>
             </div>
 
-            <div className="filter-field-group">
-              <label className="filter-field-label">Colour</label>
+            {/* Field 8 (Row 2, Col 3): Colour */}
+            <div className="report-filter-field">
+              <label className="report-filter-label">Colour</label>
               <select
-                className="filter-select"
+                className="report-filter-select"
                 value={filters.colour || 'ALL'}
                 onChange={(e) => handleChange('colour', e.target.value)}
               >
@@ -281,24 +260,24 @@ export const ReportFilters = ({
           </>
         )}
 
-        {/* 2. STORE INVENTORY SPECIFIC FILTERS */}
+        {/* 2. STORE INVENTORY REPORT FILTERS */}
         {reportType === 'STORE_INVENTORY' && (
           <>
-            <div className="filter-field-group">
-              <label className="filter-field-label">Part Number</label>
+            <div className="report-filter-field">
+              <label className="report-filter-label">Part Number / Cartridge</label>
               <input
                 type="text"
-                className="filter-search-input"
+                className="report-filter-input"
                 placeholder="e.g. 070-BLK, W2040X..."
                 value={filters.partNumber || ''}
                 onChange={(e) => handleChange('partNumber', e.target.value)}
               />
             </div>
 
-            <div className="filter-field-group">
-              <label className="filter-field-label">Stock Status</label>
+            <div className="report-filter-field">
+              <label className="report-filter-label">Stock Status</label>
               <select
-                className="filter-select"
+                className="report-filter-select"
                 value={filters.status || 'ALL'}
                 onChange={(e) => handleChange('status', e.target.value)}
               >
@@ -309,10 +288,10 @@ export const ReportFilters = ({
               </select>
             </div>
 
-            <div className="filter-field-group">
-              <label className="filter-field-label">Location / Store Room</label>
+            <div className="report-filter-field">
+              <label className="report-filter-label">Location / Store Room</label>
               <select
-                className="filter-select"
+                className="report-filter-select"
                 value={filters.location || 'ALL'}
                 onChange={(e) => handleChange('location', e.target.value)}
               >
@@ -326,46 +305,46 @@ export const ReportFilters = ({
           </>
         )}
 
-        {/* 3. PROCUREMENT / RATE CONTRACT SPECIFIC FILTERS */}
+        {/* 3. PROCUREMENT / RATE CONTRACT REPORT FILTERS */}
         {reportType === 'PROCUREMENT' && (
           <>
-            <div className="filter-field-group">
-              <label className="filter-field-label">Rate Contract Number</label>
+            <div className="report-filter-field">
+              <label className="report-filter-label">Rate Contract Number</label>
               <input
                 type="text"
-                className="filter-search-input"
+                className="report-filter-input"
                 placeholder="e.g. RC-2026-001..."
                 value={filters.rateContract || ''}
                 onChange={(e) => handleChange('rateContract', e.target.value)}
               />
             </div>
 
-            <div className="filter-field-group">
-              <label className="filter-field-label">Part Number</label>
+            <div className="report-filter-field">
+              <label className="report-filter-label">Part Number / Cartridge</label>
               <input
                 type="text"
-                className="filter-search-input"
+                className="report-filter-input"
                 placeholder="e.g. 070-BLK, W2041X..."
                 value={filters.partNumber || ''}
                 onChange={(e) => handleChange('partNumber', e.target.value)}
               />
             </div>
 
-            <div className="filter-field-group">
-              <label className="filter-field-label">Vendor / Supplier</label>
+            <div className="report-filter-field">
+              <label className="report-filter-label">Vendor / Supplier</label>
               <input
                 type="text"
-                className="filter-search-input"
+                className="report-filter-input"
                 placeholder="Vendor name..."
                 value={filters.supplier || ''}
                 onChange={(e) => handleChange('supplier', e.target.value)}
               />
             </div>
 
-            <div className="filter-field-group">
-              <label className="filter-field-label">Agreement Status</label>
+            <div className="report-filter-field">
+              <label className="report-filter-label">Agreement Status</label>
               <select
-                className="filter-select"
+                className="report-filter-select"
                 value={filters.status || 'ALL'}
                 onChange={(e) => handleChange('status', e.target.value)}
               >
@@ -378,35 +357,35 @@ export const ReportFilters = ({
           </>
         )}
 
-        {/* 4. CALL-UP PO SPECIFIC FILTERS */}
+        {/* 4. CALL-UP PO REPORT FILTERS */}
         {reportType === 'CALL_UP_PO' && (
           <>
-            <div className="filter-field-group">
-              <label className="filter-field-label">Call-Up PO Number</label>
+            <div className="report-filter-field">
+              <label className="report-filter-label">Call-Up PO Number</label>
               <input
                 type="text"
-                className="filter-search-input"
+                className="report-filter-input"
                 placeholder="e.g. PO-2026-004..."
                 value={filters.poNumber || ''}
                 onChange={(e) => handleChange('poNumber', e.target.value)}
               />
             </div>
 
-            <div className="filter-field-group">
-              <label className="filter-field-label">Rate Contract Ref</label>
+            <div className="report-filter-field">
+              <label className="report-filter-label">Rate Contract Ref</label>
               <input
                 type="text"
-                className="filter-search-input"
+                className="report-filter-input"
                 placeholder="Rate contract number..."
                 value={filters.rateContract || ''}
                 onChange={(e) => handleChange('rateContract', e.target.value)}
               />
             </div>
 
-            <div className="filter-field-group">
-              <label className="filter-field-label">Execution Status</label>
+            <div className="report-filter-field">
+              <label className="report-filter-label">Execution Status</label>
               <select
-                className="filter-select"
+                className="report-filter-select"
                 value={filters.status || 'ALL'}
                 onChange={(e) => handleChange('status', e.target.value)}
               >
@@ -419,15 +398,15 @@ export const ReportFilters = ({
           </>
         )}
 
-        {/* 5. EMPLOYEE REPORT SPECIFIC FILTERS */}
+        {/* 5. EMPLOYEE REPORT FILTERS */}
         {reportType === 'EMPLOYEE' && (
           <>
-            <div className="filter-field-group">
-              <label className="filter-field-label">Employee Number / Name</label>
+            <div className="report-filter-field">
+              <label className="report-filter-label">Employee Number / Name</label>
               <input
                 type="text"
-                className="filter-search-input"
-                placeholder="e.g. 93917 or Rajesh Kumar..."
+                className="report-filter-input"
+                placeholder="e.g. 93917 or Rajesh..."
                 value={filters.employeeNumber || filters.name || ''}
                 onChange={(e) => {
                   handleChange('employeeNumber', e.target.value);
@@ -436,10 +415,10 @@ export const ReportFilters = ({
               />
             </div>
 
-            <div className="filter-field-group">
-              <label className="filter-field-label">Department</label>
+            <div className="report-filter-field">
+              <label className="report-filter-label">Department</label>
               <select
-                className="filter-select"
+                className="report-filter-select"
                 value={filters.department || 'ALL'}
                 onChange={(e) => handleChange('department', e.target.value)}
               >
@@ -451,10 +430,10 @@ export const ReportFilters = ({
               </select>
             </div>
 
-            <div className="filter-field-group">
-              <label className="filter-field-label">Status</label>
+            <div className="report-filter-field">
+              <label className="report-filter-label">Status</label>
               <select
-                className="filter-select"
+                className="report-filter-select"
                 value={filters.status || 'ALL'}
                 onChange={(e) => handleChange('status', e.target.value)}
               >
@@ -464,10 +443,10 @@ export const ReportFilters = ({
               </select>
             </div>
 
-            <div className="filter-field-group">
-              <label className="filter-field-label">Location / Complex</label>
+            <div className="report-filter-field">
+              <label className="report-filter-label">Location / Complex</label>
               <select
-                className="filter-select"
+                className="report-filter-select"
                 value={filters.location || 'ALL'}
                 onChange={(e) => handleChange('location', e.target.value)}
               >
@@ -481,24 +460,24 @@ export const ReportFilters = ({
           </>
         )}
 
-        {/* 6. STOCK MOVEMENT SPECIFIC FILTERS */}
+        {/* 6. STOCK MOVEMENT REPORT FILTERS */}
         {reportType === 'STOCK_HISTORY' && (
           <>
-            <div className="filter-field-group">
-              <label className="filter-field-label">Part Number</label>
+            <div className="report-filter-field">
+              <label className="report-filter-label">Part Number</label>
               <input
                 type="text"
-                className="filter-search-input"
+                className="report-filter-input"
                 placeholder="e.g. 070-BLK..."
                 value={filters.partNumber || ''}
                 onChange={(e) => handleChange('partNumber', e.target.value)}
               />
             </div>
 
-            <div className="filter-field-group">
-              <label className="filter-field-label">Transaction Type</label>
+            <div className="report-filter-field">
+              <label className="report-filter-label">Transaction Type</label>
               <select
-                className="filter-select"
+                className="report-filter-select"
                 value={filters.transactionType || 'ALL'}
                 onChange={(e) => handleChange('transactionType', e.target.value)}
               >
@@ -509,10 +488,10 @@ export const ReportFilters = ({
               </select>
             </div>
 
-            <div className="filter-field-group">
-              <label className="filter-field-label">Movement Direction</label>
+            <div className="report-filter-field">
+              <label className="report-filter-label">Movement Direction</label>
               <select
-                className="filter-select"
+                className="report-filter-select"
                 value={filters.direction || 'ALL'}
                 onChange={(e) => handleChange('direction', e.target.value)}
               >
@@ -524,45 +503,33 @@ export const ReportFilters = ({
           </>
         )}
 
-        {/* Action Buttons: Apply Filters & Reset */}
-        <div style={{ display: 'flex', gap: '8px', alignItems: 'center', minWidth: '220px' }}>
-          <button
-            type="button"
-            className="btn-primary"
-            onClick={onApplyFilters}
-            style={{
-              flex: '1',
-              display: 'inline-flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-              gap: '6px',
-              padding: '8px 16px',
-              borderRadius: '6px',
-              fontSize: '0.8125rem',
-              fontWeight: 700,
-              cursor: 'pointer',
-              background: 'var(--iocl-navy, #002D62)',
-              color: '#FFFFFF',
-              border: 'none',
-              height: '38px'
-            }}
-          >
-            <Check size={14} />
-            <span>Apply Filters</span>
-          </button>
-
-          {hasActiveFilters && (
+        {/* Filter Action Column: Apply Filters & Reset Buttons */}
+        <div className="report-filter-field">
+          <label className="report-filter-label" style={{ visibility: 'hidden' }}>
+            Action
+          </label>
+          <div className="report-filter-actions">
             <button
               type="button"
-              className="btn-filter-reset"
-              onClick={onResetFilters}
-              title="Reset all filters"
-              style={{ height: '38px' }}
+              className="report-btn-apply"
+              onClick={onApplyFilters}
             >
-              <RotateCcw size={14} />
-              <span>Reset</span>
+              <Check size={14} />
+              <span>Apply Filters</span>
             </button>
-          )}
+
+            {hasActiveFilters && (
+              <button
+                type="button"
+                className="report-btn-reset"
+                onClick={onResetFilters}
+                title="Reset all filters"
+              >
+                <RotateCcw size={13} />
+                <span>Reset</span>
+              </button>
+            )}
+          </div>
         </div>
       </div>
     </div>

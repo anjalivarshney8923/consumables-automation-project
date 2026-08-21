@@ -149,11 +149,11 @@ export const ReportActionBar = ({
             borderRadius: '6px',
             fontSize: '0.8125rem',
             fontWeight: 700,
-            background: 'var(--iocl-navy, #002D62)',
+            background: 'var(--iocl-red, #B71C1C)',
             border: 'none',
             color: '#FFFFFF',
             cursor: loading ? 'not-allowed' : 'pointer',
-            boxShadow: '0 2px 4px rgba(0, 45, 98, 0.15)'
+            boxShadow: '0 2px 6px rgba(183, 28, 28, 0.25)'
           }}
         >
           <Play size={14} fill="#FFFFFF" />

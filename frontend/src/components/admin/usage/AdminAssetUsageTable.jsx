@@ -304,7 +304,7 @@ export const AdminAssetUsageTable = ({
       </div>
 
       {/* Pagination Controls */}
-      <div className="table-pagination-footer">
+      <div className="table-card-footer">
         <div className="pagination-info">
           {totalElements > 0 ? (
             <span>
@@ -318,12 +318,12 @@ export const AdminAssetUsageTable = ({
         <div className="pagination-controls" style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
           {/* Page Size Selector */}
           <div className="page-size-selector" style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-            <span style={{ fontSize: '0.8125rem', color: 'var(--text-secondary)' }}>Rows per page:</span>
+            <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>Rows per page:</span>
             <select
               className="filter-select"
               value={pageSize}
               onChange={(e) => onPageSizeChange(Number(e.target.value))}
-              style={{ padding: '3px 8px', fontSize: '0.8125rem', minWidth: '60px' }}
+              style={{ padding: '2px 8px', fontSize: '0.75rem', minWidth: '60px', height: '28px' }}
               aria-label="Rows per page"
             >
               <option value={10}>10</option>
@@ -337,25 +337,27 @@ export const AdminAssetUsageTable = ({
           <div className="pagination-buttons" style={{ display: 'flex', gap: '4px', alignItems: 'center' }}>
             <button
               type="button"
-              className="btn-pagination"
+              className="pagination-btn"
               onClick={() => onPageChange(currentPage - 1)}
               disabled={currentPage <= 1 || loading}
               aria-label="Previous Page"
             >
               <ChevronLeft size={16} />
+              <span>Prev</span>
             </button>
 
-            <span style={{ fontSize: '0.8125rem', fontWeight: 600, padding: '0 6px' }}>
+            <span style={{ fontSize: '0.75rem', fontWeight: 600, padding: '0 6px', color: 'var(--text-secondary)' }}>
               Page {currentPage} of {Math.max(totalPages, 1)}
             </span>
 
             <button
               type="button"
-              className="btn-pagination"
+              className="pagination-btn"
               onClick={() => onPageChange(currentPage + 1)}
               disabled={currentPage >= totalPages || loading}
               aria-label="Next Page"
             >
+              <span>Next</span>
               <ChevronRight size={16} />
             </button>
           </div>

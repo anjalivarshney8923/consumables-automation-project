@@ -20,6 +20,7 @@ import {
   Loader2
 } from 'lucide-react';
 import { registerUser } from '../../services/authService';
+import { IndianOilLogo } from '../../components/branding/IndianOilLogo';
 
 const DEPARTMENT_OPTIONS = [
   'Operations',
@@ -299,41 +300,12 @@ export const UserRegistration = () => {
                 display: 'inline-flex',
                 alignItems: 'center',
                 justifyContent: 'center',
-                marginBottom: '1rem'
+                marginBottom: '1rem',
+                padding: '6px',
+                boxSizing: 'border-box'
               }}
             >
-              <svg viewBox="0 0 100 100" width="44" height="44" fill="none" xmlns="http://www.w3.org/2000/svg">
-                {/* Outer Saffron / Orange Circle */}
-                <circle cx="50" cy="50" r="42" fill="#F58220" />
-                {/* Center Deep Navy Horizontal Bar */}
-                <rect x="8" y="38" width="84" height="24" rx="4" fill="#002D62" />
-                {/* Center Emblem Text */}
-                <text
-                  x="50"
-                  y="49.5"
-                  fontFamily="-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif"
-                  fontWeight="800"
-                  fontSize="9"
-                  letterSpacing="0.4"
-                  textAnchor="middle"
-                  dominantBaseline="central"
-                  fill="#FFFFFF"
-                >
-                  इंडियनऑयल
-                </text>
-                <text
-                  x="50"
-                  y="55.5"
-                  fontFamily="-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif"
-                  fontWeight="700"
-                  fontSize="7"
-                  letterSpacing="0.2"
-                  textAnchor="middle"
-                  fill="#FFFFFF"
-                >
-                  IndianOil
-                </text>
-              </svg>
+              <IndianOilLogo size={48} alt="Indian Oil Corporation Limited" />
             </div>
 
             <div style={{ textTransform: 'uppercase', letterSpacing: '0.08em', fontSize: '0.75rem', fontWeight: '800', color: '#002D62', marginBottom: '0.25rem' }}>

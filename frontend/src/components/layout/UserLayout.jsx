@@ -1,19 +1,44 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Outlet } from 'react-router-dom';
 import { UserHeader } from './UserHeader';
 import { UserSidebar } from './UserSidebar';
 
 export const UserLayout = () => {
   const [sidebarOpen, setSidebarOpen] = useState(false);
-  const [isCollapsed, setIsCollapsed] = useState(false);
+  const [isCollapsed, setIsCollapsed] = useState(() => {
+    try {
+      return localStorage.getItem('iocl_user_sidebar_collapsed') === 'true';
+    } catch {
+      return false;
+    }
+  });
 
-  const toggleSidebar = () => {
-    // On mobile screens toggle drawer open/close
-    setSidebarOpen((prev) => !prev);
+  const handleToggleSidebar = () => {
+    if (window.innerWidth > 1024) {
+      setIsCollapsed((prev) => {
+        const next = !prev;
+        try {
+          localStorage.setItem('iocl_user_sidebar_collapsed', String(next));
+        } catch {
+          // Ignore localStorage errors
+        }
+        return next;
+      });
+    } else {
+      setSidebarOpen((prev) => !prev);
+    }
   };
 
   const toggleDesktopCollapse = () => {
-    setIsCollapsed((prev) => !prev);
+    setIsCollapsed((prev) => {
+      const next = !prev;
+      try {
+        localStorage.setItem('iocl_user_sidebar_collapsed', String(next));
+      } catch {
+        // Ignore localStorage errors
+      }
+      return next;
+    });
   };
 
   const closeSidebar = () => {
@@ -32,7 +57,10 @@ export const UserLayout = () => {
 
       {/* Main Content Area */}
       <div className="main-content-wrapper">
-        <UserHeader onToggleSidebar={toggleSidebar} />
+        <UserHeader
+          onToggleSidebar={handleToggleSidebar}
+          isCollapsed={isCollapsed}
+        />
 
         <main className="page-content">
           <Outlet />
@@ -41,3 +69,5 @@ export const UserLayout = () => {
     </div>
   );
 };
+
+export default UserLayout;

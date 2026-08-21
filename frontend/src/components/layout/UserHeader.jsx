@@ -4,13 +4,11 @@ import {
   Menu,
   User,
   ShieldCheck,
-  Bell,
   ChevronDown,
-  LogOut,
-  Package,
-  Settings
+  LogOut
 } from 'lucide-react';
 import { useAuth } from '../../context/AuthContext';
+import { IndianOilLogo } from '../branding/IndianOilLogo';
 
 export const UserHeader = ({ onToggleSidebar }) => {
   const { user, logout } = useAuth();
@@ -34,11 +32,9 @@ export const UserHeader = ({ onToggleSidebar }) => {
   const getPageTitle = () => {
     const path = location.pathname;
     if (path.includes('/user/profile')) return 'My Profile';
-    if (path.includes('/user/assets')) return 'My Assets';
     if (path.includes('/user/usage') || path.includes('/user/record-usage')) return 'Asset Usage';
     if (path.includes('/user/asset-history') || path.includes('/user/usage-history')) return 'Asset Usage History';
     if (path.includes('/user/activity')) return 'My Activity';
-    if (path.includes('/user/notifications')) return 'Notifications';
     return 'Dashboard';
   };
 
@@ -49,69 +45,87 @@ export const UserHeader = ({ onToggleSidebar }) => {
   };
 
   return (
-    <header className="app-header">
+    <header
+      className="app-header"
+      style={{
+        height: '68px',
+        backgroundColor: '#FFFFFF',
+        borderBottom: '1px solid var(--border-subtle, #E2E8F0)',
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'space-between',
+        padding: '0 1.75rem',
+        position: 'sticky',
+        top: 0,
+        zIndex: 30,
+        boxShadow: '0 1px 3px rgba(0, 0, 0, 0.02)'
+      }}
+    >
       {/* Left side: Hamburger Toggle & Title */}
-      <div className="header-left">
+      <div style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
         <button
           type="button"
           className="sidebar-toggle-btn"
           onClick={onToggleSidebar}
           aria-label="Toggle navigation menu"
+          title="Toggle Navigation Menu"
         >
           <Menu size={20} />
         </button>
 
-        <div className="header-title-block">
-          <span className="header-subtitle">Indian Oil Corporation Limited</span>
-          <h2 className="header-title">{getPageTitle()}</h2>
+        <div style={{ display: 'flex', flexDirection: 'column' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+            <IndianOilLogo size={16} alt="Indian Oil Corporation Limited" />
+            <span
+              style={{
+                fontSize: '0.6875rem',
+                fontWeight: '700',
+                color: 'var(--text-muted, #64748B)',
+                letterSpacing: '0.04em',
+                textTransform: 'uppercase'
+              }}
+            >
+              Indian Oil Corporation Limited
+            </span>
+          </div>
+          <h1
+            style={{
+              fontSize: '1.125rem',
+              fontWeight: '800',
+              color: 'var(--text-primary, #0F172A)',
+              margin: 0,
+              letterSpacing: '-0.01em',
+              lineHeight: '1.2'
+            }}
+          >
+            {getPageTitle()}
+          </h1>
         </div>
       </div>
 
-      {/* Right side: Notification Icon + User Profile Dropdown */}
-      <div className="header-right" style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
-        {/* Notification Bell Icon */}
-        <Link
-          to="/user/notifications"
-          style={{
-            width: '38px',
-            height: '38px',
-            borderRadius: '8px',
-            backgroundColor: '#F8FAFC',
-            border: '1px solid #E2E8F0',
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-            color: '#475569',
-            textDecoration: 'none',
-            position: 'relative',
-            transition: 'all 0.15s ease'
-          }}
-          title="Notifications"
-          aria-label="Notifications"
-        >
-          <Bell size={18} />
-        </Link>
-
+      {/* Right side: User Badge & Profile Dropdown */}
+      <div style={{ display: 'flex', alignItems: 'center', gap: '0.875rem' }}>
         {/* User Role Badge */}
         <span
           style={{
             fontSize: '0.6875rem',
             fontWeight: '800',
             backgroundColor: '#EFF6FF',
-            color: '#1E40AF',
+            color: '#1D4ED8',
             border: '1px solid #BFDBFE',
-            padding: '0.2rem 0.6rem',
-            borderRadius: '4px',
+            padding: '0.25rem 0.625rem',
+            borderRadius: '6px',
             display: 'inline-flex',
             alignItems: 'center',
-            gap: '0.25rem'
+            gap: '0.35rem',
+            letterSpacing: '0.04em'
           }}
         >
-          <ShieldCheck size={12} />
+          <ShieldCheck size={13} />
           USER
         </span>
 
-        {/* User Profile Dropdown */}
+        {/* User Profile Area */}
         <div style={{ position: 'relative' }} ref={dropdownRef}>
           <button
             type="button"
@@ -119,44 +133,68 @@ export const UserHeader = ({ onToggleSidebar }) => {
             style={{
               display: 'flex',
               alignItems: 'center',
-              gap: '0.5rem',
-              padding: '0.25rem 0.5rem',
+              gap: '0.625rem',
+              padding: '0.3rem 0.625rem',
               borderRadius: '8px',
-              backgroundColor: '#F8FAFC',
-              border: '1px solid #E2E8F0',
+              backgroundColor: '#FFFFFF',
+              border: '1px solid var(--border-subtle, #E2E8F0)',
               cursor: 'pointer',
-              color: 'inherit'
+              color: 'inherit',
+              transition: 'all 0.15s ease'
             }}
+            onMouseEnter={(e) => e.currentTarget.style.backgroundColor = '#F8FAFC'}
+            onMouseLeave={(e) => e.currentTarget.style.backgroundColor = '#FFFFFF'}
             aria-expanded={dropdownOpen}
             aria-haspopup="true"
           >
+            {/* User Avatar */}
             <div
               style={{
-                width: '30px',
-                height: '30px',
+                width: '32px',
+                height: '32px',
                 borderRadius: '50%',
-                backgroundColor: 'var(--iocl-navy)',
+                backgroundColor: 'var(--iocl-navy, #002D62)',
                 color: '#FFFFFF',
                 display: 'flex',
                 alignItems: 'center',
                 justifyContent: 'center',
                 fontSize: '0.75rem',
-                fontWeight: '700'
+                fontWeight: '700',
+                flexShrink: 0
               }}
             >
               {user?.fullName
                 ? user.fullName.substring(0, 2).toUpperCase()
                 : (user?.username ? user.username.substring(0, 2).toUpperCase() : 'U')}
             </div>
-            <div style={{ display: 'flex', flexDirection: 'column', textAlign: 'left' }}>
-              <span style={{ fontSize: '0.75rem', fontWeight: '700', color: '#1E293B', lineHeight: '1.2' }}>
+
+            {/* User Name & Email */}
+            <div style={{ display: 'flex', flexDirection: 'column', textAlign: 'left' }} className="header-user-meta">
+              <span
+                style={{
+                  fontSize: '0.8125rem',
+                  fontWeight: '700',
+                  color: 'var(--text-primary, #0F172A)',
+                  lineHeight: '1.2'
+                }}
+              >
                 {user?.fullName || user?.username || 'User Account'}
               </span>
-              <span style={{ fontSize: '0.625rem', color: '#64748B' }}>
+              <span
+                style={{
+                  fontSize: '0.6875rem',
+                  color: 'var(--text-muted, #64748B)',
+                  maxWidth: '160px',
+                  whiteSpace: 'nowrap',
+                  overflow: 'hidden',
+                  textOverflow: 'ellipsis'
+                }}
+              >
                 {user?.email || 'user@iocl.co.in'}
               </span>
             </div>
-            <ChevronDown size={14} color="#64748B" style={{ marginLeft: '0.25rem' }} />
+
+            <ChevronDown size={14} color="#64748B" style={{ marginLeft: '0.15rem' }} />
           </button>
 
           {/* Dropdown Menu Modal */}
@@ -164,12 +202,12 @@ export const UserHeader = ({ onToggleSidebar }) => {
             <div
               style={{
                 position: 'absolute',
-                top: 'calc(100% + 8px)',
+                top: 'calc(100% + 6px)',
                 right: 0,
                 width: '230px',
                 backgroundColor: '#FFFFFF',
                 borderRadius: '10px',
-                border: '1px solid #E2E8F0',
+                border: '1px solid var(--border-subtle, #E2E8F0)',
                 boxShadow: '0 10px 25px -5px rgba(0,0,0,0.1), 0 8px 10px -6px rgba(0,0,0,0.05)',
                 padding: '0.5rem 0',
                 zIndex: 1000
@@ -204,46 +242,6 @@ export const UserHeader = ({ onToggleSidebar }) => {
                 <span>My Profile</span>
               </Link>
 
-              <Link
-                to="/user/assets"
-                onClick={() => setDropdownOpen(false)}
-                style={{
-                  display: 'flex',
-                  alignItems: 'center',
-                  gap: '0.625rem',
-                  padding: '0.6rem 1rem',
-                  fontSize: '0.8125rem',
-                  color: '#334155',
-                  textDecoration: 'none',
-                  fontWeight: '600'
-                }}
-                onMouseEnter={(e) => e.currentTarget.style.backgroundColor = '#F8FAFC'}
-                onMouseLeave={(e) => e.currentTarget.style.backgroundColor = 'transparent'}
-              >
-                <Package size={15} color="var(--iocl-navy)" />
-                <span>My Assets</span>
-              </Link>
-
-              <Link
-                to="/user/notifications"
-                onClick={() => setDropdownOpen(false)}
-                style={{
-                  display: 'flex',
-                  alignItems: 'center',
-                  gap: '0.625rem',
-                  padding: '0.6rem 1rem',
-                  fontSize: '0.8125rem',
-                  color: '#334155',
-                  textDecoration: 'none',
-                  fontWeight: '600'
-                }}
-                onMouseEnter={(e) => e.currentTarget.style.backgroundColor = '#F8FAFC'}
-                onMouseLeave={(e) => e.currentTarget.style.backgroundColor = 'transparent'}
-              >
-                <Bell size={15} color="var(--iocl-navy)" />
-                <span>Notifications</span>
-              </Link>
-
               <div style={{ borderTop: '1px solid #F1F5F9', margin: '0.375rem 0' }} />
 
               <button
@@ -276,3 +274,5 @@ export const UserHeader = ({ onToggleSidebar }) => {
     </header>
   );
 };
+
+export default UserHeader;

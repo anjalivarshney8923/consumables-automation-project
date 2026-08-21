@@ -10,7 +10,8 @@ import {
   Package,
   User,
   ShieldCheck,
-  ArrowUpDown
+  Check,
+  ChevronDown
 } from 'lucide-react';
 
 const DEPARTMENT_OPTIONS = [
@@ -51,7 +52,7 @@ export const AdminAssetUsageFilters = ({
   onResetFilters,
   totalResults = 0
 }) => {
-  const [showAdvancedFilters, setShowAdvancedFilters] = useState(false);
+  const [showAdvanced, setShowAdvanced] = useState(false);
 
   const hasActiveFilters = Boolean(
     searchTerm ||
@@ -65,8 +66,7 @@ export const AdminAssetUsageFilters = ({
     sortBy !== 'LATEST'
   );
 
-  // Quick Date Preset helper
-  const handleQuickDatePreset = (preset) => {
+  const handleDatePreset = (preset) => {
     const today = new Date();
     const toDateStr = today.toISOString().slice(0, 10);
 
@@ -74,7 +74,7 @@ export const AdminAssetUsageFilters = ({
       onFromDateChange(toDateStr);
       onToDateChange(toDateStr);
     } else if (preset === 'THIS_WEEK') {
-      const dayOfWeek = today.getDay(); // 0 is Sunday
+      const dayOfWeek = today.getDay();
       const mondayOffset = dayOfWeek === 0 ? -6 : 1 - dayOfWeek;
       const monday = new Date(today);
       monday.setDate(today.getDate() + mondayOffset);
@@ -91,56 +91,97 @@ export const AdminAssetUsageFilters = ({
   };
 
   return (
-    <div className="filter-card mb-6">
-      {/* Primary Toolbar */}
-      <div className="filter-primary-row">
-        {/* Search Bar */}
-        <div className="filter-search-box" style={{ flex: '1 1 340px' }}>
-          <Search size={18} className="filter-search-icon" />
+    <div className="procurement-filters-card mb-6">
+      {/* Search Bar Row */}
+      <div className="filters-top-row">
+        <div className="search-input-wrapper">
+          <Search size={18} className="search-icon" />
           <input
             type="text"
-            className="filter-search-input"
+            className="search-field"
             placeholder="Search engineer, beneficiary, employee no., part number..."
             value={searchTerm}
             onChange={(e) => onSearchChange(e.target.value)}
-            aria-label="Search Asset Usage History"
+            aria-label="Search Asset Usage"
           />
           {searchTerm && (
             <button
               type="button"
-              className="filter-clear-icon-btn"
+              className="clear-search-btn"
               onClick={() => onSearchChange('')}
-              aria-label="Clear Search"
+              title="Clear search"
             >
-              <X size={14} />
+              <X size={16} />
             </button>
           )}
         </div>
 
-        {/* Part Number / Cartridge Filter */}
-        <div className="filter-select-group" style={{ minWidth: '220px' }}>
+        <div className="filter-actions-group">
+          <button
+            type="button"
+            className="btn-refresh"
+            onClick={() => setShowAdvanced((prev) => !prev)}
+            style={{
+              display: 'inline-flex',
+              alignItems: 'center',
+              gap: '6px',
+              backgroundColor: showAdvanced ? 'var(--bg-surface-alt)' : '#FFFFFF'
+            }}
+          >
+            <SlidersHorizontal size={14} />
+            <span>{showAdvanced ? 'Fewer Filters' : 'More Filters'}</span>
+          </button>
+
+          {hasActiveFilters && (
+            <button
+              type="button"
+              className="btn-clear-all"
+              onClick={onResetFilters}
+              title="Reset all search filters"
+            >
+              <RotateCcw size={14} />
+              <span>Reset</span>
+            </button>
+          )}
+        </div>
+      </div>
+
+      {/* Main Filter Grid Row */}
+      <div
+        className="filters-bottom-row"
+        style={{
+          display: 'grid',
+          gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))',
+          gap: '12px',
+          paddingTop: '0.875rem'
+        }}
+      >
+        {/* Asset / Part Number */}
+        <div className="filter-select-group" style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-start', gap: '4px' }}>
+          <label className="filter-label">Asset / Part Number</label>
           <select
             className="filter-select"
+            style={{ width: '100%', height: '38px' }}
             value={selectedCartridgeId}
             onChange={(e) => onCartridgeChange(e.target.value)}
-            aria-label="Filter by Asset / Part Number"
           >
             <option value="ALL">All Assets / Part Numbers</option>
             {cartridgeOptions.map((item) => (
               <option key={item.id} value={item.id}>
-                {item.partNumber} — {item.cartridgeName}
+                {item.partNumber} &mdash; {item.cartridgeName}
               </option>
             ))}
           </select>
         </div>
 
-        {/* Department Filter */}
-        <div className="filter-select-group" style={{ minWidth: '180px' }}>
+        {/* Department */}
+        <div className="filter-select-group" style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-start', gap: '4px' }}>
+          <label className="filter-label">Department</label>
           <select
             className="filter-select"
+            style={{ width: '100%', height: '38px' }}
             value={selectedDepartment}
             onChange={(e) => onDepartmentChange(e.target.value)}
-            aria-label="Filter by Department"
           >
             {DEPARTMENT_OPTIONS.map((dept) => (
               <option key={dept} value={dept === 'All Departments' ? 'ALL' : dept}>
@@ -150,13 +191,14 @@ export const AdminAssetUsageFilters = ({
           </select>
         </div>
 
-        {/* Sort Order Dropdown */}
-        <div className="filter-select-group" style={{ minWidth: '170px' }}>
+        {/* Sort Order */}
+        <div className="filter-select-group" style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-start', gap: '4px' }}>
+          <label className="filter-label">Sort Order</label>
           <select
             className="filter-select"
+            style={{ width: '100%', height: '38px' }}
             value={sortBy}
             onChange={(e) => onSortByChange(e.target.value)}
-            aria-label="Sort Order"
           >
             <option value="LATEST">Latest First (Default)</option>
             <option value="OLDEST">Oldest First</option>
@@ -168,51 +210,49 @@ export const AdminAssetUsageFilters = ({
           </select>
         </div>
 
-        {/* Toggle Advanced Filters */}
-        <button
-          type="button"
-          className={`btn-filter-toggle ${showAdvancedFilters ? 'active' : ''}`}
-          onClick={() => setShowAdvancedFilters((prev) => !prev)}
-          aria-expanded={showAdvancedFilters}
-        >
-          <SlidersHorizontal size={16} />
-          <span>Filters</span>
-          {hasActiveFilters && <span className="filter-active-dot" />}
-        </button>
+        {/* From Date */}
+        <div className="filter-date-group" style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-start', gap: '4px' }}>
+          <label className="filter-label">From Date</label>
+          <input
+            type="date"
+            className="filter-date-input"
+            style={{ width: '100%', height: '38px' }}
+            value={fromDate}
+            onChange={(e) => onFromDateChange(e.target.value)}
+          />
+        </div>
 
-        {/* Reset Filters Button */}
-        {hasActiveFilters && (
-          <button
-            type="button"
-            className="btn-filter-reset"
-            onClick={onResetFilters}
-            title="Reset all filters"
-          >
-            <RotateCcw size={14} />
-            <span>Reset</span>
-          </button>
-        )}
+        {/* To Date */}
+        <div className="filter-date-group" style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-start', gap: '4px' }}>
+          <label className="filter-label">To Date</label>
+          <input
+            type="date"
+            className="filter-date-input"
+            style={{ width: '100%', height: '38px' }}
+            value={toDate}
+            onChange={(e) => onToDateChange(e.target.value)}
+          />
+        </div>
       </div>
 
-      {/* Advanced Filter Drawer */}
-      {showAdvancedFilters && (
+      {/* Advanced Expandable Filter Row */}
+      {showAdvanced && (
         <div
-          className="filter-advanced-panel mt-4 pt-4"
           style={{
-            borderTop: '1px solid var(--border-color, #E2E8F0)',
             display: 'grid',
             gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))',
-            gap: '1rem'
+            gap: '12px',
+            paddingTop: '0.875rem',
+            borderTop: '1px dashed var(--border-subtle)'
           }}
         >
           {/* Specific Engineer Filter */}
-          <div className="filter-field-group">
-            <label className="filter-field-label">
-              <User size={13} style={{ marginRight: '4px' }} /> Engineer / Maintenance Staff
-            </label>
+          <div className="filter-select-group" style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-start', gap: '4px' }}>
+            <label className="filter-label">Engineer / Maintenance Staff</label>
             <input
               type="text"
-              className="filter-search-input"
+              className="search-field"
+              style={{ height: '38px', padding: '0.5rem 0.75rem' }}
               placeholder="Name or Emp No..."
               value={engineerSearch}
               onChange={(e) => onEngineerSearchChange(e.target.value)}
@@ -220,13 +260,12 @@ export const AdminAssetUsageFilters = ({
           </div>
 
           {/* Specific Beneficiary Filter */}
-          <div className="filter-field-group">
-            <label className="filter-field-label">
-              <ShieldCheck size={13} style={{ marginRight: '4px' }} /> Beneficiary Employee
-            </label>
+          <div className="filter-select-group" style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-start', gap: '4px' }}>
+            <label className="filter-label">Beneficiary Employee</label>
             <input
               type="text"
-              className="filter-search-input"
+              className="search-field"
+              style={{ height: '38px', padding: '0.5rem 0.75rem' }}
               placeholder="Beneficiary or Emp No..."
               value={beneficiarySearch}
               onChange={(e) => onBeneficiarySearchChange(e.target.value)}
@@ -234,116 +273,51 @@ export const AdminAssetUsageFilters = ({
           </div>
 
           {/* Location Filter */}
-          <div className="filter-field-group">
-            <label className="filter-field-label">
-              <MapPin size={13} style={{ marginRight: '4px' }} /> Location / Office
-            </label>
+          <div className="filter-select-group" style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-start', gap: '4px' }}>
+            <label className="filter-label">Location / Office</label>
             <input
               type="text"
-              className="filter-search-input"
+              className="search-field"
+              style={{ height: '38px', padding: '0.5rem 0.75rem' }}
               placeholder="e.g. Refinery, Admin Block..."
               value={selectedLocation}
               onChange={(e) => onLocationChange(e.target.value)}
             />
           </div>
 
-          {/* Date Range: From Date */}
-          <div className="filter-field-group">
-            <label className="filter-field-label">
-              <Calendar size={13} style={{ marginRight: '4px' }} /> From Date
-            </label>
-            <input
-              type="date"
-              className="filter-input-date"
-              value={fromDate}
-              onChange={(e) => onFromDateChange(e.target.value)}
-            />
-          </div>
-
-          {/* Date Range: To Date */}
-          <div className="filter-field-group">
-            <label className="filter-field-label">
-              <Calendar size={13} style={{ marginRight: '4px' }} /> To Date
-            </label>
-            <input
-              type="date"
-              className="filter-input-date"
-              value={toDate}
-              onChange={(e) => onToDateChange(e.target.value)}
-            />
-          </div>
-
           {/* Quick Date Presets */}
-          <div className="filter-field-group" style={{ gridColumn: '1 / -1' }}>
-            <label className="filter-field-label" style={{ marginBottom: '6px' }}>
-              Quick Date Presets
-            </label>
-            <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '4px', gridColumn: '1 / -1' }}>
+            <span className="filter-label">Quick Date Presets</span>
+            <div style={{ display: 'flex', gap: '6px', flexWrap: 'wrap' }}>
               <button
                 type="button"
-                className="btn-date-preset"
-                onClick={() => handleQuickDatePreset('TODAY')}
-                style={{
-                  padding: '4px 12px',
-                  borderRadius: '4px',
-                  border: '1px solid var(--border-color, #CBD5E1)',
-                  background: '#FFFFFF',
-                  fontSize: '0.75rem',
-                  fontWeight: 600,
-                  cursor: 'pointer',
-                  color: 'var(--text-secondary)'
-                }}
+                className="btn-preset"
+                onClick={() => handleDatePreset('TODAY')}
+                style={{ padding: '4px 10px', fontSize: '0.75rem', borderRadius: '4px', border: '1px solid var(--border-medium)', background: '#FFFFFF', cursor: 'pointer' }}
               >
                 Today
               </button>
               <button
                 type="button"
-                className="btn-date-preset"
-                onClick={() => handleQuickDatePreset('THIS_WEEK')}
-                style={{
-                  padding: '4px 12px',
-                  borderRadius: '4px',
-                  border: '1px solid var(--border-color, #CBD5E1)',
-                  background: '#FFFFFF',
-                  fontSize: '0.75rem',
-                  fontWeight: 600,
-                  cursor: 'pointer',
-                  color: 'var(--text-secondary)'
-                }}
+                className="btn-preset"
+                onClick={() => handleDatePreset('THIS_WEEK')}
+                style={{ padding: '4px 10px', fontSize: '0.75rem', borderRadius: '4px', border: '1px solid var(--border-medium)', background: '#FFFFFF', cursor: 'pointer' }}
               >
                 This Week
               </button>
               <button
                 type="button"
-                className="btn-date-preset"
-                onClick={() => handleQuickDatePreset('THIS_MONTH')}
-                style={{
-                  padding: '4px 12px',
-                  borderRadius: '4px',
-                  border: '1px solid var(--border-color, #CBD5E1)',
-                  background: '#FFFFFF',
-                  fontSize: '0.75rem',
-                  fontWeight: 600,
-                  cursor: 'pointer',
-                  color: 'var(--text-secondary)'
-                }}
+                className="btn-preset"
+                onClick={() => handleDatePreset('THIS_MONTH')}
+                style={{ padding: '4px 10px', fontSize: '0.75rem', borderRadius: '4px', border: '1px solid var(--border-medium)', background: '#FFFFFF', cursor: 'pointer' }}
               >
                 This Month
               </button>
               <button
                 type="button"
-                className="btn-date-preset"
-                onClick={() => handleQuickDatePreset('ALL_TIME')}
-                style={{
-                  padding: '4px 12px',
-                  borderRadius: '4px',
-                  border: '1px solid var(--border-color, #CBD5E1)',
-                  background: '#FFFFFF',
-                  fontSize: '0.75rem',
-                  fontWeight: 600,
-                  cursor: 'pointer',
-                  color: 'var(--text-secondary)'
-                }}
+                className="btn-preset"
+                onClick={() => handleDatePreset('ALL_TIME')}
+                style={{ padding: '4px 10px', fontSize: '0.75rem', borderRadius: '4px', border: '1px solid var(--border-medium)', background: '#FFFFFF', cursor: 'pointer' }}
               >
                 All Time
               </button>

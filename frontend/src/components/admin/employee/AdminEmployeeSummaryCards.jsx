@@ -40,7 +40,7 @@ export const AdminEmployeeSummaryCards = ({
         </div>
         <div className="kpi-card-footer">
           <span>Enterprise Directory</span>
-          <span style={{ fontWeight: '600', color: 'var(--iocl-navy)' }}>All Staff</span>
+          <span style={{ fontWeight: '600', color: 'var(--iocl-red, #B71C1C)' }}>All Staff</span>
         </div>
       </div>
 
