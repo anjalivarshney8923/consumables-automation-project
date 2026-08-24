@@ -656,10 +656,48 @@ The system can be validated across the following operational workflows:
 
 ## 🖼️ Screenshots
 
-> *Place screenshots of the application inside the `screenshots/` directory using the filenames below.*
+### 👨‍💼 Admin Portal
+
+#### Admin Dashboard
+![Admin Dashboard](screenshots/admin-dashboard.png)
+
+#### Procurement Register
+![Procurement Register](screenshots/procurement-register.png)
+
+#### Rate Contract Details
+![Rate Contract Details](screenshots/rate-contract-details.png)
+
+#### Full View of Records
+![Full View of Records](screenshots/full-view-records.png)
+
+#### Tendering Alerts
+![Tendering Alerts](screenshots/tendering-alerts.png)
+
+#### Threshold Settings
+![Threshold Settings](screenshots/threshold-settings.png)
+
+#### Employee Master
+![Employee Master](screenshots/employee-master.png)
+
+#### Reports & Export
+![Reports & Export](screenshots/admin-reports.png)
 
 
-https://github.com/anjalivarshney8923/consumables-automation-project/screenshots/user-register.png
+### 👤 User Portal
+
+#### User Registration
+![User Registration](screenshots/user-register.png)
+
+#### User Dashboard
+![User Dashboard](screenshots/user-dashboard.png)
+
+#### Record Asset Usage
+![Record Asset Usage](screenshots/record-usage.png)
+
+#### My Usage History
+![My Usage History](screenshots/my-usage-history.png)
+
+
 
 
 ### Admin Portal
