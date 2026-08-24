@@ -410,6 +410,20 @@ The application uses PostgreSQL with JPA entity mappings and automatic pre-JPA s
 
 ---
 
+## 🗄️ Database Files & Restoration
+
+The `database/` directory contains the PostgreSQL database backup used by this project.
+
+### Database Directory
+
+```text
+database/
+├── iocl_database.sql       # Complete PostgreSQL database dump
+└── er-diagram.png          # Entity Relationship Diagram
+```
+
+---
+
 ## 🔐 Authentication & Security
 
 - **Stateless JWT Tokens**: Signed using HMAC-SHA256 with configured 24-hour expiration (`app.jwt.expiration-ms=86400000`).
