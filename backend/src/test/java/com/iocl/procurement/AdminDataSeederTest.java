@@ -25,7 +25,7 @@ class AdminDataSeederTest {
         // Run seeder first time
         adminDataSeeder.run();
         long initialCount = adminRepository.count();
-        assertTrue(initialCount >= 1, "At least one admin should be in the database");
+        assertTrue(initialCount >= 1, "At least one admin should be in DB.");
 
         // Run seeder second time (simulating application restart)
         adminDataSeeder.run();

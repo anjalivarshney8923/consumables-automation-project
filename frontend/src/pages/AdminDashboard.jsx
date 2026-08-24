@@ -317,7 +317,7 @@ export const AdminDashboard = () => {
             type="button"
             onClick={refreshAllDashboardData}
             className="btn-refresh-icon"
-            title="Refresh all real database metrics"
+            title="Refresh all real metrics"
             aria-label="Refresh dashboard data"
             disabled={globalRefreshing}
           >
@@ -488,7 +488,7 @@ export const AdminDashboard = () => {
           {/* Recent Procurement Entries Table */}
           {procurementLoading ? (
             <div style={{ padding: '2rem', textAlign: 'center', color: 'var(--text-muted)' }}>
-              Loading real procurement records from PostgreSQL database...
+              Loading real procurement records...
             </div>
           ) : procurementError ? (
             <div className="section-error-card">
@@ -508,7 +508,7 @@ export const AdminDashboard = () => {
               </div>
               <h2 className="empty-state-title">No procurement records available</h2>
               <p className="empty-state-desc">
-                No rate contracts or purchase orders recorded in PostgreSQL database.
+                No rate contracts or purchase orders recorded.
               </p>
             </div>
           ) : (
@@ -624,7 +624,7 @@ export const AdminDashboard = () => {
           {/* Real Inventory Table */}
           {inventoryLoading ? (
             <div style={{ padding: '2rem', textAlign: 'center', color: 'var(--text-muted)' }}>
-              Loading real store inventory from PostgreSQL database...
+              Loading real store inventory...
             </div>
           ) : inventoryError ? (
             <div className="section-error-card">
@@ -644,7 +644,7 @@ export const AdminDashboard = () => {
               </div>
               <h2 className="empty-state-title">No inventory records available</h2>
               <p className="empty-state-desc">
-                No cartridge threshold records found in PostgreSQL.
+                No cartridge threshold records.
               </p>
             </div>
           ) : (
@@ -720,7 +720,7 @@ export const AdminDashboard = () => {
         <div className="section-body">
           {tenderingLoading ? (
             <div style={{ padding: '2rem', textAlign: 'center', color: 'var(--text-muted)' }}>
-              Evaluating live tendering thresholds from PostgreSQL database...
+              Evaluating live tendering thresholds...
             </div>
           ) : tenderingError ? (
             <div className="section-error-card">
@@ -863,7 +863,7 @@ export const AdminDashboard = () => {
                 type="button"
                 onClick={fetchAlertsData}
                 className="btn-refresh-icon"
-                title="Refresh alerts from database"
+                title="Refresh alerts"
                 aria-label="Refresh alerts"
               >
                 <RefreshCw size={13} className={alertsLoading ? 'spin-icon' : ''} />
@@ -874,7 +874,7 @@ export const AdminDashboard = () => {
           <div className="section-body">
             {alertsLoading ? (
               <div style={{ padding: '2rem', textAlign: 'center', color: 'var(--text-muted)', fontSize: '0.875rem' }}>
-                Checking threshold alerts from database...
+                Checking threshold alerts...
               </div>
             ) : alertsError ? (
               <div className="section-error-card">

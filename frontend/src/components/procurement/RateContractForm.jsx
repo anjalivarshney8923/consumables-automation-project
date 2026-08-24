@@ -301,7 +301,7 @@ export const RateContractForm = ({ onEntryAdded }) => {
                 onChange={handleChange}
               >
                 <option value="">
-                  {loadingCartridges ? 'Loading cartridges from database...' : '-- Select Cartridge Part Number --'}
+                  {loadingCartridges ? 'Loading cartridges...' : '-- Select Cartridge Part Number --'}
                 </option>
                 {cartridges.map((item) => (
                   <option key={item.id} value={item.id}>

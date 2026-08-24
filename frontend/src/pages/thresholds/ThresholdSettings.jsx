@@ -43,7 +43,7 @@ export const ThresholdSettings = () => {
       });
       setEditedValues(initialEdits);
     } else {
-      setError(res.message || 'Failed to load cartridge thresholds from database.');
+      setError(res.message || 'Failed to load cartridge thresholds.');
     }
 
     setLoading(false);
@@ -289,7 +289,7 @@ export const ThresholdSettings = () => {
         {loading ? (
           <div style={{ padding: '3rem', textAlign: 'center', color: 'var(--text-muted)' }}>
             <div className="table-loader-spinner" style={{ margin: '0 auto 1rem' }} />
-            <p>Loading Cartridge Threshold Limits from PostgreSQL...</p>
+            <p>Loading Cartridge Threshold Limits...</p>
           </div>
         ) : error ? (
           <div style={{ padding: '2rem', textAlign: 'center', color: '#DC2626' }}>
@@ -437,7 +437,7 @@ export const ThresholdSettings = () => {
                               gap: '0.25rem',
                               transition: 'all 0.15s ease'
                             }}
-                            title={isModified ? 'Save PO Threshold to Database' : 'Threshold is current'}
+                            title={isModified ? 'Save PO Threshold' : 'Threshold is current'}
                           >
                             {isSaving ? (
                               <RefreshCw size={12} className="spin-icon" />

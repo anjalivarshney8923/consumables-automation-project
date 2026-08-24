@@ -165,7 +165,7 @@ class QuantityCalculationsTest {
         assertEquals(500, rcResp.getTotalContractQuantity(), "Total RC must remain 500");
         assertEquals(150, rcResp.getQuantityTakenThroughWO(), "Qty Taken Vide WO must remain 150");
         assertEquals(350, rcResp.getNetAvailableQuantity(), "Net Available RC must remain 350 (NOT 330)");
-        assertEquals(20, rcResp.getExecutedQuantity(), "Executed quantity must be 20 from PostgreSQL Asset Usages");
+        assertEquals(20, rcResp.getExecutedQuantity(), "Executed quantity must be 20 from Asset Usages");
     }
 
     @Test

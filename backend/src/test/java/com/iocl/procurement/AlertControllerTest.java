@@ -222,7 +222,7 @@ public class AlertControllerTest {
     }
 
     @Test
-    @DisplayName("ALERT 2 Endpoint: GET /api/alerts/tendering returns calculated Alert 2 fields from PostgreSQL")
+    @DisplayName("ALERT 2 Endpoint: GET /api/alerts/tendering returns calculated Alert 2 fields")
     void testGetTenderingAlertsEndpoint() throws Exception {
         // Store = 20, RC = 10, Threshold = 50 -> Combined = 30 < 50 -> URGENT
         testCartridge.setStoreQuantity(20);

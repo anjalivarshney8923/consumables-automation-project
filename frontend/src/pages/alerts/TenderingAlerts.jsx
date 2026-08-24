@@ -53,7 +53,7 @@ export const TenderingAlerts = () => {
       });
       setEditedThresholds(initialEdits);
     } else {
-      setError(res.message || 'Failed to load tendering alerts from PostgreSQL database.');
+      setError(res.message || 'Failed to load tendering alerts.');
     }
 
     setLoading(false);
@@ -107,7 +107,7 @@ export const TenderingAlerts = () => {
     } else {
       setSaveStatus((prev) => ({
         ...prev,
-        [cartridgeId]: { saving: false, success: false, error: res.message || 'Failed to save threshold to database' }
+        [cartridgeId]: { saving: false, success: false, error: res.message || 'Failed to save threshold' }
       }));
     }
   };
@@ -226,10 +226,10 @@ export const TenderingAlerts = () => {
               alignItems: 'center',
               gap: '0.375rem'
             }}
-            title="Refresh Tendering Alerts from PostgreSQL"
+            title="Refresh Tendering Alerts"
           >
             <RefreshCw size={14} className={isRefreshing ? 'spin-icon' : ''} />
-            <span>{isRefreshing ? 'Refreshing...' : 'Refresh Database'}</span>
+            <span>{isRefreshing ? 'Refreshing...' : 'Refresh'}</span>
           </button>
         </div>
       </header>
@@ -518,7 +518,7 @@ export const TenderingAlerts = () => {
         {loading ? (
           <div style={{ padding: '3.5rem', textAlign: 'center', color: '#64748B' }}>
             <div className="table-loader-spinner" style={{ margin: '0 auto 1rem' }} />
-            <p style={{ fontWeight: '600' }}>Loading Tendering Alerts from PostgreSQL...</p>
+            <p style={{ fontWeight: '600' }}>Loading Tendering Alerts...</p>
           </div>
         ) : filteredRecords.length === 0 ? (
           <div style={{ padding: '3.5rem', textAlign: 'center', color: '#64748B' }}>
@@ -656,7 +656,7 @@ export const TenderingAlerts = () => {
                               backgroundColor: isSaving ? '#F1F5F9' : '#FFFFFF',
                               outline: 'none'
                             }}
-                            title="Edit Tendering Threshold and save to PostgreSQL"
+                            title="Edit Tendering Threshold and save"
                           />
                           <button
                             type="button"
@@ -676,7 +676,7 @@ export const TenderingAlerts = () => {
                               gap: '0.25rem',
                               transition: 'all 0.15s ease'
                             }}
-                            title={isModified ? 'Persist new threshold to PostgreSQL' : 'Threshold is current in DB'}
+                            title={isModified ? 'Persist new threshold' : 'Threshold is current in DB'}
                           >
                             {isSaving ? (
                               <RefreshCw size={12} className="spin-icon" />

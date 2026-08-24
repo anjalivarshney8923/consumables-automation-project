@@ -379,7 +379,7 @@ export const UserRegistration = () => {
                     Registration Successful!
                   </h3>
                   <p style={{ margin: '0 0 1rem', fontSize: '0.8125rem', color: '#15803D', lineHeight: 1.5 }}>
-                    Your user account has been securely created and saved in the <strong>PostgreSQL database</strong>. You may now log in to the User Portal.
+                    Your user account has been securely created and saved. You may now log in to the User Portal.
                   </p>
 
                   {/* Summary preview of real registered user */}

@@ -98,7 +98,7 @@ public class RateContractHistoryIntegrationTest {
     }
 
     @Test
-    @DisplayName("1. One Rate Contract with multiple Call-Up POs aggregates WO Quantity and persists history in PostgreSQL")
+    @DisplayName("1. One Rate Contract with multiple Call-Up POs aggregates WO Quantity and persists history.")
     void testMultipleCallUpPOsForOneRateContract() throws Exception {
         // Step 1: Create Rate Contract (Contract Qty = 1000)
         RateContractRequest rcRequest = new RateContractRequest(

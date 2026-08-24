@@ -106,7 +106,7 @@ export const UpdateAsset = () => {
     if (res.success && res.data) {
       setAssets(res.data);
     } else {
-      setAssetsError(res.message || 'Failed to load assets from database.');
+      setAssetsError(res.message || 'Failed to load assets.');
     }
     setAssetsLoading(false);
   }, []);
@@ -950,7 +950,7 @@ export const UpdateAsset = () => {
             {assetsLoading ? (
               <div style={{ padding: '3rem 1.5rem', textAlign: 'center', color: '#64748B' }}>
                 <Loader2 size={24} className="animate-spin" style={{ margin: '0 auto 0.75rem' }} />
-                <p style={{ fontSize: '0.875rem', margin: 0 }}>Loading registered assets from database...</p>
+                <p style={{ fontSize: '0.875rem', margin: 0 }}>Loading registered assets...</p>
               </div>
             ) : assetsError ? (
               <div style={{ padding: '2.5rem 1.5rem', textAlign: 'center', color: '#DC2626' }}>
@@ -2031,7 +2031,7 @@ export const UpdateAsset = () => {
                   }}
                 >
                   {isSaving ? <Loader2 size={15} className="animate-spin" /> : null}
-                  <span>{isSaving ? 'Saving to Database...' : 'Confirm & Save'}</span>
+                  <span>{isSaving ? 'Saving...' : 'Confirm & Save'}</span>
                 </button>
               </div>
             </div>

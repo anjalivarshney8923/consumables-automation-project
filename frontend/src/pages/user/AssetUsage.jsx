@@ -574,7 +574,7 @@ export const AssetUsage = () => {
                 {submitSuccess.message}
               </h3>
               <p style={{ fontSize: '0.8125rem', color: '#15803D', marginTop: '0.25rem', marginBottom: '0.75rem' }}>
-                Usage record has been persisted in PostgreSQL and Store Inventory quantity has been deducted.
+                Usage record has been persisted and Store Inventory quantity has been deducted.
               </p>
 
               {/* Transaction Summary Chips */}
@@ -1544,7 +1544,7 @@ export const AssetUsage = () => {
                     return (
                       <div style={{ marginTop: '0.375rem' }}>
                         <span style={{ fontSize: '0.75rem', color: '#64748B', fontWeight: '500' }}>
-                          ⏳ Loading live store stock from PostgreSQL...
+                          ⏳ Loading live store stock...
                         </span>
                       </div>
                     );
@@ -1900,7 +1900,7 @@ export const AssetUsage = () => {
               {isSubmitting ? (
                 <>
                   <Loader2 size={16} className="spinner text-white" />
-                  <span>Recording in PostgreSQL...</span>
+                  <span>Recording...</span>
                 </>
               ) : (
                 <>
@@ -1969,7 +1969,7 @@ export const AssetUsage = () => {
         {isLoadingHistory ? (
           <div style={{ padding: '3rem 1.5rem', textAlign: 'center', color: '#64748B' }}>
             <Loader2 size={24} className="spinner text-navy" style={{ margin: '0 auto 0.5rem' }} />
-            <p style={{ fontSize: '0.8125rem', fontWeight: 500 }}>Loading usage records from database...</p>
+            <p style={{ fontSize: '0.8125rem', fontWeight: 500 }}>Loading usage records...</p>
           </div>
         ) : recentUsages.length > 0 ? (
           <div style={{ overflowX: 'auto' }}>

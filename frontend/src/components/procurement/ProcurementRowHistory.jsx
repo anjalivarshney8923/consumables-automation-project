@@ -216,7 +216,7 @@ export const ProcurementRowHistory = ({
         <div style={{ padding: '2rem 1rem', textAlign: 'center', color: '#64748B' }}>
           <Loader2 size={20} className="spinner" style={{ margin: '0 auto 0.5rem', color: '#1E40AF' }} />
           <p style={{ fontSize: '0.8125rem', fontWeight: '500', margin: 0 }}>
-            Loading real PO transaction history from PostgreSQL database...
+            Loading real PO transaction history...
           </p>
         </div>
       ) : error ? (

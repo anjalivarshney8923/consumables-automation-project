@@ -1159,7 +1159,7 @@ export const AssetHistory = () => {
               Loading asset usage history...
             </p>
             <span style={{ fontSize: '0.8125rem', color: '#94A3B8' }}>
-              Fetching transaction records from PostgreSQL
+              Fetching transaction records
             </span>
           </div>
         ) : usageRecords.length === 0 ? (

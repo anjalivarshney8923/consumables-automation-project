@@ -34,7 +34,7 @@ export const CallUpPOForm = ({ onEntryAdded }) => {
         if (res.success && res.data) {
           setRateContracts(res.data);
         } else {
-          setContractFetchError(res.message || 'Failed to load master Rate Contracts from database.');
+          setContractFetchError(res.message || 'Failed to load master Rate Contracts.');
         }
         setLoadingContracts(false);
       }
@@ -101,7 +101,7 @@ export const CallUpPOForm = ({ onEntryAdded }) => {
 
     // 3. Rate Contract Reference Selection
     if (!formData.rateContractId) {
-      newErrors.rateContractId = 'Please select a Rate Contract from database.';
+      newErrors.rateContractId = 'Please select a Rate Contract.';
     }
 
     // 4. Supplier Name
@@ -265,7 +265,7 @@ export const CallUpPOForm = ({ onEntryAdded }) => {
                 onChange={handleContractChange}
               >
                 <option value="">
-                  {loadingContracts ? 'Loading Rate Contracts from database...' : '-- Select Active Rate Contract --'}
+                  {loadingContracts ? 'Loading Rate Contracts...' : '-- Select Active Rate Contract --'}
                 </option>
                 {rateContracts.map((rc) => (
                   <option key={rc.id} value={rc.id}>

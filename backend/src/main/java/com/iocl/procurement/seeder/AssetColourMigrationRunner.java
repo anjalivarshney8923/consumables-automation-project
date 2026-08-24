@@ -72,10 +72,10 @@ public class AssetColourMigrationRunner implements CommandLineRunner {
         }
 
         if (clearedBwCount > 0) {
-            logger.info(">>> Corrected {} Black & White asset(s) to have NULL colour in PostgreSQL. <<<", clearedBwCount);
+            logger.info(">>> Corrected {} Black & White asset(s) to have NULL colour. <<<", clearedBwCount);
         }
         if (migratedColorCount > 0) {
-            logger.info(">>> Successfully migrated {} legacy Color asset(s) with deterministic colours in PostgreSQL. <<<", migratedColorCount);
+            logger.info(">>> Successfully migrated {} legacy Color asset(s) with deterministic colours. <<<", migratedColorCount);
         }
         if (ambiguousCount > 0) {
             logger.info(">>> {} legacy Color asset(s) remain with NULL colour due to ambiguity. <<<", ambiguousCount);

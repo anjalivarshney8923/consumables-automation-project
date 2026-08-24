@@ -96,7 +96,7 @@ public class AssetControllerTest {
     }
 
     @Test
-    @DisplayName("1. Successfully create a new COLOR Asset with valid colour in PostgreSQL")
+    @DisplayName("1. Successfully create a new COLOR Asset with valid colour.")
     void testCreateColorAssetSuccess() throws Exception {
         AssetRequest request = new AssetRequest(
                 "HP Color LaserJet Pro M454dn",
@@ -133,7 +133,7 @@ public class AssetControllerTest {
     }
 
     @Test
-    @DisplayName("2. Successfully create a new BLACK_AND_WHITE Asset with null colour in PostgreSQL")
+    @DisplayName("2. Successfully create a new BLACK_AND_WHITE Asset with null colour.")
     void testCreateBlackAndWhiteAssetSuccess() throws Exception {
         AssetRequest request = new AssetRequest(
                 "Canon LBP246dw",
@@ -397,7 +397,7 @@ public class AssetControllerTest {
     }
 
     @Test
-    @DisplayName("14. Updating Color Asset -> Black & White clears colour in PostgreSQL")
+    @DisplayName("14. Updating Color Asset -> Black & White clears colour.")
     void testUpdateColorAssetToBlackAndWhiteClearsColour() throws Exception {
         Asset asset = new Asset("HP M404n", "VNB3K12345", "IT Department", hpCartridge, PrinterType.COLOR, CartridgeColor.MAGENTA, AssetStatus.ACTIVE);
         asset = assetRepository.save(asset);
@@ -428,7 +428,7 @@ public class AssetControllerTest {
     }
 
     @Test
-    @DisplayName("15. Updating Black & White Asset -> Color with CYAN persists in PostgreSQL")
+    @DisplayName("15. Updating Black & White Asset -> Color with CYAN persists.")
     void testUpdateBlackAndWhiteAssetToColor() throws Exception {
         Asset asset = new Asset("HP M404n", "VNB-BW-1", "IT Department", hpCartridge, PrinterType.BLACK_AND_WHITE, null, AssetStatus.ACTIVE);
         asset = assetRepository.save(asset);

@@ -55,7 +55,7 @@ export const ProcurementTable = ({
                   <div className="table-loading-box" style={{ padding: '2rem 0', textAlign: 'center' }}>
                     <div className="spinner text-navy mb-2" style={{ margin: '0 auto 0.5rem' }} />
                     <span style={{ fontSize: '0.875rem', fontWeight: 500, color: 'var(--text-muted)' }}>
-                      Loading procurement records from PostgreSQL database...
+                      Loading procurement records...
                     </span>
                   </div>
                 </td>
@@ -78,7 +78,7 @@ export const ProcurementTable = ({
                     </div>
                     <h4 className="empty-state-title">No procurement records found</h4>
                     <p className="empty-state-desc">
-                      No real procurement records matched your search or filter criteria in PostgreSQL. Try adjusting your parameters.
+                      No real procurement records matched your search or filter criteria. Try adjusting your parameters.
                     </p>
                     {onClearFilters && (
                       <button

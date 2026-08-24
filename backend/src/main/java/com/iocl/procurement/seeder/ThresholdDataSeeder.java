@@ -136,7 +136,7 @@ public class ThresholdDataSeeder implements CommandLineRunner {
         if (createdCount > 0 || updatedCount > 0) {
             logger.info(">>> Seeded {} and updated {} cartridge threshold baseline records. <<<", createdCount, updatedCount);
         } else {
-            logger.info("Cartridge threshold baseline records already present in database.");
+            logger.info("Cartridge threshold baseline records already present.");
         }
     }
 }

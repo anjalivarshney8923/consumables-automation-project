@@ -124,7 +124,7 @@ public class Alert2ThresholdConstraintIntegrationTest {
                 .findFirst()
                 .orElse(null);
 
-        assertNotNull(tenderingAlert, "TENDERING_REQUIRED alert must be persisted in database");
+        assertNotNull(tenderingAlert, "TENDERING_REQUIRED alert must be persisted.");
         assertEquals(AlertSeverity.URGENT, tenderingAlert.getSeverity());
         assertEquals(AlertStatus.UNREAD, tenderingAlert.getStatus());
         assertEquals(173, tenderingAlert.getCombinedNetAvailableQuantity());

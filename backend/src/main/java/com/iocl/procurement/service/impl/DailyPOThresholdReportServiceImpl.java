@@ -46,7 +46,7 @@ public class DailyPOThresholdReportServiceImpl implements DailyPOThresholdReport
 
     @Override
     public List<DailyPOThresholdReportItem> generateAndSendDailyReport() {
-        logger.info("Daily PO threshold report evaluation started. Checking PostgreSQL records...");
+        logger.info("Daily PO threshold report evaluation started. Checking records...");
 
         List<Cartridge> activeCartridges = cartridgeRepository.findAllByActiveTrueOrderByPrinterNameAsc();
         List<DailyPOThresholdReportItem> lowItems = new ArrayList<>();

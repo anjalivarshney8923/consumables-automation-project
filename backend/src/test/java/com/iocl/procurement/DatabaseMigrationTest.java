@@ -28,7 +28,7 @@ public class DatabaseMigrationTest {
     }
 
     @Test
-    @DisplayName("Execute Safe Migration on PostgreSQL and Validate Columns, Types, and Zero NULL Values")
+    @DisplayName("Execute Safe Migration and Validate Columns, Types, and Zero NULL Values")
     public void testSafeMigrationExecution() throws Exception {
         DataSource ds = getPostgresDataSource();
 

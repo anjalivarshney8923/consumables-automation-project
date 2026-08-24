@@ -115,7 +115,7 @@ public class ThresholdControllerTest {
     }
 
     @Test
-    @DisplayName("PUT /api/thresholds/{id} - should update threshold and persist in database")
+    @DisplayName("PUT /api/thresholds/{id} - should update threshold and persist")
     void testUpdateThreshold() throws Exception {
         UpdateThresholdRequest request = new UpdateThresholdRequest(20);
 

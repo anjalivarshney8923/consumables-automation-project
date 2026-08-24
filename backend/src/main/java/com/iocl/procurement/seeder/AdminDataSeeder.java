@@ -49,7 +49,7 @@ public class AdminDataSeeder implements CommandLineRunner {
         String normalizedEmail = initialAdminEmail.trim().toLowerCase();
 
         if (adminRepository.existsByEmailIgnoreCase(normalizedEmail)) {
-            logger.info("Admin account [{}] already exists in database. Skipping initialization.", normalizedEmail);
+            logger.info("Admin account [{}] already exists. Skipping initialization.", normalizedEmail);
             return;
         }
 

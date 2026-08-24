@@ -212,7 +212,7 @@ export const POUserDetails = () => {
         <div style={{ padding: '1.25rem 1.5rem', backgroundColor: '#F8FAFC', borderTop: '1px solid #E2E8F0', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
           <Info size={15} color="#64748B" />
           <span style={{ fontSize: '0.75rem', color: '#64748B' }}>
-            Detailed live values will be populated from PostgreSQL upon backend integration.
+            Detailed live values will be populated.
           </span>
         </div>
       </div>

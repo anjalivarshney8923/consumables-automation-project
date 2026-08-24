@@ -171,7 +171,7 @@ export const updateAsset = async (id, assetData) => {
     if (response.status === 409) {
       errorMsg = data?.message || `An asset with serial number "${assetData.serialNumber}" already exists.`;
     } else if (response.status === 404) {
-      errorMsg = data?.message || 'Asset not found in database.';
+      errorMsg = data?.message || 'Asset not found.';
     } else if (!errorMsg) {
       errorMsg = `Server returned error (${response.status})`;
     }

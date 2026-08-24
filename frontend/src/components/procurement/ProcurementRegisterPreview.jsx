@@ -40,7 +40,7 @@ export const ProcurementRegisterPreview = ({ rateContracts = [], loading = false
       {loading ? (
         <div style={{ padding: '3rem 1.5rem', textAlign: 'center', color: 'var(--text-muted)' }}>
           <Loader2 size={24} className="spinner text-navy" style={{ margin: '0 auto 0.5rem' }} />
-          <p style={{ fontSize: '0.875rem', fontWeight: 500 }}>Loading procurement register from database...</p>
+          <p style={{ fontSize: '0.875rem', fontWeight: 500 }}>Loading procurement register...</p>
         </div>
       ) : error ? (
         <div style={{ padding: '2rem 1.5rem', textAlign: 'center', color: 'var(--iocl-red)' }}>
@@ -53,7 +53,7 @@ export const ProcurementRegisterPreview = ({ rateContracts = [], loading = false
           </div>
           <h4 className="empty-state-title">No Rate Contracts Found</h4>
           <p className="empty-state-desc">
-            No procurement records currently exist in the database. Use the <strong>New Rate Contract Entry</strong> form above to create your first contract.
+            No procurement records currently exist. Use the <strong>New Rate Contract Entry</strong> form above to create your first contract.
           </p>
         </div>
       ) : (

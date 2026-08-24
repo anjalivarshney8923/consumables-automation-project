@@ -60,9 +60,9 @@ public class CartridgeDataSeeder implements CommandLineRunner {
         }
 
         if (count > 0) {
-            logger.info(">>> Seeded {} cartridge master reference records into database. <<<", count);
+            logger.info(">>> Seeded {} cartridge master reference records. <<<", count);
         } else {
-            logger.info("Cartridge master records already present in database. Skipping seeding.");
+            logger.info("Cartridge master records already present. Skipping seeding.");
         }
     }
 }

@@ -164,7 +164,7 @@ export const RateContractDetails = () => {
             Loading Rate Contract Details...
           </h3>
           <p style={{ fontSize: '0.8125rem', marginTop: '0.25rem' }}>
-            Fetching rate contract information and Call-Up PO records from PostgreSQL
+            Fetching rate contract information and Call-Up PO records 
           </p>
         </div>
       ) : error ? (
@@ -182,7 +182,7 @@ export const RateContractDetails = () => {
             {error}
           </h3>
           <p style={{ fontSize: '0.8125rem', color: '#B91C1C', marginBottom: '1.25rem' }}>
-            The requested Rate Contract ID could not be retrieved from the backend database.
+            The requested Rate Contract ID could not be retrieved.
           </p>
           <button
             type="button"
