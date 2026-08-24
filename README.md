@@ -504,7 +504,7 @@ Ensure the following tools are installed before setting up the project:
 
 ### Step 1: Clone the Repository
 ```bash
-git clone <YOUR_REPOSITORY_URL>
+git clone https://github.com/anjalivarshney8923/consumables-automation-project.git
 cd consumables-automation-project
 ```
 
@@ -657,6 +657,10 @@ The system can be validated across the following operational workflows:
 ## 🖼️ Screenshots
 
 > *Place screenshots of the application inside the `screenshots/` directory using the filenames below.*
+
+
+https://github.com/anjalivarshney8923/consumables-automation-project/screenshots/user-register.png
+
 
 ### Admin Portal
 ```
